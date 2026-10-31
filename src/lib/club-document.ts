@@ -22,8 +22,9 @@ export function automaticAccessMembers(db: AccessDatabase) {
 /** PDF rows require an explicit roster header; never guess people from prose. */
 export function parseRosterLines(lines: string[]) {
   const header = lines.findIndex((line) => /nombre/i.test(line) && /apellido/i.test(line) && /tipo|cargo/i.test(line));
-  if (header < 0) return [];
-  const columns = lines[header].split(/\s*\|\s*|\t|\s{2,}/).map((s) => s.toLowerCase().trim());
+  const headerLine = lines[header];
+  if (header < 0 || !headerLine) return [];
+  const columns = headerLine.split(/\s*\|\s*|\t|\s{2,}/).map((s) => s.toLowerCase().trim());
   const get = (cells: string[], pattern: RegExp) => cells[columns.findIndex((c) => pattern.test(c))]?.trim() ?? "";
   const members: MemberDraft[] = [];
   for (const line of lines.slice(header + 1)) {
@@ -43,7 +44,8 @@ export async function readClubPdf(file: File) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+  const pdf = await task.promise;
   const lines: string[] = [];
   try {
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -58,6 +60,6 @@ export async function readClubPdf(file: File) {
       }
       for (const [, row] of [...rows].sort(([a], [b]) => b - a)) lines.push(row.sort((a,b) => a.x-b.x).filter((x) => x.text.trim()).map((x) => x.text).join("  "));
     }
-  } finally { await pdf.destroy(); }
+  } finally { await task.destroy(); }
   return parseRosterLines(lines);
 }
