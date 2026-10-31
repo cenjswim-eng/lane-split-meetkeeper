@@ -23,7 +23,7 @@ export async function shareFile(file: File): Promise<"shared" | "cancelled"> {
     await navigator.share({ files: [file], title: file.name });
     return "shared";
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") return "cancelled";
+    if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") return "cancelled";
     throw error;
   }
 }
