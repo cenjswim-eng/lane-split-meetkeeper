@@ -1,0 +1,202 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { ageAt, eventLabel, formatTime } from "@/lib/swim";
+import { Badge } from "@/components/ui/badge";
+
+const profileQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["athlete", id],
+    queryFn: async () => {
+      const [a, r, s] = await Promise.all([
+        supabase.from("athletes").select("*, teams(code, name), groups(name)").eq("id", id).single(),
+        supabase
+          .from("results")
+          .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, is_dq, round, meets(id, name, start_date, location), events(distance, stroke, event_number), splits(split_distance, cumulative_time_ms, lap_time_ms)")
+          .eq("athlete_id", id),
+        supabase.from("time_standards").select("*"),
+      ]);
+      if (a.error) throw a.error;
+      if (r.error) throw r.error;
+      return { athlete: a.data, results: r.data, standards: s.data ?? [] };
+    },
+  });
+
+export const Route = createFileRoute("/_authenticated/athletes/$id")({
+  head: () => ({ meta: [{ title: "Perfil del atleta — Natación Pro" }, { name: "description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:title", content: "Perfil del atleta — Natación Pro" }, { property: "og:description", content: "Mejores marcas, progresión y parciales del nadador." }] }),
+  loader: ({ context, params }) => context.queryClient.ensureQueryData(profileQuery(params.id)),
+  component: Profile,
+});
+
+type Res = Awaited<ReturnType<ReturnType<typeof profileQuery>["queryFn"] & {}>>["results"][number];
+
+function Profile() {
+  const { id } = Route.useParams();
+  const { data } = useSuspenseQuery(profileQuery(id));
+  const { athlete, results, standards } = data;
+
+  const valid = results.filter((r) => r.final_time_ms && !r.is_dq && r.events);
+  const byEvent = useMemo(() => {
+    const m = new Map<string, Res[]>();
+    for (const r of valid) {
+      const k = `${r.events!.distance}-${r.events!.stroke}-${r.course}`;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(r);
+    }
+    for (const list of m.values()) list.sort((a, b) => (a.meets?.start_date ?? "").localeCompare(b.meets?.start_date ?? ""));
+    return [...m.entries()].sort(([a], [b]) => {
+      const [da, sa] = a.split("-").map(Number), [db, sb] = b.split("-").map(Number);
+      return sa - sb || da - db;
+    });
+  }, [valid]);
+
+  const [selected, setSelected] = useState<string | null>(byEvent[0]?.[0] ?? null);
+  const series = byEvent.find(([k]) => k === selected)?.[1] ?? [];
+  const best = (list: Res[]) => list.reduce((b, r) => (r.final_time_ms! < b.final_time_ms! ? r : b));
+  const age = ageAt(athlete.birth_date);
+  const totalPts = Math.max(0, ...valid.map((r) => r.aqua_points ?? 0));
+
+  const recent = [...results].sort((a, b) => (b.meets?.start_date ?? "").localeCompare(a.meets?.start_date ?? "")).slice(0, 30);
+  const [openSplit, setOpenSplit] = useState<string | null>(null);
+
+  function standardFor(r: Res) {
+    const met = standards
+      .filter((s) => s.distance === r.events!.distance && s.stroke === r.events!.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && r.final_time_ms! <= s.qualifying_time_ms)
+      .sort((a, b) => a.qualifying_time_ms - b.qualifying_time_ms);
+    return met[0]?.name;
+  }
+
+  return (
+    <div className="space-y-8">
+      <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
+      <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
+        <div>
+          <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>
+          <h1 className="mt-1 text-5xl font-bold uppercase leading-none">
+            {athlete.first_name} <span className="text-accent">{athlete.last_name}</span>
+          </h1>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            <Badge variant="secondary">{athlete.gender === "F" ? "Femenino" : athlete.gender === "M" ? "Masculino" : "—"}</Badge>
+            <Badge variant="secondary">{age != null ? `${age} años` : "Edad desconocida"}</Badge>
+            {athlete.federation_id && <Badge variant="secondary" className="time">ID {athlete.federation_id}</Badge>}
+            {athlete.tm_athlete_id && <Badge variant="outline" className="time">{athlete.tm_athlete_id}</Badge>}
+            {!athlete.active_status && <Badge variant="destructive">Inactivo</Badge>}
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-center md:text-right">
+          <Stat label="Pruebas" value={byEvent.length} />
+          <Stat label="Nados" value={valid.length} />
+          <Stat label="Mejor AQUA" value={totalPts || "—"} accent />
+        </div>
+      </section>
+
+      {byEvent.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Este atleta aún no tiene resultados.</div>
+      ) : (
+        <>
+          <section>
+            <h2 className="mb-3 text-2xl font-bold uppercase">Mejores marcas</h2>
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
+                  <tr><th className="p-3">Prueba</th><th className="p-3">Piscina</th><th className="p-3 text-right">Mejor</th><th className="p-3 text-right">AQUA</th><th className="p-3">Competencia</th><th className="p-3">Mínima</th></tr>
+                </thead>
+                <tbody>
+                  {byEvent.map(([k, list]) => {
+                    const b = best(list);
+                    const std = standardFor(b);
+                    return (
+                      <tr key={k} onClick={() => setSelected(k)} className={`cursor-pointer border-t hover:bg-muted ${selected === k ? "bg-muted" : ""}`}>
+                        <td className="p-3 font-medium">{eventLabel(b.events!.distance, b.events!.stroke)}</td>
+                        <td className="p-3 text-muted-foreground">{b.course}</td>
+                        <td className="time p-3 text-right text-base font-semibold text-primary">{formatTime(b.final_time_ms)}</td>
+                        <td className="time p-3 text-right">{b.aqua_points ?? "—"}</td>
+                        <td className="p-3 text-muted-foreground">{b.meets?.name}</td>
+                        <td className="p-3">{std ? <Badge className="bg-success text-primary-foreground">{std}</Badge> : <span className="text-muted-foreground">—</span>}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {series.length > 0 && (
+            <section className="rounded-lg border bg-card p-5">
+              <h2 className="text-2xl font-bold uppercase">Progresión · {eventLabel(series[0].events!.distance, series[0].events!.stroke)} <span className="text-muted-foreground">{series[0].course}</span></h2>
+              <div className="mt-4 h-64">
+                <ResponsiveContainer>
+                  <LineChart data={series.map((r) => ({ date: r.meets?.start_date ?? "", t: r.final_time_ms! / 1000, meet: r.meets?.name }))}>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke="var(--color-muted-foreground)" fontSize={12} />
+                    <YAxis reversed domain={["auto", "auto"]} stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => formatTime(v * 1000)} width={60} />
+                    <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)" }} formatter={(v: number) => formatTime(v * 1000)} labelFormatter={(l, p) => `${l} · ${p?.[0]?.payload?.meet ?? ""}`} />
+                    <Line type="monotone" dataKey="t" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-chart-2)" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">El eje está invertido: más arriba = más rápido.</p>
+            </section>
+          )}
+        </>
+      )}
+
+      <section>
+        <h2 className="mb-3 text-2xl font-bold uppercase">Resultados recientes</h2>
+        <div className="space-y-2">
+          {recent.map((r) => (
+            <div key={r.id} className="rounded-lg border bg-card">
+              <button className="flex w-full flex-wrap items-center gap-3 p-3 text-left" onClick={() => setOpenSplit(openSplit === r.id ? null : r.id)}>
+                <span className="w-16 time text-xs text-muted-foreground">{r.meets?.start_date ?? ""}</span>
+                <span className="flex-1 font-medium">{r.events ? eventLabel(r.events.distance, r.events.stroke) : "—"} <span className="text-muted-foreground">· {r.meets?.name}</span></span>
+                {r.round === "P" && <Badge variant="outline">Elim.</Badge>}
+                <span className="time text-xs text-muted-foreground">sembrado {formatTime(r.seed_time_ms)}</span>
+                <span className="time w-20 text-right font-semibold">{r.is_dq ? <span className="text-destructive">DQ</span> : formatTime(r.final_time_ms)}</span>
+                <span className="time w-10 text-right text-accent">{r.place ? `${r.place}º` : ""}</span>
+                {r.splits.length > 0 && <span className="text-xs text-primary">{openSplit === r.id ? "▲" : "▼"} parciales</span>}
+              </button>
+              {openSplit === r.id && r.splits.length > 0 && <Splits splits={r.splits} />}
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Splits({ splits }: { splits: { split_distance: number; cumulative_time_ms: number; lap_time_ms: number | null }[] }) {
+  const s = [...splits].sort((a, b) => a.split_distance - b.split_distance);
+  return (
+    <div className="grid gap-4 border-t p-4 md:grid-cols-2">
+      <table className="text-sm">
+        <thead className="text-xs uppercase text-muted-foreground"><tr><th className="text-left">Dist.</th><th className="text-right">Acumulado</th><th className="text-right">Parcial</th></tr></thead>
+        <tbody>
+          {s.map((x) => (
+            <tr key={x.split_distance}><td>{x.split_distance} m</td><td className="time text-right">{formatTime(x.cumulative_time_ms)}</td><td className="time text-right text-primary">{formatTime(x.lap_time_ms)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="h-40">
+        <ResponsiveContainer>
+          <BarChart data={s.map((x) => ({ d: x.split_distance, lap: (x.lap_time_ms ?? 0) / 1000 }))}>
+            <XAxis dataKey="d" stroke="var(--color-muted-foreground)" fontSize={11} />
+            <YAxis domain={["dataMin - 1", "auto"]} hide />
+            <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)" }} formatter={(v: number) => formatTime(v * 1000)} />
+            <Bar dataKey="lap" fill="var(--color-chart-1)" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
+  return (
+    <div>
+      <div className={`time text-3xl font-semibold ${accent ? "text-accent" : ""}`}>{value}</div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+    </div>
+  );
+}
