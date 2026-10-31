@@ -51,13 +51,12 @@ export function bestMedleyRelay(candidates: RelayCandidate[]): RelayTeam | null 
         if (c.id === a.id || c.id === b.id || c.best[4] == null) continue;
         for (const d of list) {
           if (d.id === a.id || d.id === b.id || d.id === c.id || d.best[1] == null) continue;
-          const picks = [a, b, c, d];
-          const legs = picks.map((cand, i) => ({
-            stroke: MEDLEY_ORDER[i],
-            athleteId: cand.id,
-            name: cand.name,
-            ms: cand.best[MEDLEY_ORDER[i]]!,
-          }));
+          const legs: RelayLeg[] = [
+            { stroke: 2, athleteId: a.id, name: a.name, ms: a.best[2]! },
+            { stroke: 3, athleteId: b.id, name: b.name, ms: b.best[3]! },
+            { stroke: 4, athleteId: c.id, name: c.name, ms: c.best[4]! },
+            { stroke: 1, athleteId: d.id, name: d.name, ms: d.best[1]! },
+          ];
           const totalMs = legs.reduce((s, l) => s + l.ms, 0);
           if (!best || totalMs < best.totalMs) best = { legs, totalMs };
         }
