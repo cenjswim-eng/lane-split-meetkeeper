@@ -514,6 +514,10 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_import_identity: {
+        Args: { p_data: Json; p_kind: string }
+        Returns: string
+      }
       resolve_import_meet: {
         Args: {
           p_course: string
