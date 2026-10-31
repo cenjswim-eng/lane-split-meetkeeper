@@ -29,7 +29,7 @@ export function parseSdif(text: string): ParsedFile {
       out.teams.push({ code: teamCode, name: col(line, 24, 53) || teamCode, lsc: col(line, 16, 17) || null });
     } else if (type === "D0") {
       const fullName = col(line, 12, 39);
-      const [lastName, firstRest = ""] = fullName.split(",").map((s) => s.trim());
+      const [lastName = "", firstRest = ""] = fullName.split(",").map((s) => s.trim());
       const firstName = firstRest.split(" ")[0] ?? "";
       const uss = col(line, 40, 51) || null;
       const birth = mdyToIso(col(line, 56, 63));
@@ -73,7 +73,7 @@ export function parseSdif(text: string): ParsedFile {
       const round = col(line, 144, 144).toUpperCase() === "P" ? "P" : "F";
       const target = last.find((r) => r.round === round) ?? last[last.length - 1];
       if (!target) continue;
-      let acc = target.splits.length ? target.splits[target.splits.length - 1].cumulative_ms : 0;
+      let acc = target.splits.at(-1)?.cumulative_ms ?? 0;
       for (let i = 0; i < 10; i++) {
         const ms = parseTime(line.slice(63 + i * 8, 71 + i * 8));
         if (!ms) continue;
@@ -139,7 +139,7 @@ export function buildSd3(meet: { name: string; location: string | null; start_da
       const sp = [...r.splits].sort((a, b) => a.split_distance - b.split_distance);
       if (sp.length) {
         const total = sp.length;
-        const dist = sp[0].split_distance;
+        const dist = sp[0]!.split_distance;
         for (let i = 0; i < total; i += 10) {
           const chunk = sp.slice(i, i + 10).map((s) => sdifTime(s.cumulative_time_ms)).join("");
           const g = "G0" + pad("", 13) + pad(name, 28) + pad(r.athlete.federation_id, 12) + String(Math.floor(i / 10) + 1) + String(total).padStart(2) + String(dist).padStart(4) + "C" + chunk.padEnd(80) + (isPrelim ? "P" : "F");

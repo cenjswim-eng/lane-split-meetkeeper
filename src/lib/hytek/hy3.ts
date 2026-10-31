@@ -87,7 +87,7 @@ export function parseHy3(text: string): ParsedFile {
         const round = col(line, 3, 3) as "P" | "F" | "S";
         const timeRaw = col(line, 4, 11);
         const code = col(line, 13, 15).toUpperCase();
-        let target = current;
+        let target: ParsedResult = current;
         if (current.finalMs != null && round && round !== current.round) {
           target = { ...current, splits: [], finalMs: null, place: null, isDq: false };
           out.results.push(target);

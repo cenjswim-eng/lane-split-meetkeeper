@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { aquaPoints } from "./swim";
 import type { ParsedFile } from "./hytek";
 
@@ -12,9 +13,13 @@ export interface ImportSummary {
   splits: number;
 }
 
-function must<T>(r: { data: T | null; error: { message: string } | null }): T {
+function must<T>(r: { data: T; error: { message: string } | null }): NonNullable<T> {
   if (r.error) throw new Error(r.error.message);
-  return r.data as T;
+  return r.data as NonNullable<T>;
+}
+function maybe<T>(r: { data: T; error: { message: string } | null }): T {
+  if (r.error) throw new Error(r.error.message);
+  return r.data;
 }
 
 /** Writes a parsed Hy-Tek file into the database, de-duplicating athletes, teams, meets and events. */
@@ -29,7 +34,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
   // Meet (match by name + start date)
   let meetQ = supabase.from("meets").select("id").eq("name", p.meet.name);
   meetQ = p.meet.startDate ? meetQ.eq("start_date", p.meet.startDate) : meetQ.is("start_date", null);
-  const existing = must(await meetQ.maybeSingle());
+  const existing = maybe(await meetQ.maybeSingle());
   const meetId = existing?.id ?? must(await supabase.from("meets").insert({ name: p.meet.name, location: p.meet.location, start_date: p.meet.startDate, end_date: p.meet.endDate, course: p.meet.course }).select("id").single()).id;
 
   // Athletes
@@ -39,17 +44,17 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
   for (const a of p.athletes) {
     athleteGender.set(a.key, a.gender);
     let found: { id: string } | null = null;
-    if (a.tmId) found = must(await supabase.from("athletes").select("id").eq("tm_athlete_id", a.tmId).maybeSingle());
-    if (!found && a.federationId) found = must(await supabase.from("athletes").select("id").eq("federation_id", a.federationId).limit(1).maybeSingle());
+    if (a.tmId) found = maybe(await supabase.from("athletes").select("id").eq("tm_athlete_id", a.tmId).maybeSingle());
+    if (!found && a.federationId) found = maybe(await supabase.from("athletes").select("id").eq("federation_id", a.federationId).limit(1).maybeSingle());
     if (!found) {
       let q = supabase.from("athletes").select("id").ilike("last_name", a.lastName).ilike("first_name", a.firstName);
       if (a.birthDate) q = q.eq("birth_date", a.birthDate);
-      found = must(await q.limit(1).maybeSingle());
+      found = maybe(await q.limit(1).maybeSingle());
     }
     const teamId = a.teamCode ? teamIds.get(a.teamCode) ?? null : null;
     if (found) {
       matched++;
-      const patch: Record<string, unknown> = {};
+      const patch: TablesUpdate<"athletes"> = {};
       if (a.tmId) patch.tm_athlete_id = a.tmId;
       if (a.federationId) patch.federation_id = a.federationId;
       if (a.birthDate) patch.birth_date = a.birthDate;
@@ -70,8 +75,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
 
   let resultCount = 0, splitCount = 0;
   const total = p.results.length || 1;
-  for (let i = 0; i < p.results.length; i++) {
-    const r = p.results[i];
+  for (const [i, r] of p.results.entries()) {
     const athleteId = athleteIds.get(r.athleteKey);
     if (!athleteId || !r.distance) continue;
     const ev = { event_number: r.eventNumber, distance: r.distance, stroke: r.stroke, gender: r.gender, min_age: r.minAge, max_age: r.maxAge };
