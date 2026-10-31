@@ -1,0 +1,16 @@
+CREATE TABLE public.clubs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.clubs TO authenticated;
+GRANT ALL ON public.clubs TO service_role;
+ALTER TABLE public.clubs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admins manage clubs" ON public.clubs FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+CREATE TABLE public.club_documents (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), club_id uuid NOT NULL REFERENCES public.clubs(id), file_name text NOT NULL, storage_path text NOT NULL UNIQUE, table_summary jsonb NOT NULL DEFAULT '[]', uploaded_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.club_documents TO authenticated;
+GRANT ALL ON public.club_documents TO service_role;
+ALTER TABLE public.club_documents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admins manage club documents" ON public.club_documents FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+CREATE TABLE public.club_members (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), club_id uuid NOT NULL REFERENCES public.clubs(id), first_name text NOT NULL, last_name text NOT NULL DEFAULT '', member_role text NOT NULL DEFAULT 'nadador', birth_date date, email text, phone text, active boolean NOT NULL DEFAULT true, notes text NOT NULL DEFAULT '', source_key text, document_id uuid REFERENCES public.club_documents(id), updated_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT club_member_role CHECK (member_role IN ('nadador','entrenador','directivo','personal')), UNIQUE(club_id,source_key));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.club_members TO authenticated;
+GRANT ALL ON public.club_members TO service_role;
+ALTER TABLE public.club_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admins manage club members" ON public.club_members FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+CREATE POLICY "admins club files" ON storage.objects FOR ALL TO authenticated USING (bucket_id='club-documents' AND public.has_role(auth.uid(),'admin')) WITH CHECK (bucket_id='club-documents' AND public.has_role(auth.uid(),'admin'));

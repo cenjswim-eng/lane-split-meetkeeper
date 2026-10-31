@@ -71,6 +71,122 @@ export type Database = {
           },
         ]
       }
+      club_documents: {
+        Row: {
+          club_id: string
+          file_name: string
+          id: string
+          storage_path: string
+          table_summary: Json
+          uploaded_at: string
+        }
+        Insert: {
+          club_id: string
+          file_name: string
+          id?: string
+          storage_path: string
+          table_summary?: Json
+          uploaded_at?: string
+        }
+        Update: {
+          club_id?: string
+          file_name?: string
+          id?: string
+          storage_path?: string
+          table_summary?: Json
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_documents_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_members: {
+        Row: {
+          active: boolean
+          birth_date: string | null
+          club_id: string
+          document_id: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          member_role: string
+          notes: string
+          phone: string | null
+          source_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          birth_date?: string | null
+          club_id: string
+          document_id?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name?: string
+          member_role?: string
+          notes?: string
+          phone?: string | null
+          source_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          birth_date?: string | null
+          club_id?: string
+          document_id?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          member_role?: string
+          notes?: string
+          phone?: string | null
+          source_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_members_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "club_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           distance: number
@@ -381,6 +497,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      import_club_members: {
+        Args: { p_club_id: string; p_document_id: string; p_members: Json }
+        Returns: number
       }
     }
     Enums: {

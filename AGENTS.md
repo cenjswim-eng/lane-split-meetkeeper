@@ -12,7 +12,8 @@
 ## Swimming system rules
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
-- Keep browser Node polyfills for the MDB reader's crypto dependencies in Vite; the reader is invoked only from file-selection handlers, not server functions.
+- Keep MDB crypto polyfill hooks and configuration scoped to Vite's client environment; invoke the reader only from file-selection handlers so server runtime imports retain native implementations.
+- Club membership is separate from competition athletes; explicit Access column mappings populate an admin-only club register, private originals are retained, and atomic reimports match stable source keys without deleting absent members or overwriting manual status and notes.
 - All times are stored as integer milliseconds (`*_ms`); format only at display time via `src/lib/swim.ts`.
 - Athlete de-duplication order on import: `tm_athlete_id` → `federation_id` → name + birth date.
 - Data access is admin-only via `has_role(auth.uid(),'admin')` RLS; the first signed-up user becomes admin by trigger.

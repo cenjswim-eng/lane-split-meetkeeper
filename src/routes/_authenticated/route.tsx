@@ -38,6 +38,7 @@ function Layout() {
             Natación <span className="text-accent">Pro</span>
           </Link>
           <Link to="/dashboard" className={link} activeProps={active}>Panel</Link>
+          <Link to="/club" className={link} activeProps={active}>Mi club</Link>
           <Link to="/athletes" className={link} activeProps={active}>Atletas</Link>
           <Link to="/meets" className={link} activeProps={active}>Competencias</Link>
           <Link to="/relays" className={link} activeProps={active}>Relevos</Link>
