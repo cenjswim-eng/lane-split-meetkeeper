@@ -13,7 +13,7 @@ describe("athlete PDF vector charts", () => {
   it("paginates all swims and gives a different pool its own chart", () => {
     const doc = new jsPDF({ orientation: "landscape" });
     appendAthleteProgressCharts(doc, "Atleta", [...Array.from({ length: 25 }, (_, i) => swim(60000 + i * 100)), swim(58000, "SCM")], now);
-    expect(doc.getNumberOfPages()).toBe(5); // Existing summary + 3 LCM pages + 1 SCM page.
+    expect(doc.getNumberOfPages()).toBe(6); // Existing summary + 4 LCM pages + 1 SCM page.
   });
 
   it("plots a single constant time without a zero-range axis", () => {
