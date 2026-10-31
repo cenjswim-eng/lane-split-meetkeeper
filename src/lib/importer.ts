@@ -31,11 +31,8 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
     rows.forEach((t) => teamIds.set(t.code, t.id));
   }
 
-  // Meet (match by name + start date)
-  let meetQ = supabase.from("meets").select("id").eq("name", p.meet.name);
-  meetQ = p.meet.startDate ? meetQ.eq("start_date", p.meet.startDate) : meetQ.is("start_date", null);
-  const existing = maybe(await meetQ.maybeSingle());
-  const meetId = existing?.id ?? must(await supabase.from("meets").insert({ name: p.meet.name, location: p.meet.location, start_date: p.meet.startDate, end_date: p.meet.endDate, course: p.meet.course }).select("id").single()).id;
+  // Atomic identity resolution also covers parallel uploads and null dates.
+  const meetId = must(await supabase.rpc("resolve_import_meet", { p_name: p.meet.name, p_start_date: p.meet.startDate, p_end_date: p.meet.endDate, p_location: p.meet.location, p_course: p.meet.course }));
 
   // Athletes
   const athleteIds = new Map<string, string>();
@@ -81,7 +78,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
     const ev = { event_number: r.eventNumber, distance: r.distance, stroke: r.stroke, gender: r.gender, min_age: r.minAge, max_age: r.maxAge };
     let eventId = eventIds.get(evKey(ev));
     if (!eventId) {
-      eventId = must(await supabase.from("events").insert({ meet_id: meetId, ...ev, is_relay: r.stroke >= 6 }).select("id").single()).id;
+      eventId = must(await supabase.rpc("resolve_import_event", { p_meet_id: meetId, p_number: r.eventNumber, p_distance: r.distance, p_stroke: r.stroke, p_gender: r.gender, p_min_age: r.minAge, p_max_age: r.maxAge }));
       eventIds.set(evKey(ev), eventId);
     }
     const course = r.course ?? p.meet.course;
