@@ -4,6 +4,7 @@ import { formatTime, eventLabel, ageAtDec31, ageGroup } from "./swim";
 import { MEMBER_ROLES, type MemberRole } from "./club";
 import { exportFilename } from "./file-delivery";
 import { rankedAthleteRecords } from "./athlete-records";
+import { appendAthleteProgressCharts } from "./athlete-progress-pdf";
 
 export interface ReportRow {
   athlete: string;
@@ -94,6 +95,7 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   autoTable(doc, { startY: y() + 10, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—"]), styles: { fontSize: 8 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
+  appendAthleteProgressCharts(doc, name, ranked);
   return new File([doc.output("blob")], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
 }
 

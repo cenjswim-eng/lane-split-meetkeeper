@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Añadir gráficas cronológicas por prueba y piscina al PDF individual, con competencias identificadas y todos los registros vigentes; verificar exportación.
 - [x] Corregir fechas imposibles, lectura de archivos con acentos y pérdida de tiempos al reimportar inscripciones; verificar tiempo final en perfil con importación autenticada y limpiar datos temporales.
 - [x] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos. Protecciones probadas; botón verificado sin ejecutar borrado real.
 - [x] Automatizar extracción y guardado de integrantes desde documentos MDB y PDF estructurados, conservando originales y verificando datos; PDF escaneado o sin columnas reconocibles conserva original sin inventar integrantes.

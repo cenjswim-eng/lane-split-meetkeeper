@@ -24,3 +24,25 @@ export function rankedAthleteRecords<T extends TimedRecord>(records: T[], now = 
     return date >= from && date <= to && !record.is_dq && record.final_time_ms != null && Number.isFinite(record.final_time_ms) && record.final_time_ms > 0;
   }).sort((a, b) => (a.final_time_ms ?? Infinity) - (b.final_time_ms ?? Infinity) || (b.meets?.start_date ?? "").localeCompare(a.meets?.start_date ?? ""));
 }
+
+interface ProgressRecord extends TimedRecord {
+  events: { distance: number; stroke: number } | null;
+  course: string | null;
+}
+
+/** One chronological series per event and course; never mixes pool lengths. */
+export function athleteProgressSeries<T extends ProgressRecord>(records: T[], now = new Date()) {
+  const groups = new Map<string, { distance: number; stroke: number; course: string | null; records: T[] }>();
+  for (const record of rankedAthleteRecords(records, now)) {
+    if (!record.events) continue;
+    const { distance, stroke } = record.events;
+    const key = `${distance}-${stroke}-${record.course ?? "unknown"}`;
+    const group = groups.get(key) ?? { distance, stroke, course: record.course, records: [] };
+    group.records.push(record);
+    groups.set(key, group);
+  }
+  return [...groups.values()].sort((a, b) => a.stroke - b.stroke || a.distance - b.distance || (a.course ?? "").localeCompare(b.course ?? "")).map((group) => ({
+    ...group,
+    records: group.records.sort((a, b) => (a.meets?.start_date ?? "").localeCompare(b.meets?.start_date ?? "")),
+  }));
+}
