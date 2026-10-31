@@ -11,6 +11,7 @@
 
 ## Swimming system rules
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
+- Decode legacy Hy-Tek text as Windows-1252 when UTF-8 is invalid; keep fixed-width columns stable, reject unsupported athlete layouts visibly, and never overwrite existing final times with entry-only imports.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
 - Keep MDB crypto polyfill hooks and configuration scoped to Vite's client environment; invoke the reader only from file-selection handlers so server runtime imports retain native implementations.
 - Resolve client polyfill aliases through client-only hooks to ESM shims, never environment.resolve.alias or shared aliases; disable global plugin injection and initialize MDB globals only in the browser file-reading handler to avoid optimizer cycles and server replacement.

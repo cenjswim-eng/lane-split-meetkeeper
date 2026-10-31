@@ -121,7 +121,7 @@ function ImportPage() {
                   <span>{withTimes} con tiempo</span>
                   <span>{splits} parciales</span>
                 </div>
-                {withTimes === 0 && <p className="mt-2 text-xs text-accent">Archivo de inscripciones: se guardarán los tiempos de sembrado.</p>}
+                {withTimes === 0 && <p role="alert" className="mt-2 text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán. Si esperabas resultados, carga el archivo CL2/SD3 de la competencia.</p>}
                 {f.parsed.warnings.map((warning, i) => <p key={i} className="mt-2 break-words text-xs text-destructive">{warning}</p>)}
                 {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="mt-2 text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
               </div>
