@@ -34,7 +34,7 @@ describe("mobile file delivery", () => {
     vi.useFakeTimers();
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: () => "blob:export", revokeObjectURL: revoke });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function () {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       expect(this.isConnected).toBe(true);
       expect(this.download).toBe("competencia.sd3");
     });
