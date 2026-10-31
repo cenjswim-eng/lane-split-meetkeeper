@@ -1,4 +1,6 @@
 # Exportación móvil
+- [ ] Corregir importaciones interrumpidas y actualización de tiempos; verificar reimportación sin pérdida de marcas.
+- [ ] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos.
 - [x] Automatizar extracción y guardado de integrantes desde documentos MDB y PDF estructurados, conservando originales y verificando datos; PDF escaneado o sin columnas reconocibles conserva original sin inventar integrantes.
 - [x] Evitar competencias duplicadas al subir archivos Meet y resultados duplicados en perfiles; verificar reimportación con archivo renombrado.
 - [x] Corregir node:buffer y verificar desarrollo; ordenar marcas de atletas de mejor a peor con vigencia de nueve meses y pruebas.
