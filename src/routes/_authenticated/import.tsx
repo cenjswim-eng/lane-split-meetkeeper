@@ -37,8 +37,7 @@ function ImportPage() {
   async function run() {
     const summaries: ImportSummary[] = [];
     try {
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
+      for (const [i, f] of files.entries()) {
         const s = await importParsed(f.name, f.parsed, (p) => setProgress(Math.round(((i + p / 100) / files.length) * 100)));
         summaries.push(s);
       }

@@ -25,7 +25,10 @@ async function exportMeet(meet: { id: string; name: string; location: string | n
     .from("results")
     .select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, course, round, athletes(first_name, last_name, federation_id, birth_date, gender, teams(code, name)), events(event_number, distance, stroke, gender, min_age, max_age), splits(split_distance, cumulative_time_ms)")
     .eq("meet_id", meet.id);
-  if (error) return toast.error(error.message);
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
   const teams = new Map<string, string>();
   const rows: ExportRow[] = data
     .filter((r) => r.athletes && r.events)

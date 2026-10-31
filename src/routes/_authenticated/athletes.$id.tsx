@@ -48,12 +48,13 @@ function Profile() {
     for (const list of m.values()) list.sort((a, b) => (a.meets?.start_date ?? "").localeCompare(b.meets?.start_date ?? ""));
     return [...m.entries()].sort(([a], [b]) => {
       const [da, sa] = a.split("-").map(Number), [db, sb] = b.split("-").map(Number);
-      return sa - sb || da - db;
+      return (sa ?? 0) - (sb ?? 0) || (da ?? 0) - (db ?? 0);
     });
   }, [valid]);
 
   const [selected, setSelected] = useState<string | null>(byEvent[0]?.[0] ?? null);
   const series = byEvent.find(([k]) => k === selected)?.[1] ?? [];
+  const first = series[0];
   const best = (list: Res[]) => list.reduce((b, r) => (r.final_time_ms! < b.final_time_ms! ? r : b));
   const age = ageAt(athlete.birth_date);
   const totalPts = Math.max(0, ...valid.map((r) => r.aqua_points ?? 0));
@@ -123,9 +124,9 @@ function Profile() {
             </div>
           </section>
 
-          {series.length > 0 && (
+          {first && (
             <section className="rounded-lg border bg-card p-5">
-              <h2 className="text-2xl font-bold uppercase">Progresión · {eventLabel(series[0].events!.distance, series[0].events!.stroke)} <span className="text-muted-foreground">{series[0].course}</span></h2>
+              <h2 className="text-2xl font-bold uppercase">Progresión · {eventLabel(first.events!.distance, first.events!.stroke)} <span className="text-muted-foreground">{first.course}</span></h2>
               <div className="mt-4 h-64">
                 <ResponsiveContainer>
                   <LineChart data={series.map((r) => ({ date: r.meets?.start_date ?? "", t: r.final_time_ms! / 1000, meet: r.meets?.name }))}>
