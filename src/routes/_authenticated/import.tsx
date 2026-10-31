@@ -17,6 +17,7 @@ function ImportPage() {
   const [files, setFiles] = useState<{ name: string; parsed: ParsedFile }[]>([]);
   const [progress, setProgress] = useState<number | null>(null);
   const [done, setDone] = useState<ImportSummary[]>([]);
+  const [dragging, setDragging] = useState(false);
 
   async function onPick(list: FileList | null) {
     if (!list) return;
@@ -59,8 +60,20 @@ function ImportPage() {
         <p className="text-muted-foreground">Resultados e inscripciones de Meet Manager / Team Manager: .hy3, .cl2, .sd3 o .zip</p>
       </div>
 
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card p-10 text-center transition-colors hover:border-primary">
-        <span className="font-display text-2xl font-semibold uppercase">Arrastra o elige archivos</span>
+      <label
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card p-10 text-center transition-colors hover:border-primary ${dragging ? "border-primary bg-muted" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          onPick(e.dataTransfer.files);
+        }}
+      >
+        <span className="font-display text-2xl font-semibold uppercase">{dragging ? "Suelta aquí" : "Arrastra o elige archivos"}</span>
         <span className="mt-1 text-sm text-muted-foreground">Puedes seleccionar varios a la vez</span>
         <input type="file" multiple accept=".hy3,.cl2,.sd3,.zip" className="hidden" onChange={(e) => onPick(e.target.files)} />
       </label>

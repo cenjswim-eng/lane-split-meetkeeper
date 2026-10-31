@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { ageAt } from "@/lib/swim";
+import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
 
 const athletesQuery = queryOptions({
   queryKey: ["athletes"],
@@ -51,7 +51,9 @@ function AthletesPage() {
                   <div className="font-display text-xl font-semibold uppercase group-hover:text-primary">{a.last_name}, {a.first_name}</div>
                   <div className="text-sm text-muted-foreground">{a.teams?.name ?? "Sin club"}</div>
                 </div>
-                <span className="time rounded bg-secondary px-2 py-0.5 text-xs">{a.gender ?? "-"} · {ageAt(a.birth_date) ?? "?"}</span>
+                <span className="time rounded bg-secondary px-2 py-0.5 text-xs">
+                  {a.gender ?? "-"} · {ageAt(a.birth_date) ?? "?"} · {ageGroup(ageAtDec31(a.birth_date, new Date().getFullYear()))}
+                </span>
               </div>
             </Link>
           ))}

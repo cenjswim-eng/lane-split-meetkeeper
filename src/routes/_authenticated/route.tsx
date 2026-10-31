@@ -37,8 +37,10 @@ function Layout() {
           <Link to="/" className="mr-3 font-display text-xl font-bold uppercase">
             Natación <span className="text-accent">Pro</span>
           </Link>
+          <Link to="/dashboard" className={link} activeProps={active}>Panel</Link>
           <Link to="/athletes" className={link} activeProps={active}>Atletas</Link>
           <Link to="/meets" className={link} activeProps={active}>Competencias</Link>
+          <Link to="/relays" className={link} activeProps={active}>Relevos</Link>
           <Link to="/import" className={link} activeProps={active}>Importar</Link>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={signOut}>Salir</Button>
         </div>
