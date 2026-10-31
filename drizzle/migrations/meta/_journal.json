@@ -43,6 +43,13 @@
       "when": 1793430916722,
       "tag": "0005_nullable_import_identity_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793442034699,
+      "tag": "0006_admin_reset_management_data",
+      "breakpoints": true
     }
   ]
 }
