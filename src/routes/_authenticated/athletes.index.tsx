@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
+import { DeleteAthlete } from "@/components/delete-athlete";
 
 const athletesQuery = queryOptions({
   queryKey: ["athletes"],
@@ -45,7 +46,8 @@ function AthletesPage() {
       ) : (
         <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((a) => (
-            <Link key={a.id} to="/athletes/$id" params={{ id: a.id }} className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary">
+            <div key={a.id} className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary">
+            <Link to="/athletes/$id" params={{ id: a.id }}>
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-display text-xl font-semibold uppercase group-hover:text-primary">{a.last_name}, {a.first_name}</div>
@@ -56,6 +58,8 @@ function AthletesPage() {
                 </span>
               </div>
             </Link>
+            <div className="mt-2 flex justify-end"><DeleteAthlete id={a.id} name={`${a.first_name} ${a.last_name}`} /></div>
+            </div>
           ))}
         </div>
       )}

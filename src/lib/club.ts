@@ -1,5 +1,5 @@
 import type { AccessRow, AccessTable } from "./access";
-export const MEMBER_ROLES = { nadador: "Nadador", entrenador: "Entrenador", directivo: "Directivo", personal: "Personal" } as const;
+export const MEMBER_ROLES = { nadador: "Nadador", entrenador: "Entrenador", directivo: "Directivo", personal: "Personal", delegado: "Delegado" } as const;
 export type MemberRole = keyof typeof MEMBER_ROLES;
 export interface MemberDraft { first_name: string; last_name: string; member_role: MemberRole; birth_date: string | null; email: string | null; phone: string | null; active: boolean; notes: string; source_key: string | null }
 export interface MemberMapping { first: string; last: string; id: string; birth: string; email: string; phone: string }
