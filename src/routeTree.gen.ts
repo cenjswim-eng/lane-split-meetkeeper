@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMeetsRouteImport } from './routes/_authenticated/meets'
+import { Route as AuthenticatedRelaysRouteImport } from './routes/_authenticated/relays'
 import { Route as AuthenticatedAthletesIndexRouteImport } from './routes/_authenticated/athletes.index'
 import { Route as AuthenticatedAthletesIdRouteImport } from './routes/_authenticated/athletes.$id'
 
@@ -31,6 +33,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -39,6 +46,11 @@ const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
 const AuthenticatedMeetsRoute = AuthenticatedMeetsRouteImport.update({
   id: '/meets',
   path: '/meets',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRelaysRoute = AuthenticatedRelaysRouteImport.update({
+  id: '/relays',
+  path: '/relays',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAthletesIndexRoute =
@@ -56,16 +68,20 @@ const AuthenticatedAthletesIdRoute = AuthenticatedAthletesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
+  '/relays': typeof AuthenticatedRelaysRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes/': typeof AuthenticatedAthletesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
+  '/relays': typeof AuthenticatedRelaysRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes': typeof AuthenticatedAthletesIndexRoute
 }
@@ -74,24 +90,43 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/meets': typeof AuthenticatedMeetsRoute
+  '/_authenticated/relays': typeof AuthenticatedRelaysRoute
   '/_authenticated/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/_authenticated/athletes/': typeof AuthenticatedAthletesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/import' | '/meets' | '/athletes/$id' | '/athletes/'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/import'
+    | '/meets'
+    | '/relays'
+    | '/athletes/$id'
+    | '/athletes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/import' | '/meets' | '/athletes/$id' | '/athletes'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/import'
+    | '/meets'
+    | '/relays'
+    | '/athletes/$id'
+    | '/athletes'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/dashboard'
     | '/_authenticated/import'
     | '/_authenticated/meets'
+    | '/_authenticated/relays'
     | '/_authenticated/athletes/$id'
     | '/_authenticated/athletes/'
   fileRoutesById: FileRoutesById
@@ -125,6 +160,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/import': {
       id: '/_authenticated/import'
       path: '/import'
@@ -137,6 +179,13 @@ declare module '@tanstack/react-router' {
       path: '/meets'
       fullPath: '/meets'
       preLoaderRoute: typeof AuthenticatedMeetsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relays': {
+      id: '/_authenticated/relays'
+      path: '/relays'
+      fullPath: '/relays'
+      preLoaderRoute: typeof AuthenticatedRelaysRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/athletes/': {
@@ -157,15 +206,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMeetsRoute: typeof AuthenticatedMeetsRoute
+  AuthenticatedRelaysRoute: typeof AuthenticatedRelaysRoute
   AuthenticatedAthletesIdRoute: typeof AuthenticatedAthletesIdRoute
   AuthenticatedAthletesIndexRoute: typeof AuthenticatedAthletesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMeetsRoute: AuthenticatedMeetsRoute,
+  AuthenticatedRelaysRoute: AuthenticatedRelaysRoute,
   AuthenticatedAthletesIdRoute: AuthenticatedAthletesIdRoute,
   AuthenticatedAthletesIndexRoute: AuthenticatedAthletesIndexRoute,
 }

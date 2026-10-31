@@ -14,3 +14,5 @@
 - All times are stored as integer milliseconds (`*_ms`); format only at display time via `src/lib/swim.ts`.
 - Athlete de-duplication order on import: `tm_athlete_id` → `federation_id` → name + birth date.
 - Data access is admin-only via `has_role(auth.uid(),'admin')` RLS; the first signed-up user becomes admin by trigger.
+- Relay lineup optimization lives in `src/lib/relay.ts` (pure functions, no DB); PDF reports in `src/lib/reports.ts` (jspdf + jspdf-autotable, generated client-side).
+- Age categories use the Dec-31 rule via `ageAtDec31`/`ageGroup` in `src/lib/swim.ts`; never compute categories from current age.

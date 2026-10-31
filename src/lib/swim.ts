@@ -85,6 +85,24 @@ export function ageAt(birth: string | null, at: Date = new Date()): number | nul
   return a;
 }
 
+/** Age on December 31 of the given year — the category rule used by federations. */
+export function ageAtDec31(birth: string | null, year: number): number | null {
+  if (!birth) return null;
+  const y = new Date(`${birth}T00:00:00`).getFullYear();
+  if (Number.isNaN(y)) return null;
+  return year - y;
+}
+
+export function ageGroup(age: number | null): string {
+  if (age == null) return "—";
+  if (age <= 8) return "8 y menor";
+  if (age <= 10) return "9-10";
+  if (age <= 12) return "11-12";
+  if (age <= 14) return "13-14";
+  if (age <= 17) return "15-17";
+  return "18+";
+}
+
 export function eventLabel(distance: number, stroke: number) {
   return `${distance} ${STROKES[stroke] ?? stroke}`;
 }
