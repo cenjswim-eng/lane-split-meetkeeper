@@ -3,6 +3,8 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSd3, type ExportRow } from "@/lib/hytek/sdif";
+import { entriesPdf, resultsPdf, type ReportRow } from "@/lib/reports";
+import { ageAtDec31, eventLabel } from "@/lib/swim";
 import { Button } from "@/components/ui/button";
 
 const meetsQuery = queryOptions({
@@ -46,6 +48,41 @@ async function exportMeet(meet: { id: string; name: string; location: string | n
   URL.revokeObjectURL(a.href);
 }
 
+async function reportRows(meetId: string): Promise<ReportRow[] | null> {
+  const { data, error } = await supabase
+    .from("results")
+    .select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, athletes(first_name, last_name, birth_date, gender, teams(name)), events(distance, stroke)")
+    .eq("meet_id", meetId);
+  if (error) {
+    toast.error(error.message);
+    return null;
+  }
+  const year = new Date().getFullYear();
+  return data
+    .filter((r) => r.athletes && r.events)
+    .map((r) => ({
+      athlete: `${r.athletes!.last_name}, ${r.athletes!.first_name}`,
+      club: r.athletes!.teams?.name ?? "—",
+      gender: r.athletes!.gender,
+      age: ageAtDec31(r.athletes!.birth_date, year),
+      event: eventLabel(r.events!.distance, r.events!.stroke),
+      seedMs: r.seed_time_ms,
+      finalMs: r.final_time_ms,
+      isDq: r.is_dq,
+      place: r.place,
+      points: r.aqua_points,
+    }))
+    .sort((a, b) => a.event.localeCompare(b.event) || (a.place ?? 99) - (b.place ?? 99));
+}
+
+async function exportPdf(meet: { id: string; name: string; location: string | null; start_date: string | null; course: string }, kind: "results" | "entries") {
+  const rows = await reportRows(meet.id);
+  if (!rows) return;
+  const meta = `${meet.location ?? ""} · ${meet.start_date ?? ""} · ${meet.course}`;
+  if (kind === "results") resultsPdf(meet.name, meta, rows);
+  else entriesPdf(meet.name, meta, rows);
+}
+
 function MeetsPage() {
   const { data } = useSuspenseQuery(meetsQuery);
   return (
@@ -59,7 +96,11 @@ function MeetsPage() {
               <div className="font-display text-xl font-semibold uppercase">{m.name}</div>
               <div className="time text-xs text-muted-foreground">{m.start_date ?? "—"} · {m.location ?? "—"} · {m.course} · {m.results?.[0]?.count ?? 0} resultados</div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => exportMeet(m)}>Exportar SD3</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => exportPdf(m, "results")}>PDF marcas</Button>
+              <Button variant="outline" size="sm" onClick={() => exportPdf(m, "entries")}>PDF inscripción</Button>
+              <Button variant="outline" size="sm" onClick={() => exportMeet(m)}>Exportar SD3</Button>
+            </div>
           </div>
         ))}
       </div>
