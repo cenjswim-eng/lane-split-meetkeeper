@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatTime } from "./swim";
+import { exportFilename } from "./file-delivery";
 
 export interface ReportRow {
   athlete: string;
@@ -26,10 +27,6 @@ function header(doc: jsPDF, title: string, subtitle: string) {
   doc.setTextColor(0);
 }
 
-function slug(s: string) {
-  return s.replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
 /** Official results sheet ("listado de marcas"). */
 export function resultsPdf(meetName: string, meta: string, rows: ReportRow[]) {
   const doc = new jsPDF({ orientation: "landscape" });
@@ -52,7 +49,7 @@ export function resultsPdf(meetName: string, meta: string, rows: ReportRow[]) {
     styles: { fontSize: 8 },
     headStyles: { fillColor: [12, 74, 110] },
   });
-  doc.save(`${slug(meetName)}_marcas.pdf`);
+  return new File([doc.output("blob")], exportFilename(meetName, "_marcas.pdf"), { type: "application/pdf" });
 }
 
 /** Pre-entry sheet ("pre-inscripciones") with seed times, ready to send. */
@@ -66,5 +63,5 @@ export function entriesPdf(meetName: string, meta: string, rows: ReportRow[]) {
     styles: { fontSize: 8 },
     headStyles: { fillColor: [12, 74, 110] },
   });
-  doc.save(`${slug(meetName)}_preinscripcion.pdf`);
+  return new File([doc.output("blob")], exportFilename(meetName, "_preinscripcion.pdf"), { type: "application/pdf" });
 }
