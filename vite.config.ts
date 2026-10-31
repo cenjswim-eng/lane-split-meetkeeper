@@ -13,11 +13,11 @@ const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream",
   return {
     ...plugin,
     applyToEnvironment: (environment) => environment.name === "client",
-    config: originalConfig ? function (config, env) {
+    ...(originalConfig ? { config: function (config, env) {
       const hook = typeof originalConfig === "function" ? originalConfig : originalConfig.handler;
       const result = hook.call(this, config, env);
       return Promise.resolve(result).then((options) => options ? { environments: { client: options } } : undefined);
-    } : undefined,
+    } } : {}),
   };
 });
 
