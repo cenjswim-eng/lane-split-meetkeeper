@@ -498,6 +498,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_club_members: {
+        Args: { p_club_id: string; p_document_id: string; p_members: Json }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin"

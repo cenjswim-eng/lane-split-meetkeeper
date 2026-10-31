@@ -15,6 +15,13 @@
       "when": 1793428177257,
       "tag": "0001_club_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793428220670,
+      "tag": "0002_club_member_import",
+      "breakpoints": true
     }
   ]
 }
