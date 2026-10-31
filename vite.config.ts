@@ -19,10 +19,12 @@ const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream",
     // Vite aliases are shared, not per-environment. Resolve them in a client-only
     // hook instead: putting aliases inside environments.client.resolve ignores
     // them, while top-level aliases replace native server built-ins as well.
-    ...(originalConfig ? { enforce: "pre" as const, resolveId: async function (id, importer, options) {
+    ...(originalConfig ? { enforce: "pre" as const, resolveId: function (id) {
       const replacement = browserAliases[id];
       if (!replacement) return;
-      return this.resolve(replacement, importer, { ...options, skipSelf: true });
+      // Return the absolute shim directly; re-entering Vite's dependency resolver
+      // here can wait on the optimizer that is scanning this very import.
+      return replacement;
     } } : {}),
     ...(originalConfig ? { config: function (config, env) {
       const hook = typeof originalConfig === "function" ? originalConfig : originalConfig.handler;
