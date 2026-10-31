@@ -7,16 +7,35 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import type { Plugin } from "vite";
+import { createRequire } from "node:module";
 
-const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream", "util", "process"], globals: { Buffer: true, global: true, process: true } }).flat().map((plugin): Plugin => {
+const require = createRequire(import.meta.url);
+const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream", "util", "process"], protocolImports: true, globals: { Buffer: true, global: true, process: true } }).flat().map((plugin): Plugin => {
   const originalConfig = plugin.config;
+  let browserAliases: Record<string, string> = {};
   return {
     ...plugin,
     applyToEnvironment: (environment) => environment.name === "client",
+    // Vite aliases are shared, not per-environment. Resolve them in a client-only
+    // hook instead: putting aliases inside environments.client.resolve ignores
+    // them, while top-level aliases replace native server built-ins as well.
+    ...(originalConfig ? { enforce: "pre" as const, resolveId: async function (id, importer, options) {
+      const replacement = browserAliases[id];
+      if (!replacement) return;
+      return this.resolve(replacement, importer, { ...options, skipSelf: true });
+    } } : {}),
     ...(originalConfig ? { config: function (config, env) {
       const hook = typeof originalConfig === "function" ? originalConfig : originalConfig.handler;
       const result = hook.call(this, config, env);
-      return Promise.resolve(result).then((options) => options ? { environments: { client: options } } : undefined);
+      return Promise.resolve(result).then((options) => {
+        if (!options) return;
+        const { resolve, ...clientOptions } = options;
+        const aliases = resolve?.alias;
+        if (aliases && !Array.isArray(aliases)) {
+          browserAliases = Object.fromEntries(Object.entries(aliases).map(([id, target]) => [id, require.resolve(target)]));
+        }
+        return { environments: { client: clientOptions } };
+      });
     } } : {}),
   };
 });
