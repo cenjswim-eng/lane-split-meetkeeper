@@ -8,6 +8,13 @@
       "when": 1793423887714,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793428177257,
+      "tag": "0001_club_registry",
+      "breakpoints": true
     }
   ]
 }
