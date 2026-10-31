@@ -1,13 +1,13 @@
 # Exportación móvil
-- [ ] Corregir importaciones interrumpidas y actualización de tiempos; verificar reimportación sin pérdida de marcas.
-- [ ] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos.
+- [x] Corregir fechas imposibles, lectura de archivos con acentos y pérdida de tiempos al reimportar inscripciones; verificar tiempo final en perfil con importación autenticada y limpiar datos temporales.
+- [x] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos. Protecciones probadas; botón verificado sin ejecutar borrado real.
 - [x] Automatizar extracción y guardado de integrantes desde documentos MDB y PDF estructurados, conservando originales y verificando datos; PDF escaneado o sin columnas reconocibles conserva original sin inventar integrantes.
 - [x] Evitar competencias duplicadas al subir archivos Meet y resultados duplicados en perfiles; verificar reimportación con archivo renombrado.
 - [x] Corregir node:buffer y verificar desarrollo; ordenar marcas de atletas de mejor a peor con vigencia de nueve meses y pruebas.
-- [ ] Eliminar atletas con confirmación; añadir PDF a documentos y exportar registro del club; incluir delegados manualmente; exportar seguimiento individual a PDF y probar.
+- [x] Eliminar atletas con confirmación; añadir PDF a documentos y exportar registro del club; incluir delegados manualmente; exportar seguimiento individual a PDF y probar.
 - [x] Crear Mi club con documentos Access privados, registro de todos los integrantes, edición, reimportación sin duplicados y pruebas autenticadas; datos temporales eliminados.
 - [x] Admitir Microsoft Access Jet DB 4.0 (.mdb), revisar tablas y unidades, verificar importación autenticada con un MDB sintético real y eliminar datos temporales.
-- [ ] Verificar campos específicos del archivo Hy-Tek del usuario; pendiente de que proporcione su .mdb.
+- [ ] Verificar la variante de los HY3 del usuario sin tiempos y recuperar marcas de importaciones fallidas; bloqueado por falta de los archivos originales HY3/CL2/SD3 afectados.
 - [x] Preparar SD3 y PDF antes de compartir o descargar.
 - [x] Compartir con el menú del teléfono y ofrecer ZIP para SD3.
 - [x] Comprobar archivos, cancelación y exportación autenticada; selección real de WhatsApp pendiente de prueba en teléfono.
