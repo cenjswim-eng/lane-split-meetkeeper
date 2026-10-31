@@ -1,0 +1,108 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
+import { aquaPoints } from "./swim";
+import type { ParsedFile } from "./hytek";
+
+export interface ImportSummary {
+  meetId: string;
+  meetName: string;
+  teams: number;
+  athletesNew: number;
+  athletesMatched: number;
+  results: number;
+  splits: number;
+}
+
+function must<T>(r: { data: T; error: { message: string } | null }): NonNullable<T> {
+  if (r.error) throw new Error(r.error.message);
+  return r.data as NonNullable<T>;
+}
+function maybe<T>(r: { data: T; error: { message: string } | null }): T {
+  if (r.error) throw new Error(r.error.message);
+  return r.data;
+}
+
+/** Writes a parsed Hy-Tek file into the database, de-duplicating athletes, teams, meets and events. */
+export async function importParsed(fileName: string, p: ParsedFile, onProgress?: (pct: number) => void): Promise<ImportSummary> {
+  // Teams
+  const teamIds = new Map<string, string>();
+  if (p.teams.length) {
+    const rows = must(await supabase.from("teams").upsert(p.teams.map((t) => ({ code: t.code, name: t.name, lsc: t.lsc ?? null })), { onConflict: "code" }).select("id, code"));
+    rows.forEach((t) => teamIds.set(t.code, t.id));
+  }
+
+  // Meet (match by name + start date)
+  let meetQ = supabase.from("meets").select("id").eq("name", p.meet.name);
+  meetQ = p.meet.startDate ? meetQ.eq("start_date", p.meet.startDate) : meetQ.is("start_date", null);
+  const existing = maybe(await meetQ.maybeSingle());
+  const meetId = existing?.id ?? must(await supabase.from("meets").insert({ name: p.meet.name, location: p.meet.location, start_date: p.meet.startDate, end_date: p.meet.endDate, course: p.meet.course }).select("id").single()).id;
+
+  // Athletes
+  const athleteIds = new Map<string, string>();
+  const athleteGender = new Map<string, string | null>();
+  let created = 0, matched = 0;
+  for (const a of p.athletes) {
+    athleteGender.set(a.key, a.gender);
+    let found: { id: string } | null = null;
+    if (a.tmId) found = maybe(await supabase.from("athletes").select("id").eq("tm_athlete_id", a.tmId).maybeSingle());
+    if (!found && a.federationId) found = maybe(await supabase.from("athletes").select("id").eq("federation_id", a.federationId).limit(1).maybeSingle());
+    if (!found) {
+      let q = supabase.from("athletes").select("id").ilike("last_name", a.lastName).ilike("first_name", a.firstName);
+      if (a.birthDate) q = q.eq("birth_date", a.birthDate);
+      found = maybe(await q.limit(1).maybeSingle());
+    }
+    const teamId = a.teamCode ? teamIds.get(a.teamCode) ?? null : null;
+    if (found) {
+      matched++;
+      const patch: TablesUpdate<"athletes"> = {};
+      if (a.tmId) patch.tm_athlete_id = a.tmId;
+      if (a.federationId) patch.federation_id = a.federationId;
+      if (a.birthDate) patch.birth_date = a.birthDate;
+      if (teamId) patch.team_id = teamId;
+      if (Object.keys(patch).length) await supabase.from("athletes").update(patch).eq("id", found.id);
+      athleteIds.set(a.key, found.id);
+    } else {
+      created++;
+      const row = must(await supabase.from("athletes").insert({ tm_athlete_id: a.tmId, federation_id: a.federationId, first_name: a.firstName, last_name: a.lastName, birth_date: a.birthDate, gender: a.gender === "M" || a.gender === "F" ? a.gender : null, team_id: teamId }).select("id").single());
+      athleteIds.set(a.key, row.id);
+    }
+  }
+
+  // Events
+  const events = must(await supabase.from("events").select("id, event_number, distance, stroke, gender, min_age, max_age").eq("meet_id", meetId));
+  const evKey = (e: { event_number: string | null; distance: number; stroke: number; gender: string | null; min_age: number | null; max_age: number | null }) => [e.event_number, e.distance, e.stroke, e.gender, e.min_age, e.max_age].join("|");
+  const eventIds = new Map(events.map((e) => [evKey(e), e.id]));
+
+  let resultCount = 0, splitCount = 0;
+  const total = p.results.length || 1;
+  for (const [i, r] of p.results.entries()) {
+    const athleteId = athleteIds.get(r.athleteKey);
+    if (!athleteId || !r.distance) continue;
+    const ev = { event_number: r.eventNumber, distance: r.distance, stroke: r.stroke, gender: r.gender, min_age: r.minAge, max_age: r.maxAge };
+    let eventId = eventIds.get(evKey(ev));
+    if (!eventId) {
+      eventId = must(await supabase.from("events").insert({ meet_id: meetId, ...ev, is_relay: r.stroke >= 6 }).select("id").single()).id;
+      eventIds.set(evKey(ev), eventId);
+    }
+    const course = r.course ?? p.meet.course;
+    const pts = r.isDq ? null : aquaPoints(r.finalMs, course, athleteGender.get(r.athleteKey) ?? r.gender, r.distance, r.stroke);
+    const res = must(await supabase.from("results").upsert({ athlete_id: athleteId, meet_id: meetId, event_id: eventId, seed_time_ms: r.seedMs, final_time_ms: r.finalMs, course, place: r.place, is_dq: r.isDq, aqua_points: pts, round: r.round }, { onConflict: "athlete_id,event_id,round" }).select("id").single());
+    resultCount++;
+    if (r.splits.length) {
+      let prev = 0;
+      const rows = r.splits.map((s) => {
+        const lap = s.cumulative_ms - prev;
+        prev = s.cumulative_ms;
+        return { result_id: res.id, split_distance: s.distance, cumulative_time_ms: s.cumulative_ms, lap_time_ms: lap };
+      });
+      await supabase.from("splits").upsert(rows, { onConflict: "result_id,split_distance" });
+      splitCount += rows.length;
+    }
+    if (i % 10 === 0) onProgress?.(Math.round((i / total) * 100));
+  }
+  onProgress?.(100);
+
+  const summary: ImportSummary = { meetId, meetName: p.meet.name, teams: p.teams.length, athletesNew: created, athletesMatched: matched, results: resultCount, splits: splitCount };
+  await supabase.from("import_logs").insert({ file_name: fileName, file_type: p.format, summary: summary as never });
+  return summary;
+}
