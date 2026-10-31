@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Eliminar atletas con confirmación; añadir PDF a documentos y exportar registro del club; incluir delegados manualmente; exportar seguimiento individual a PDF y probar.
 - [x] Crear Mi club con documentos Access privados, registro de todos los integrantes, edición, reimportación sin duplicados y pruebas autenticadas; datos temporales eliminados.
 - [x] Admitir Microsoft Access Jet DB 4.0 (.mdb), revisar tablas y unidades, verificar importación autenticada con un MDB sintético real y eliminar datos temporales.
 - [ ] Verificar campos específicos del archivo Hy-Tek del usuario; pendiente de que proporcione su .mdb.
