@@ -20,7 +20,8 @@ export function ClubAccessImport({ onSave }: { onSave: (file: File, db: AccessDa
     setBusy(true); setDb(null); setFile(null);
     try { const data = await readAccessFile(f); setDb(data); setFile(f); const first = data.tables.find((t) => { const m = suggestMemberMapping(t); return m.first && m.last; }) ?? data.tables[0]; if (first) { setTableName(first.name); setMapping(suggestMemberMapping(first)); }
       const automatic = automaticAccessMembers(data);
-      if (automatic.members.length) { await onSave(f, data, automatic.members); toast.success(`${automatic.members.length} integrantes registrados automáticamente`); }
+      await onSave(f, data, automatic.members);
+      toast.success(automatic.members.length ? `${automatic.members.length} integrantes registrados automáticamente` : "Documento guardado; selecciona las columnas para registrar integrantes.");
       for (const warning of automatic.warnings) toast.warning(warning);
     }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
