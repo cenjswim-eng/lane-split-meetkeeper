@@ -43,15 +43,26 @@ export function parseHy3(text: string): ParsedFile {
       case "D1": {
         const id = col(line, 4, 8);
         const gender = col(line, 3, 3).toUpperCase() || null;
+        const firstName = col(line, 29, 48);
+        const lastName = col(line, 9, 28);
+        const rawBirth = col(line, 89, 96);
+        const birthDate = mdyToIso(rawBirth);
+        if (!id || !firstName || !lastName || !["M", "F", "X"].includes(gender ?? "")) {
+          athleteKey = null;
+          current = null;
+          out.warnings.push("Un atleta tiene campos HY3 no reconocidos y no se importará. Usa el archivo CL2/SD3 de resultados para ese atleta.");
+          break;
+        }
+        if (rawBirth && !birthDate) out.warnings.push(`${firstName} ${lastName}: fecha de nacimiento inválida; se conservarán sus tiempos sin actualizar la fecha.`);
         athleteKey = `HY3:${teamCode ?? ""}:${id}`;
         athleteGender.set(athleteKey, gender ?? "");
         out.athletes.push({
           key: athleteKey,
           tmId: athleteKey,
           federationId: col(line, 70, 83) || null,
-          lastName: col(line, 9, 28),
-          firstName: col(line, 29, 48),
-          birthDate: mdyToIso(col(line, 89, 96)),
+          lastName,
+          firstName,
+          birthDate,
           gender,
           teamCode,
         });
@@ -67,7 +78,7 @@ export function parseHy3(text: string): ParsedFile {
           eventNumber: col(line, 39, 42) || null,
           distance: Number(col(line, 16, 21)) || 0,
           stroke,
-          gender: col(line, 15, 15) || athleteGender.get(athleteKey) || null,
+          gender: col(line, 14, 14) || athleteGender.get(athleteKey) || null,
           minAge: minAge && minAge < 100 ? minAge : null,
           maxAge: maxAge && maxAge < 100 ? maxAge : null,
           seedMs: parseTime(col(line, 43, 50)),
@@ -96,7 +107,7 @@ export function parseHy3(text: string): ParsedFile {
         target.finalMs = parseTime(timeRaw);
         target.course = courseFromCode(col(line, 12, 12), target.course ?? out.meet.course);
         target.isDq = code === "Q" || code.includes("DQ") || /DQ/i.test(timeRaw);
-        const place = Number(col(line, 31, 33));
+        const place = Number(col(line, 30, 33));
         target.place = place > 0 ? place : null;
         current = target;
         break;

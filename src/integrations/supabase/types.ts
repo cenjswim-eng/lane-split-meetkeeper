@@ -502,6 +502,10 @@ export type Database = {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
       }
+      reset_management_data: {
+        Args: { p_confirmation: string }
+        Returns: undefined
+      }
       resolve_import_event: {
         Args: {
           p_distance: number

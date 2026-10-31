@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { readAccessFile, normalizeAccess, type AccessDatabase, type AccessTimeUnit } from "@/lib/access";
 import { AccessPreview } from "@/components/access-preview";
 import { formatTime, eventLabel } from "@/lib/swim";
+import { ResetData } from "@/components/reset-data";
 
 export const Route = createFileRoute("/_authenticated/import")({
   head: () => ({ meta: [{ title: "Importar Hy-Tek y Access — Natación Pro" }, { name: "description", content: "Carga archivos HY3, CL2, SD3, ZIP y Microsoft Access Jet 4.0 (.mdb)." }, { property: "og:title", content: "Importar Hy-Tek y Access — Natación Pro" }, { property: "og:description", content: "Importa y revisa archivos de natación, incluyendo bases Access .mdb." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -120,7 +121,7 @@ function ImportPage() {
                   <span>{withTimes} con tiempo</span>
                   <span>{splits} parciales</span>
                 </div>
-                {withTimes === 0 && <p className="mt-2 text-xs text-accent">Archivo de inscripciones: se guardarán los tiempos de sembrado.</p>}
+                {withTimes === 0 && <p role="alert" className="mt-2 text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán. Si esperabas resultados, carga el archivo CL2/SD3 de la competencia.</p>}
                 {f.parsed.warnings.map((warning, i) => <p key={i} className="mt-2 break-words text-xs text-destructive">{warning}</p>)}
                 {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="mt-2 text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
               </div>
@@ -140,6 +141,10 @@ function ImportPage() {
           <Link to="/athletes" className="mt-2 inline-block text-sm text-primary underline">Ver atletas</Link>
         </div>
       ))}
+      <section className="border-t pt-6">
+        <h2 className="mb-3 text-xl font-bold uppercase">Administración de datos</h2>
+        <ResetData />
+      </section>
     </div>
   );
 }

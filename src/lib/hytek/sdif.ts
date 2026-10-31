@@ -30,7 +30,7 @@ export function parseSdif(text: string): ParsedFile {
     } else if (type === "D0") {
       const fullName = col(line, 12, 39);
       const [lastName = "", firstRest = ""] = fullName.split(",").map((s) => s.trim());
-      const firstName = firstRest.split(" ")[0] ?? "";
+      const firstName = firstRest;
       const uss = col(line, 40, 51) || null;
       const birth = mdyToIso(col(line, 56, 63));
       const gender = col(line, 66, 66).toUpperCase() || null;
