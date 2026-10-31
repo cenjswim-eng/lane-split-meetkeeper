@@ -22,9 +22,10 @@ describe("relay optimizer", () => {
   });
 
   it("medley relay assigns 4 distinct swimmers minimizing total", () => {
-    // "x" is fastest at everything but can only swim one leg; biggest advantage in freestyle.
+    // "x" matches the specialists in their strokes but is 2s faster in freestyle,
+    // so the unique optimum puts x on the freestyle leg.
     const team = bestMedleyRelay([
-      C("x", { 1: 23000, 2: 28000, 3: 30000, 4: 26000 }),
+      C("x", { 1: 23000, 2: 29000, 3: 32000, 4: 27000 }),
       C("bk", { 2: 29000 }),
       C("br", { 3: 32000 }),
       C("fl", { 4: 27000 }),
@@ -45,7 +46,7 @@ describe("relay optimizer", () => {
       { athlete_id: "a", name: "A", stroke: 1, final_time_ms: null, is_dq: false },
     ]);
     expect(cs).toHaveLength(1);
-    expect(cs[0].best[1]).toBe(25500);
+    expect(cs[0]?.best[1]).toBe(25500);
   });
 });
 

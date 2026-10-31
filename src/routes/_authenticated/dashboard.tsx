@@ -17,7 +17,7 @@ const dashQuery = queryOptions({
         .not("final_time_ms", "is", null),
     ]);
     for (const r of [athletes, teams, meets, results]) if (r.error) throw r.error;
-    return { athletes: athletes.count ?? 0, teams: teams.count ?? 0, meets: meets.data, results: results.data };
+    return { athletes: athletes.count ?? 0, teams: teams.count ?? 0, meets: meets.data ?? [], results: results.data ?? [] };
   },
 });
 
@@ -65,7 +65,7 @@ function Dashboard() {
   const seasonSeries = [...bestBy.entries()]
     .filter(([, v]) => v.cur != null && v.prev != null)
     .map(([k, v]) => {
-      const [d, s] = k.split("-").map(Number);
+      const [d = 0, s = 0] = k.split("-").map(Number);
       return { event: eventLabel(d, s), cur: v.cur! / 1000, prev: v.prev! / 1000, delta: ((v.prev! - v.cur!) / v.prev!) * 100 };
     })
     .sort((a, b) => b.delta - a.delta)
