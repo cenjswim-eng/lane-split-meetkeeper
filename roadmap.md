@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Automatizar extracción y guardado de integrantes desde documentos MDB y PDF, conservando originales y verificando datos.
 - [ ] Evitar competencias duplicadas al subir archivos Meet y resultados duplicados en perfiles; verificar reimportación.
 - [ ] Corregir node:buffer y verificar desarrollo; ordenar marcas de atletas de mejor a peor con vigencia de nueve meses y pruebas.
 - [ ] Eliminar atletas con confirmación; añadir PDF a documentos y exportar registro del club; incluir delegados manualmente; exportar seguimiento individual a PDF y probar.

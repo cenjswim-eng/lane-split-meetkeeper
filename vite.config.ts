@@ -34,7 +34,7 @@ const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream",
         const { resolve, ...clientOptions } = options;
         const aliases = resolve?.alias;
         if (aliases && !Array.isArray(aliases)) {
-          browserAliases = Object.fromEntries(Object.entries(aliases).map(([id, target]) => [id, require.resolve(target)]));
+          browserAliases = Object.fromEntries(Object.entries(aliases).map(([id, target]) => [id, target.startsWith("vite-plugin-node-polyfills/shims/") ? require.resolve(target).replace(/\.cjs$/, ".js") : require.resolve(target)]));
         }
         return { environments: { client: clientOptions } };
       });
