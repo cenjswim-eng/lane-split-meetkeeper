@@ -4,6 +4,7 @@ import { mapClubMembers, suggestMemberMapping, MEMBER_ROLES, type MemberDraft, t
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { automaticAccessMembers } from "@/lib/club-document";
 
 export function ClubAccessImport({ onSave }: { onSave: (file: File, db: AccessDatabase, members: MemberDraft[]) => Promise<void> }) {
   const [file, setFile] = useState<File | null>(null);
@@ -17,7 +18,11 @@ export function ClubAccessImport({ onSave }: { onSave: (file: File, db: AccessDa
   async function pick(f: File | undefined) {
     if (!f) return;
     setBusy(true); setDb(null); setFile(null);
-    try { const data = await readAccessFile(f); setDb(data); setFile(f); const first = data.tables[0]; if (first) { setTableName(first.name); setMapping(suggestMemberMapping(first)); } }
+    try { const data = await readAccessFile(f); setDb(data); setFile(f); const first = data.tables.find((t) => { const m = suggestMemberMapping(t); return m.first && m.last; }) ?? data.tables[0]; if (first) { setTableName(first.name); setMapping(suggestMemberMapping(first)); }
+      const automatic = automaticAccessMembers(data);
+      if (automatic.members.length) { await onSave(f, data, automatic.members); toast.success(`${automatic.members.length} integrantes registrados automáticamente`); }
+      for (const warning of automatic.warnings) toast.warning(warning);
+    }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
   return <section className="space-y-4 border-b pb-6">
