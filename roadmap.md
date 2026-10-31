@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Evitar competencias duplicadas al subir archivos Meet y resultados duplicados en perfiles; verificar reimportación.
 - [ ] Corregir node:buffer y verificar desarrollo; ordenar marcas de atletas de mejor a peor con vigencia de nueve meses y pruebas.
 - [ ] Eliminar atletas con confirmación; añadir PDF a documentos y exportar registro del club; incluir delegados manualmente; exportar seguimiento individual a PDF y probar.
 - [x] Crear Mi club con documentos Access privados, registro de todos los integrantes, edición, reimportación sin duplicados y pruebas autenticadas; datos temporales eliminados.
