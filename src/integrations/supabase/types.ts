@@ -14,16 +14,377 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      athletes: {
+        Row: {
+          active_status: boolean
+          birth_date: string | null
+          created_at: string
+          federation_id: string | null
+          first_name: string
+          gender: string | null
+          group_id: string | null
+          id: string
+          last_name: string
+          team_id: string | null
+          tm_athlete_id: string | null
+        }
+        Insert: {
+          active_status?: boolean
+          birth_date?: string | null
+          created_at?: string
+          federation_id?: string | null
+          first_name: string
+          gender?: string | null
+          group_id?: string | null
+          id?: string
+          last_name: string
+          team_id?: string | null
+          tm_athlete_id?: string | null
+        }
+        Update: {
+          active_status?: boolean
+          birth_date?: string | null
+          created_at?: string
+          federation_id?: string | null
+          first_name?: string
+          gender?: string | null
+          group_id?: string | null
+          id?: string
+          last_name?: string
+          team_id?: string | null
+          tm_athlete_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athletes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athletes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          distance: number
+          event_number: string | null
+          gender: string | null
+          id: string
+          is_relay: boolean
+          max_age: number | null
+          meet_id: string
+          min_age: number | null
+          stroke: number
+        }
+        Insert: {
+          distance: number
+          event_number?: string | null
+          gender?: string | null
+          id?: string
+          is_relay?: boolean
+          max_age?: number | null
+          meet_id: string
+          min_age?: number | null
+          stroke: number
+        }
+        Update: {
+          distance?: number
+          event_number?: string | null
+          gender?: string | null
+          id?: string
+          is_relay?: boolean
+          max_age?: number | null
+          meet_id?: string
+          min_age?: number | null
+          stroke?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          code: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      import_logs: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string
+          id: string
+          summary: Json | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type: string
+          id?: string
+          summary?: Json | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          id?: string
+          summary?: Json | null
+        }
+        Relationships: []
+      }
+      meets: {
+        Row: {
+          altitude: number | null
+          course: string
+          created_at: string
+          end_date: string | null
+          id: string
+          location: string | null
+          name: string
+          start_date: string | null
+        }
+        Insert: {
+          altitude?: number | null
+          course?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          start_date?: string | null
+        }
+        Update: {
+          altitude?: number | null
+          course?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          start_date?: string | null
+        }
+        Relationships: []
+      }
+      results: {
+        Row: {
+          aqua_points: number | null
+          athlete_id: string
+          course: string | null
+          created_at: string
+          event_id: string | null
+          final_time_ms: number | null
+          id: string
+          is_dq: boolean
+          meet_id: string
+          place: number | null
+          round: string | null
+          seed_time_ms: number | null
+          stroke_rate: number | null
+          video_url: string | null
+        }
+        Insert: {
+          aqua_points?: number | null
+          athlete_id: string
+          course?: string | null
+          created_at?: string
+          event_id?: string | null
+          final_time_ms?: number | null
+          id?: string
+          is_dq?: boolean
+          meet_id: string
+          place?: number | null
+          round?: string | null
+          seed_time_ms?: number | null
+          stroke_rate?: number | null
+          video_url?: string | null
+        }
+        Update: {
+          aqua_points?: number | null
+          athlete_id?: string
+          course?: string | null
+          created_at?: string
+          event_id?: string | null
+          final_time_ms?: number | null
+          id?: string
+          is_dq?: boolean
+          meet_id?: string
+          place?: number | null
+          round?: string | null
+          seed_time_ms?: number | null
+          stroke_rate?: number | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "results_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      splits: {
+        Row: {
+          cumulative_time_ms: number
+          id: string
+          lap_time_ms: number | null
+          result_id: string
+          split_distance: number
+        }
+        Insert: {
+          cumulative_time_ms: number
+          id?: string
+          lap_time_ms?: number | null
+          result_id: string
+          split_distance: number
+        }
+        Update: {
+          cumulative_time_ms?: number
+          id?: string
+          lap_time_ms?: number | null
+          result_id?: string
+          split_distance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "splits_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          lsc: string | null
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          lsc?: string | null
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          lsc?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      time_standards: {
+        Row: {
+          age_group: string | null
+          course: string
+          distance: number
+          gender: string | null
+          id: string
+          name: string
+          qualifying_time_ms: number
+          stroke: number
+        }
+        Insert: {
+          age_group?: string | null
+          course: string
+          distance: number
+          gender?: string | null
+          id?: string
+          name: string
+          qualifying_time_ms: number
+          stroke: number
+        }
+        Update: {
+          age_group?: string | null
+          course?: string
+          distance?: number
+          gender?: string | null
+          id?: string
+          name?: string
+          qualifying_time_ms?: number
+          stroke?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +511,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
