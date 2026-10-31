@@ -14,6 +14,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acceso de administradores a Natación Pro." },
       { property: "og:title", content: "Acceso — Natación Pro" },
       { property: "og:description", content: "Acceso de administradores a Natación Pro." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,

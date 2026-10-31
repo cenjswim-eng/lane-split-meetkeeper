@@ -33,6 +33,8 @@ export const Route = createFileRoute("/_authenticated/relays")({
       { name: "description", content: "Alineación más rápida de la cuarteta cruzando las mejores marcas de los nadadores activos." },
       { property: "og:title", content: "Optimizador de relevos — Natación Pro" },
       { property: "og:description", content: "Alineación más rápida de la cuarteta." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: RelaysPage,

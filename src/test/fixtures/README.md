@@ -1,0 +1,3 @@
+# Jet 4 swimming fixture
+
+`swimming-jet4.mdb` is a synthetic Access 2000 (Jet 4.0) database generated with Jackcess 4.0.7 (Apache-2.0 library). All rows are invented test data, not real athletes. It contains Athlete, Meet, Events, Results and Splits tables; Ana Prueba Access swims 100 freestyle in 62.34 seconds with a 30.12-second 50m split. The file tests binary Access decoding separately from real Hy-Tek schema compatibility, which must be verified against the user's own export.
