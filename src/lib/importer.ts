@@ -48,7 +48,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
     if (!found && a.federationId) found = maybe(await supabase.from("athletes").select("id").eq("federation_id", a.federationId).limit(1).maybeSingle());
     if (!found) {
       let q = supabase.from("athletes").select("id").ilike("last_name", a.lastName).ilike("first_name", a.firstName);
-      if (a.birthDate) q = q.eq("birth_date", a.birthDate);
+      q = a.birthDate ? q.eq("birth_date", a.birthDate) : q.is("birth_date", null);
       found = maybe(await q.limit(1).maybeSingle());
     }
     const teamId = a.teamCode ? teamIds.get(a.teamCode) ?? null : null;
@@ -59,7 +59,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
       if (a.federationId) patch.federation_id = a.federationId;
       if (a.birthDate) patch.birth_date = a.birthDate;
       if (teamId) patch.team_id = teamId;
-      if (Object.keys(patch).length) await supabase.from("athletes").update(patch).eq("id", found.id);
+      if (Object.keys(patch).length) maybe(await supabase.from("athletes").update(patch).eq("id", found.id));
       athleteIds.set(a.key, found.id);
     } else {
       created++;
@@ -95,7 +95,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
         prev = s.cumulative_ms;
         return { result_id: res.id, split_distance: s.distance, cumulative_time_ms: s.cumulative_ms, lap_time_ms: lap };
       });
-      await supabase.from("splits").upsert(rows, { onConflict: "result_id,split_distance" });
+      maybe(await supabase.from("splits").upsert(rows, { onConflict: "result_id,split_distance" }));
       splitCount += rows.length;
     }
     if (i % 10 === 0) onProgress?.(Math.round((i / total) * 100));
@@ -103,6 +103,6 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
   onProgress?.(100);
 
   const summary: ImportSummary = { meetId, meetName: p.meet.name, teams: p.teams.length, athletesNew: created, athletesMatched: matched, results: resultCount, splits: splitCount };
-  await supabase.from("import_logs").insert({ file_name: fileName, file_type: p.format, summary: summary as never });
+  maybe(await supabase.from("import_logs").insert({ file_name: fileName, file_type: p.format, summary: summary as never }));
   return summary;
 }

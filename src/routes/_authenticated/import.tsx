@@ -6,9 +6,12 @@ import { readHytekFile, type ParsedFile } from "@/lib/hytek";
 import { importParsed, type ImportSummary } from "@/lib/importer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { readAccessFile, normalizeAccess, type AccessDatabase, type AccessTimeUnit } from "@/lib/access";
+import { AccessPreview } from "@/components/access-preview";
+import { formatTime, eventLabel } from "@/lib/swim";
 
 export const Route = createFileRoute("/_authenticated/import")({
-  head: () => ({ meta: [{ title: "Importar archivos Hy-Tek — Natación Pro" }, { name: "description", content: "Carga archivos HY3, CL2, SD3 o ZIP de Meet Manager y Team Manager." }, { property: "og:title", content: "Importar — Natación Pro" }, { property: "og:description", content: "Carga archivos HY3, CL2, SD3 o ZIP." }] }),
+  head: () => ({ meta: [{ title: "Importar Hy-Tek y Access — Natación Pro" }, { name: "description", content: "Carga archivos HY3, CL2, SD3, ZIP y Microsoft Access Jet 4.0 (.mdb)." }, { property: "og:title", content: "Importar Hy-Tek y Access — Natación Pro" }, { property: "og:description", content: "Importa y revisa archivos de natación, incluyendo bases Access .mdb." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ImportPage,
 });
 
@@ -18,12 +21,22 @@ function ImportPage() {
   const [progress, setProgress] = useState<number | null>(null);
   const [done, setDone] = useState<ImportSummary[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [access, setAccess] = useState<{ db: AccessDatabase; unit: AccessTimeUnit; course: string }[]>([]);
+  const [reading, setReading] = useState(false);
+  const accessFiles = access.flatMap(({ db, unit, course }) => normalizeAccess(db, unit, course).filter((parsed) => parsed.athletes.length > 0).map((parsed) => ({ name: db.name, parsed })));
+  const pending = [...files, ...accessFiles];
 
   async function onPick(list: FileList | null) {
-    if (!list) return;
+    if (!list || reading || progress != null) return;
+    setReading(true);
+    const databases: typeof access = [];
     const all: { name: string; parsed: ParsedFile }[] = [];
     for (const f of Array.from(list)) {
       try {
+        if (/\.mdb$/i.test(f.name)) {
+          databases.push({ db: await readAccessFile(f), unit: "seconds", course: "LCM" });
+          continue;
+        }
         const r = await readHytekFile(f);
         if (!r.length) toast.error(`${f.name}: formato no reconocido`);
         all.push(...r);
@@ -32,18 +45,22 @@ function ImportPage() {
       }
     }
     setFiles(all);
+    setAccess(databases);
     setDone([]);
+    setReading(false);
   }
 
   async function run() {
     const summaries: ImportSummary[] = [];
+    setProgress(0);
     try {
-      for (const [i, f] of files.entries()) {
-        const s = await importParsed(f.name, f.parsed, (p) => setProgress(Math.round(((i + p / 100) / files.length) * 100)));
+      for (const [i, f] of pending.entries()) {
+        const s = await importParsed(f.name, f.parsed, (p) => setProgress(Math.round(((i + p / 100) / pending.length) * 100)));
         summaries.push(s);
       }
       setDone(summaries);
       setFiles([]);
+      setAccess([]);
       toast.success("Importación completada");
       qc.invalidateQueries();
     } catch (e) {
@@ -57,7 +74,7 @@ function ImportPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-bold uppercase">Importar</h1>
-        <p className="text-muted-foreground">Resultados e inscripciones de Meet Manager / Team Manager: .hy3, .cl2, .sd3 o .zip</p>
+        <p className="text-muted-foreground">Resultados e inscripciones: .hy3, .cl2, .sd3, .zip y Access Jet 4.0 (.mdb)</p>
       </div>
 
       <label
@@ -75,19 +92,26 @@ function ImportPage() {
       >
         <span className="font-display text-2xl font-semibold uppercase">{dragging ? "Suelta aquí" : "Arrastra o elige archivos"}</span>
         <span className="mt-1 text-sm text-muted-foreground">Puedes seleccionar varios a la vez</span>
-        <input type="file" multiple accept=".hy3,.cl2,.sd3,.zip" className="hidden" onChange={(e) => onPick(e.target.files)} />
+        <input type="file" aria-label="Elegir archivos para importar" multiple accept=".hy3,.cl2,.sd3,.zip,.mdb" disabled={reading || progress != null} className="hidden" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
       </label>
 
-      {files.length > 0 && (
+      {reading && <p role="status" className="text-muted-foreground">Leyendo archivos…</p>}
+      {access.map((a, i) => <div key={`${a.db.name}-${i}`} className="min-w-0 space-y-3">
+        <AccessPreview db={a.db} unit={a.unit} course={a.course} onUnit={(unit) => setAccess((prev) => prev.map((v, j) => j === i ? { ...v, unit } : v))} onCourse={(course) => setAccess((prev) => prev.map((v, j) => j === i ? { ...v, course } : v))} />
+        {!normalizeAccess(a.db, a.unit, a.course).some((p) => p.athletes.length > 0) && <p role="alert" className="text-sm text-destructive">No hay atletas con columnas reconocidas. No se guardará esta base; conserva el original y proporciona un archivo de ejemplo para adaptar sus campos.</p>}
+        <p className="text-xs text-muted-foreground">Solo se guardarán los datos del resumen siguiente. Las tablas y columnas no reconocidas permanecen en tu archivo original.</p>
+      </div>)}
+
+      {pending.length > 0 && (
         <div className="space-y-3">
-          {files.map((f) => {
+          {pending.map((f, fileIndex) => {
             const withTimes = f.parsed.results.filter((r) => r.finalMs).length;
             const splits = f.parsed.results.reduce((n, r) => n + r.splits.length, 0);
             return (
-              <div key={f.name} className="rounded-lg border bg-card p-4">
+              <div key={`${f.name}-${fileIndex}`} className="rounded-lg border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-display text-xl font-semibold uppercase">{f.parsed.meet.name}</span>
-                  <span className="time text-xs text-muted-foreground">{f.name} · {f.parsed.format} · {f.parsed.meet.course}</span>
+                  <span className="time break-all text-xs text-muted-foreground">{f.name} · {f.parsed.format} · {f.parsed.meet.course}</span>
                 </div>
                 <div className="time mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
                   <span>{f.parsed.teams.length} clubes</span>
@@ -97,11 +121,13 @@ function ImportPage() {
                   <span>{splits} parciales</span>
                 </div>
                 {withTimes === 0 && <p className="mt-2 text-xs text-accent">Archivo de inscripciones: se guardarán los tiempos de sembrado.</p>}
+                {f.parsed.warnings.map((warning, i) => <p key={i} className="mt-2 break-words text-xs text-destructive">{warning}</p>)}
+                {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="mt-2 text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
               </div>
             );
           })}
           {progress != null && <Progress value={progress} />}
-          <Button size="lg" onClick={run} disabled={progress != null}>Importar {files.length} archivo(s)</Button>
+          <Button size="lg" onClick={run} disabled={reading || progress != null}>Importar {pending.length} archivo(s)</Button>
         </div>
       )}
 
