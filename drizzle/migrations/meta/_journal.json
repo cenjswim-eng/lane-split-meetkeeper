@@ -29,6 +29,13 @@
       "when": 1793428891956,
       "tag": "0003_club_delegates",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793430821864,
+      "tag": "0004_atomic_import_identity",
+      "breakpoints": true
     }
   ]
 }
