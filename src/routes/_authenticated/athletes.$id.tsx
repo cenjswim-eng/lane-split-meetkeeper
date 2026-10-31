@@ -1,10 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { ageAt, eventLabel, formatTime } from "@/lib/swim";
 import { Badge } from "@/components/ui/badge";
+import { PdfExport } from "@/components/pdf-export";
+import { DeleteAthlete } from "@/components/delete-athlete";
+import { athleteProgressPdf } from "@/lib/reports";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -33,6 +36,7 @@ export const Route = createFileRoute("/_authenticated/athletes/$id")({
 type Res = Awaited<ReturnType<ReturnType<typeof profileQuery>["queryFn"] & {}>>["results"][number];
 
 function Profile() {
+  const navigate = useNavigate();
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(profileQuery(id));
   const { athlete, results, standards } = data;
@@ -72,6 +76,7 @@ function Profile() {
   return (
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
+      <div className="flex flex-wrap justify-end gap-2"><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>
