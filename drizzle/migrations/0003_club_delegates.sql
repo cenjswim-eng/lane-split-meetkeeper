@@ -1,0 +1,2 @@
+ALTER TABLE public.club_members DROP CONSTRAINT club_member_role;
+ALTER TABLE public.club_members ADD CONSTRAINT club_member_role CHECK (member_role IN ('nadador','entrenador','directivo','personal','delegado'));
