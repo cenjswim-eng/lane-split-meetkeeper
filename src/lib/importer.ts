@@ -83,7 +83,11 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
     }
     const course = r.course ?? p.meet.course;
     const pts = r.isDq ? null : aquaPoints(r.finalMs, course, athleteGender.get(r.athleteKey) ?? r.gender, r.distance, r.stroke);
-    const res = must(await supabase.from("results").upsert({ athlete_id: athleteId, meet_id: meetId, event_id: eventId, seed_time_ms: r.seedMs, final_time_ms: r.finalMs, course, place: r.place, is_dq: r.isDq, aqua_points: pts, round: r.round }, { onConflict: "athlete_id,event_id,round" }).select("id").single());
+    // An entry-only upload must never erase an already imported race time.
+    const timing: TablesUpdate<"results"> = r.finalMs != null || r.isDq
+      ? { final_time_ms: r.finalMs, place: r.place, is_dq: r.isDq, aqua_points: pts }
+      : {};
+    const res = must(await supabase.from("results").upsert({ athlete_id: athleteId, meet_id: meetId, event_id: eventId, ...(r.seedMs != null ? { seed_time_ms: r.seedMs } : {}), course, ...timing, round: r.round }, { onConflict: "athlete_id,event_id,round" }).select("id").single());
     resultCount++;
     if (r.splits.length) {
       let prev = 0;
