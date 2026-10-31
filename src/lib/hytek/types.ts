@@ -47,7 +47,8 @@ export function mdyToIso(s: string): string | null {
   const t = s.trim();
   if (!/^\d{8}$/.test(t)) return null;
   const mm = t.slice(0, 2), dd = t.slice(2, 4), yy = t.slice(4, 8);
-  if (mm === "00" || dd === "00") return null;
+  const d = new Date(Date.UTC(Number(yy), Number(mm) - 1, Number(dd)));
+  if (d.getUTCFullYear() !== Number(yy) || d.getUTCMonth() !== Number(mm) - 1 || d.getUTCDate() !== Number(dd)) return null;
   return `${yy}-${mm}-${dd}`;
 }
 export function courseFromCode(c: string | undefined, fallback = "LCM"): string {
