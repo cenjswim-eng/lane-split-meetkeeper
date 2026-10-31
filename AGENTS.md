@@ -21,4 +21,5 @@
 - Age categories use the Dec-31 rule via `ageAtDec31`/`ageGroup` in `src/lib/swim.ts`; never compute categories from current age.
 - Exports return prepared Files; the shared export dialog delivers them through native file sharing or delayed-revocation downloads, with ZIP wrapping for SD3 compatibility, so mobile user activation survives generation.
 - Athlete deletion requires explicit permanent-deletion confirmation and relies on database cascades for results/splits; club membership remains independently managed.
-- Club documents accept private Access originals and PDF attachments; roster and individual tracking reports use prepared-file sharing with full history and splits, not only the visible recent-results subset.
+- Club documents accept private Access originals and PDF attachments; roster and individual tracking reports use prepared-file sharing with all eligible records and splits, without a display-count truncation.
+- Athlete profile rankings and tracking PDFs share the pure calendar-window selector in `src/lib/athlete-records.ts`; preserve stored history and sort eligible times ascending, while progression charts remain chronological.
