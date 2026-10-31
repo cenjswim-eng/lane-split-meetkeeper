@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
     const chain = { select: () => chain, eq: () => chain, is: () => chain, ilike: () => chain, limit: () => chain,
       maybeSingle: async () => ({ data: { id:"athlete-1" }, error:null }),
       single: async () => ({ data:{id:"result-1"},error:null }),
-      upsert: (row: Record<string,unknown>) => { if(table === "results") state.results.set(`${row.athlete_id}|${row.event_id}|${row.round}`,row);return chain; },
+      upsert: (row: Record<string,unknown>) => { if(table === "results") state.results.set(`${row['athlete_id']}|${row['event_id']}|${row['round']}`,row);return chain; },
       insert: () => chain, update: () => chain,
       then: (resolve: (v: unknown) => unknown) => Promise.resolve({data:[],error:null}).then(resolve),
     }; return chain;
