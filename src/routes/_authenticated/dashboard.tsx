@@ -28,6 +28,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { name: "description", content: "Evolución de tiempos por temporada, actividad y mejores puntos AQUA del club." },
       { property: "og:title", content: "Panel de control — Natación Pro" },
       { property: "og:description", content: "Evolución de tiempos por temporada." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(dashQuery),
