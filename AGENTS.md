@@ -27,4 +27,5 @@
 - Athlete deletion requires explicit permanent-deletion confirmation and relies on database cascades for results/splits; club membership remains independently managed.
 - Club documents accept private Access originals and PDF attachments; roster and individual tracking reports use prepared-file sharing with all eligible records and splits, without a display-count truncation.
 - Athlete profile rankings and tracking PDFs share the pure calendar-window selector in `src/lib/athlete-records.ts`; preserve stored history and sort eligible times ascending, while progression charts remain chronological.
+- Tracking PDF charts use the pure event/course series selector and vector drawing in `src/lib/athlete-progress-pdf.ts`; paginate labelled swims without truncation so print remains readable and export needs no canvas.
 - Management reset uses a protected server function with fresh admin validation and an admin-checked atomic SQL function; remove private club files through Storage API and preserve authentication accounts and roles.
