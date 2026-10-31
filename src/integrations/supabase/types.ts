@@ -502,6 +502,32 @@ export type Database = {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
       }
+      resolve_import_event: {
+        Args: {
+          p_distance: number
+          p_gender: string
+          p_max_age: number
+          p_meet_id: string
+          p_min_age: number
+          p_number: string
+          p_stroke: number
+        }
+        Returns: string
+      }
+      resolve_import_identity: {
+        Args: { p_data: Json; p_kind: string }
+        Returns: string
+      }
+      resolve_import_meet: {
+        Args: {
+          p_course: string
+          p_end_date: string
+          p_location: string
+          p_name: string
+          p_start_date: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin"

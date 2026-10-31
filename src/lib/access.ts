@@ -16,6 +16,10 @@ export async function readAccessFile(file: File): Promise<AccessDatabase> {
   }
   // mdb-reader's browser implementation uses Buffer internally.
   Object.assign(globalThis, { Buffer });
+  if (typeof window !== "undefined") {
+    const { default: process } = await import("vite-plugin-node-polyfills/shims/process");
+    Object.assign(globalThis, { process, global: globalThis });
+  }
   const { default: MDBReader } = await import("mdb-reader");
   try {
     const reader = new MDBReader(Buffer.from(bytes));

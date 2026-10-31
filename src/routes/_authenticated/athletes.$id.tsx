@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { PdfExport } from "@/components/pdf-export";
 import { DeleteAthlete } from "@/components/delete-athlete";
 import { athleteProgressPdf } from "@/lib/reports";
+import { rankedAthleteRecords } from "@/lib/athlete-records";
+import { Button } from "@/components/ui/button";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -23,7 +25,7 @@ const profileQuery = (id: string) =>
       ]);
       if (a.error) throw a.error;
       if (r.error) throw r.error;
-      return { athlete: a.data, results: r.data, standards: s.data ?? [] };
+      return { athlete: a.data, results: rankedAthleteRecords(r.data), standards: s.data ?? [] };
     },
   });
 
@@ -41,15 +43,16 @@ function Profile() {
   const { data } = useSuspenseQuery(profileQuery(id));
   const { athlete, results, standards } = data;
 
-  const valid = results.filter((r) => r.final_time_ms && !r.is_dq && r.events);
+  const valid = useMemo(() => results.filter((r) => r.events != null && r.final_time_ms != null && !r.is_dq), [results]);
   const byEvent = useMemo(() => {
     const m = new Map<string, Res[]>();
     for (const r of valid) {
-      const k = `${r.events!.distance}-${r.events!.stroke}-${r.course}`;
-      if (!m.has(k)) m.set(k, []);
-      m.get(k)!.push(r);
+      if (!r.events) continue;
+      const k = `${r.events.distance}-${r.events.stroke}-${r.course}`;
+      const list = m.get(k) ?? [];
+      list.push(r);
+      m.set(k, list);
     }
-    for (const list of m.values()) list.sort((a, b) => (a.meets?.start_date ?? "").localeCompare(b.meets?.start_date ?? ""));
     return [...m.entries()].sort(([a], [b]) => {
       const [da, sa] = a.split("-").map(Number), [db, sb] = b.split("-").map(Number);
       return (sa ?? 0) - (sb ?? 0) || (da ?? 0) - (db ?? 0);
@@ -57,18 +60,21 @@ function Profile() {
   }, [valid]);
 
   const [selected, setSelected] = useState<string | null>(byEvent[0]?.[0] ?? null);
-  const series = byEvent.find(([k]) => k === selected)?.[1] ?? [];
+  const series = [...(byEvent.find(([k]) => k === selected)?.[1] ?? [])].sort((a, b) => (a.meets?.start_date ?? "").localeCompare(b.meets?.start_date ?? ""));
   const first = series[0];
-  const best = (list: Res[]) => list.reduce((b, r) => (r.final_time_ms! < b.final_time_ms! ? r : b));
+  const best = (list: Res[]) => list[0];
   const age = ageAt(athlete.birth_date);
   const totalPts = Math.max(0, ...valid.map((r) => r.aqua_points ?? 0));
 
-  const recent = [...results].sort((a, b) => (b.meets?.start_date ?? "").localeCompare(a.meets?.start_date ?? "")).slice(0, 30);
+  const recent = results;
   const [openSplit, setOpenSplit] = useState<string | null>(null);
 
   function standardFor(r: Res) {
+    const event = r.events;
+    const time = r.final_time_ms;
+    if (!event || time == null) return undefined;
     const met = standards
-      .filter((s) => s.distance === r.events!.distance && s.stroke === r.events!.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && r.final_time_ms! <= s.qualifying_time_ms)
+      .filter((s) => s.distance === event.distance && s.stroke === event.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && time <= s.qualifying_time_ms)
       .sort((a, b) => a.qualifying_time_ms - b.qualifying_time_ms);
     return met[0]?.name;
   }
@@ -99,7 +105,7 @@ function Profile() {
       </section>
 
       {byEvent.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Este atleta aún no tiene resultados.</div>
+        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Sin marcas válidas en los últimos 9 meses.</div>
       ) : (
         <>
           <section>
@@ -112,10 +118,11 @@ function Profile() {
                 <tbody>
                   {byEvent.map(([k, list]) => {
                     const b = best(list);
+                     if (!b?.events) return null;
                     const std = standardFor(b);
                     return (
                       <tr key={k} onClick={() => setSelected(k)} className={`cursor-pointer border-t hover:bg-muted ${selected === k ? "bg-muted" : ""}`}>
-                        <td className="p-3 font-medium">{eventLabel(b.events!.distance, b.events!.stroke)}</td>
+                        <td className="p-3 font-medium">{eventLabel(b.events.distance, b.events.stroke)}</td>
                         <td className="p-3 text-muted-foreground">{b.course}</td>
                         <td className="time p-3 text-right text-base font-semibold text-primary">{formatTime(b.final_time_ms)}</td>
                         <td className="time p-3 text-right">{b.aqua_points ?? "—"}</td>
@@ -129,12 +136,12 @@ function Profile() {
             </div>
           </section>
 
-          {first && (
+          {first?.events && (
             <section className="rounded-lg border bg-card p-5">
-              <h2 className="text-2xl font-bold uppercase">Progresión · {eventLabel(first.events!.distance, first.events!.stroke)} <span className="text-muted-foreground">{first.course}</span></h2>
+              <h2 className="text-2xl font-bold uppercase">Progresión · {eventLabel(first.events.distance, first.events.stroke)} <span className="text-muted-foreground">{first.course}</span></h2>
               <div className="mt-4 h-64">
                 <ResponsiveContainer>
-                  <LineChart data={series.map((r) => ({ date: r.meets?.start_date ?? "", t: r.final_time_ms! / 1000, meet: r.meets?.name }))}>
+                  <LineChart data={series.map((r) => ({ date: r.meets?.start_date ?? "", t: (r.final_time_ms ?? 0) / 1000, meet: r.meets?.name }))}>
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
                     <XAxis dataKey="date" stroke="var(--color-muted-foreground)" fontSize={12} />
                     <YAxis reversed domain={["auto", "auto"]} stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => formatTime(v * 1000)} width={60} />
@@ -150,11 +157,11 @@ function Profile() {
       )}
 
       <section>
-        <h2 className="mb-3 text-2xl font-bold uppercase">Resultados recientes</h2>
+        <h2 className="mb-3 text-2xl font-bold uppercase">Marcas · mejor a peor <span className="text-base font-normal text-muted-foreground">Últimos 9 meses</span></h2>
         <div className="space-y-2">
           {recent.map((r) => (
             <div key={r.id} className="rounded-lg border bg-card">
-              <button className="flex w-full flex-wrap items-center gap-3 p-3 text-left" onClick={() => setOpenSplit(openSplit === r.id ? null : r.id)}>
+              <Button variant="ghost" className="flex h-auto w-full flex-wrap items-center justify-start gap-3 whitespace-normal p-3 text-left" onClick={() => setOpenSplit(openSplit === r.id ? null : r.id)}>
                 <span className="w-16 time text-xs text-muted-foreground">{r.meets?.start_date ?? ""}</span>
                 <span className="flex-1 font-medium">{r.events ? eventLabel(r.events.distance, r.events.stroke) : "—"} <span className="text-muted-foreground">· {r.meets?.name}</span></span>
                 {r.round === "P" && <Badge variant="outline">Elim.</Badge>}
@@ -162,7 +169,7 @@ function Profile() {
                 <span className="time w-20 text-right font-semibold">{r.is_dq ? <span className="text-destructive">DQ</span> : formatTime(r.final_time_ms)}</span>
                 <span className="time w-10 text-right text-accent">{r.place ? `${r.place}º` : ""}</span>
                 {r.splits.length > 0 && <span className="text-xs text-primary">{openSplit === r.id ? "▲" : "▼"} parciales</span>}
-              </button>
+              </Button>
               {openSplit === r.id && r.splits.length > 0 && <Splits splits={r.splits} />}
             </div>
           ))}
