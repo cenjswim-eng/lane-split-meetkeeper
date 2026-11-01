@@ -1,4 +1,6 @@
 # Exportación móvil
+- [x] Panel privado del dueño disponible en Panel → Accesos para revisar, aprobar o rechazar solicitudes; aprobación autenticada verificada.
+- [ ] Revisar seguridad integral: controles básicos sin hallazgos; análisis profundo en curso y vulnerabilidades de dependencias detectadas, pendientes de evaluación y corrección.
 - [x] Preparar correo con notify.swimlanecoach.app y aprobación exclusiva del dueño; solicitud temporal, bloqueo, aprobación y acceso verificados; envío al dueño confirmado y datos temporales eliminados.
 - [x] Añadir tabla individual R1, R2, VO2 Max, anaeróbico 1 y anaeróbico 2, con referencia Jan Olbrecht y rangos temporales calibrados por el entrenador; cálculos, sesión administrativa, validación y pantalla estrecha verificados, sin inventar umbrales desde las marcas.
 - [x] Añadir gráficas cronológicas por prueba y piscina al PDF individual, con competencias identificadas y todos los registros vigentes; exportación autenticada y PDF revisados.
