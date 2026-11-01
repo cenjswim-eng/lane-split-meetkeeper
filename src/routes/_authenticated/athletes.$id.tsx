@@ -10,6 +10,7 @@ import { DeleteAthlete } from "@/components/delete-athlete";
 import { athleteProgressPdf } from "@/lib/reports";
 import { rankedAthleteRecords } from "@/lib/athlete-records";
 import { Button } from "@/components/ui/button";
+import { AthleteTrainingZones } from "@/components/athlete-training-zones";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -155,6 +156,8 @@ function Profile() {
           )}
         </>
       )}
+
+      <AthleteTrainingZones key={id} records={results} />
 
       <section>
         <h2 className="mb-3 text-2xl font-bold uppercase">Marcas · mejor a peor <span className="text-base font-normal text-muted-foreground">Últimos 9 meses</span></h2>
