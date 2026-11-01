@@ -6,10 +6,23 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
-import type { Plugin } from "vite";
+import { loadEnv, type Plugin } from "vite";
 import { createRequire } from "node:module";
 
+Object.assign(process.env, loadEnv(process.env['NODE_ENV'] === 'production' ? 'production' : 'development', process.cwd(), ''));
+
 const require = createRequire(import.meta.url);
+// Email renderers need entities v4; server-only exact-file resolution avoids
+// replacing the browser MDB dependency graph with a shared directory alias.
+const emailEntities: Plugin = {
+  name: 'email-entities-server', enforce: 'pre',
+  applyToEnvironment: environment => environment.name !== 'client',
+  resolveId(id) {
+    if (id === 'entities') return require.resolve('entities').replace('/lib/index.js', '/lib/esm/index.js');
+    if (id === 'entities/lib/decode.js' || id === 'entities/lib/encode.js') return require.resolve(id).replace('/lib/', '/lib/esm/');
+    return undefined;
+  },
+};
 const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream", "util", "process"], overrides: { buffer: "vite-plugin-node-polyfills/shims/buffer" }, protocolImports: true, globals: { Buffer: false, global: false, process: false } }).flat().map((plugin): Plugin => {
   const originalConfig = plugin.config;
   let browserAliases: Record<string, string> = {};
@@ -43,7 +56,7 @@ const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream",
 });
 
 export default defineConfig({
-  vite: { plugins: browserPolyfills },
+  vite: { plugins: [...browserPolyfills, emailEntities] },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
