@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Añadir tabla individual R1, R2, VO2 Max, anaeróbico 1 y anaeróbico 2; pendiente de definir con el entrenador la teoría o protocolo de cálculo.
+- [x] Añadir tabla individual R1, R2, VO2 Max, anaeróbico 1 y anaeróbico 2, con referencia Jan Olbrecht y rangos temporales calibrados por el entrenador; cálculos, sesión administrativa, validación y pantalla estrecha verificados, sin inventar umbrales desde las marcas.
 - [x] Añadir gráficas cronológicas por prueba y piscina al PDF individual, con competencias identificadas y todos los registros vigentes; exportación autenticada y PDF revisados.
 - [x] Corregir fechas imposibles, lectura de archivos con acentos y pérdida de tiempos al reimportar inscripciones; verificar tiempo final en perfil con importación autenticada y limpiar datos temporales.
 - [x] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos. Protecciones probadas; botón verificado sin ejecutar borrado real.
