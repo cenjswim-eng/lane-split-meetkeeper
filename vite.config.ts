@@ -10,7 +10,7 @@ import { loadEnv, type Plugin } from "vite";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-Object.assign(process.env, loadEnv(process.env.NODE_ENV === 'production' ? 'production' : 'development', process.cwd(), ''));
+Object.assign(process.env, loadEnv(process.env['NODE_ENV'] === 'production' ? 'production' : 'development', process.cwd(), ''));
 
 const require = createRequire(import.meta.url);
 const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream", "util", "process"], overrides: { buffer: "vite-plugin-node-polyfills/shims/buffer" }, protocolImports: true, globals: { Buffer: false, global: false, process: false } }).flat().map((plugin): Plugin => {
