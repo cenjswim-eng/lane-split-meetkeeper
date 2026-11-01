@@ -21,7 +21,7 @@
 - All times are stored as integer milliseconds (`*_ms`); format only at display time via `src/lib/swim.ts`.
 - Athlete de-duplication order on import: `tm_athlete_id` → `federation_id` → name + birth date.
 - Import meet/event identities through admin-checked, SECURITY INVOKER atomic RPCs with advisory locks; reuse normalized meet name/date/course and compatible event identities so result/split upserts retain their existing unique identities on reimport.
-- Data access remains admin-only via RLS; new accounts receive admin only through the atomic owner-checked access decision RPC, never through signup. The singleton app_owner identity alone approves requests; notifications resolve its address server-side and use managed email with event-derived idempotency keys.
+- Approved accounts access only owner_id-scoped records via RLS and immutable parent-ownership guards; the app_owner alone approves accounts, without cross-account sporting access. Import identities are owner-scoped; notifications resolve the owner address server-side.
 - Relay lineup optimization lives in `src/lib/relay.ts` (pure functions, no DB); PDF reports in `src/lib/reports.ts` (jspdf + jspdf-autotable, generated client-side).
 - Age categories use the Dec-31 rule via `ageAtDec31`/`ageGroup` in `src/lib/swim.ts`; never compute categories from current age.
 - Exports return prepared Files; the shared export dialog delivers them through native file sharing or delayed-revocation downloads, with ZIP wrapping for SD3 compatibility, so mobile user activation survives generation.
@@ -29,4 +29,4 @@
 - Club documents accept private Access originals and PDF attachments; roster and individual tracking reports use prepared-file sharing with all eligible records and splits, without a display-count truncation.
 - Athlete profile rankings and tracking PDFs share the pure calendar-window selector in `src/lib/athlete-records.ts`; preserve stored history and sort eligible times ascending, while progression charts remain chronological.
 - Tracking PDF charts use the pure event/course series selector and vector drawing in `src/lib/athlete-progress-pdf.ts`; paginate labelled swims without truncation so print remains readable and export needs no canvas.
-- Management reset uses a protected server function with fresh admin validation and an admin-checked atomic SQL function; remove private club files through Storage API and preserve authentication accounts and roles.
+- Reset deletes only the caller's RLS-visible rows, then cleans only captured private club prefixes through Storage API; never empty the shared bucket. Preserve accounts and roles.
