@@ -37,7 +37,7 @@ function AuthPage() {
         if (error) throw error;
         navigate({ to: "/request-access" });
       } else {
-        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/request-access` } });
         if (error) throw error;
         toast.success("Revisa tu correo para confirmar la cuenta.");
       }
@@ -49,7 +49,7 @@ function AuthPage() {
   }
 
   async function google() {
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/request-access` });
     if (r.error) {
       toast.error(String(r.error.message ?? r.error));
       return;

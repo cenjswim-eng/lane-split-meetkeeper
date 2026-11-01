@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as RequestAccessRouteImport } from './routes/request-access'
+import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
@@ -34,6 +36,16 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RequestAccessRoute = RequestAccessRouteImport.update({
+  id: '/request-access',
+  path: '/request-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClubRoute = AuthenticatedClubRouteImport.update({
   id: '/club',
@@ -81,6 +93,8 @@ const LovableEmailTransactionalPreviewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/request-access': typeof RequestAccessRoute
+  '/access': typeof AuthenticatedAccessRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
@@ -93,6 +107,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/request-access': typeof RequestAccessRoute
+  '/access': typeof AuthenticatedAccessRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
@@ -107,6 +123,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/request-access': typeof RequestAccessRoute
+  '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
@@ -121,6 +139,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/request-access'
+    | '/access'
     | '/club'
     | '/dashboard'
     | '/import'
@@ -133,6 +153,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/request-access'
+    | '/access'
     | '/club'
     | '/dashboard'
     | '/import'
@@ -146,6 +168,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/request-access'
+    | '/_authenticated/access'
     | '/_authenticated/club'
     | '/_authenticated/dashboard'
     | '/_authenticated/import'
@@ -160,6 +184,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  RequestAccessRoute: typeof RequestAccessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -185,6 +210,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/request-access': {
+      id: '/request-access'
+      path: '/request-access'
+      fullPath: '/request-access'
+      preLoaderRoute: typeof RequestAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/access': {
+      id: '/_authenticated/access'
+      path: '/access'
+      fullPath: '/access'
+      preLoaderRoute: typeof AuthenticatedAccessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/club': {
       id: '/_authenticated/club'
@@ -246,6 +285,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
@@ -256,6 +296,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccessRoute: AuthenticatedAccessRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
@@ -272,6 +313,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  RequestAccessRoute: RequestAccessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
