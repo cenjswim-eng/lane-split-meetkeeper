@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { eventLabel, formatTime } from "@/lib/swim";
+import { Button } from '@/components/ui/button';
 
 const dashQuery = queryOptions({
   queryKey: ["dashboard"],
@@ -85,6 +86,7 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <h1 className="text-4xl font-bold uppercase">Panel de control</h1>
+        <Button asChild variant="outline"><Link to="/access">Accesos</Link></Button>
         <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
           Aún no hay resultados. <Link to="/import" className="text-primary underline">Importa un archivo de Hy-Tek</Link> para ver la evolución.
         </div>
@@ -96,6 +98,7 @@ function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold uppercase">Panel de control</h1>
+        <Button asChild variant="outline"><Link to="/access">Accesos</Link></Button>
         <p className="text-muted-foreground">Temporada {curYear} vs {prevYear}</p>
       </div>
 

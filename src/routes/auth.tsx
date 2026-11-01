@@ -35,7 +35,7 @@ function AuthPage() {
       if (mode === "in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/athletes" });
+        navigate({ to: "/request-access" });
       } else {
         const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
         if (error) throw error;
@@ -55,7 +55,7 @@ function AuthPage() {
       return;
     }
     if (r.redirected) return;
-    navigate({ to: "/athletes" });
+    navigate({ to: "/request-access" });
   }
 
   return (
@@ -63,7 +63,7 @@ function AuthPage() {
       <div className="w-full max-w-sm rounded-lg border bg-card p-6">
         <div className="lane-line mb-6" />
         <h1 className="text-3xl font-bold uppercase">{mode === "in" ? "Iniciar sesión" : "Crear cuenta"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Solo administradores. La primera cuenta creada es la administradora.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Acceso privado. Las nuevas cuentas requieren aprobación del dueño.</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Correo</Label>
@@ -80,9 +80,9 @@ function AuthPage() {
         <Button variant="outline" className="mt-3 w-full" onClick={google}>
           Continuar con Google
         </Button>
-        <button className="mt-4 w-full text-sm text-muted-foreground underline" onClick={() => setMode(mode === "in" ? "up" : "in")}>
+        <Button variant="link" className="mt-4 w-full text-sm text-muted-foreground underline" onClick={() => setMode(mode === "in" ? "up" : "in")}>
           {mode === "in" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
-        </button>
+        </Button>
       </div>
     </main>
   );

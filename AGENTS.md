@@ -21,7 +21,7 @@
 - All times are stored as integer milliseconds (`*_ms`); format only at display time via `src/lib/swim.ts`.
 - Athlete de-duplication order on import: `tm_athlete_id` → `federation_id` → name + birth date.
 - Import meet/event identities through admin-checked, SECURITY INVOKER atomic RPCs with advisory locks; reuse normalized meet name/date/course and compatible event identities so result/split upserts retain their existing unique identities on reimport.
-- Data access is admin-only via `has_role(auth.uid(),'admin')` RLS; the first signed-up user becomes admin by trigger.
+- Data access remains admin-only via RLS; new accounts receive admin only through the atomic owner-checked access decision RPC, never through signup. The singleton app_owner identity alone approves requests; notifications resolve its address server-side and use managed email with event-derived idempotency keys.
 - Relay lineup optimization lives in `src/lib/relay.ts` (pure functions, no DB); PDF reports in `src/lib/reports.ts` (jspdf + jspdf-autotable, generated client-side).
 - Age categories use the Dec-31 rule via `ageAtDec31`/`ageGroup` in `src/lib/swim.ts`; never compute categories from current age.
 - Exports return prepared Files; the shared export dialog delivers them through native file sharing or delayed-revocation downloads, with ZIP wrapping for SD3 compatibility, so mobile user activation survives generation.
