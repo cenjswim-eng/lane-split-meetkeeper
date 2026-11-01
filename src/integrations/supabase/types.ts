@@ -70,6 +70,7 @@ export type Database = {
           group_id: string | null
           id: string
           last_name: string
+          owner_id: string | null
           team_id: string | null
           tm_athlete_id: string | null
         }
@@ -83,6 +84,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           last_name: string
+          owner_id?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
         }
@@ -96,6 +98,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           last_name?: string
+          owner_id?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
         }
@@ -121,6 +124,7 @@ export type Database = {
           club_id: string
           file_name: string
           id: string
+          owner_id: string | null
           storage_path: string
           table_summary: Json
           uploaded_at: string
@@ -129,6 +133,7 @@ export type Database = {
           club_id: string
           file_name: string
           id?: string
+          owner_id?: string | null
           storage_path: string
           table_summary?: Json
           uploaded_at?: string
@@ -137,6 +142,7 @@ export type Database = {
           club_id?: string
           file_name?: string
           id?: string
+          owner_id?: string | null
           storage_path?: string
           table_summary?: Json
           uploaded_at?: string
@@ -163,6 +169,7 @@ export type Database = {
           last_name: string
           member_role: string
           notes: string
+          owner_id: string | null
           phone: string | null
           source_key: string | null
           updated_at: string
@@ -178,6 +185,7 @@ export type Database = {
           last_name?: string
           member_role?: string
           notes?: string
+          owner_id?: string | null
           phone?: string | null
           source_key?: string | null
           updated_at?: string
@@ -193,6 +201,7 @@ export type Database = {
           last_name?: string
           member_role?: string
           notes?: string
+          owner_id?: string | null
           phone?: string | null
           source_key?: string | null
           updated_at?: string
@@ -219,16 +228,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          owner_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          owner_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          owner_id?: string | null
         }
         Relationships: []
       }
@@ -242,6 +254,7 @@ export type Database = {
           max_age: number | null
           meet_id: string
           min_age: number | null
+          owner_id: string | null
           stroke: number
         }
         Insert: {
@@ -253,6 +266,7 @@ export type Database = {
           max_age?: number | null
           meet_id: string
           min_age?: number | null
+          owner_id?: string | null
           stroke: number
         }
         Update: {
@@ -264,6 +278,7 @@ export type Database = {
           max_age?: number | null
           meet_id?: string
           min_age?: number | null
+          owner_id?: string | null
           stroke?: number
         }
         Relationships: [
@@ -281,16 +296,19 @@ export type Database = {
           code: string
           id: string
           name: string
+          owner_id: string | null
         }
         Insert: {
           code: string
           id?: string
           name: string
+          owner_id?: string | null
         }
         Update: {
           code?: string
           id?: string
           name?: string
+          owner_id?: string | null
         }
         Relationships: []
       }
@@ -300,6 +318,7 @@ export type Database = {
           file_name: string
           file_type: string
           id: string
+          owner_id: string | null
           summary: Json | null
         }
         Insert: {
@@ -307,6 +326,7 @@ export type Database = {
           file_name: string
           file_type: string
           id?: string
+          owner_id?: string | null
           summary?: Json | null
         }
         Update: {
@@ -314,6 +334,7 @@ export type Database = {
           file_name?: string
           file_type?: string
           id?: string
+          owner_id?: string | null
           summary?: Json | null
         }
         Relationships: []
@@ -327,6 +348,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          owner_id: string | null
           start_date: string | null
         }
         Insert: {
@@ -337,6 +359,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          owner_id?: string | null
           start_date?: string | null
         }
         Update: {
@@ -347,6 +370,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          owner_id?: string | null
           start_date?: string | null
         }
         Relationships: []
@@ -362,6 +386,7 @@ export type Database = {
           id: string
           is_dq: boolean
           meet_id: string
+          owner_id: string | null
           place: number | null
           round: string | null
           seed_time_ms: number | null
@@ -378,6 +403,7 @@ export type Database = {
           id?: string
           is_dq?: boolean
           meet_id: string
+          owner_id?: string | null
           place?: number | null
           round?: string | null
           seed_time_ms?: number | null
@@ -394,6 +420,7 @@ export type Database = {
           id?: string
           is_dq?: boolean
           meet_id?: string
+          owner_id?: string | null
           place?: number | null
           round?: string | null
           seed_time_ms?: number | null
@@ -429,6 +456,7 @@ export type Database = {
           cumulative_time_ms: number
           id: string
           lap_time_ms: number | null
+          owner_id: string | null
           result_id: string
           split_distance: number
         }
@@ -436,6 +464,7 @@ export type Database = {
           cumulative_time_ms: number
           id?: string
           lap_time_ms?: number | null
+          owner_id?: string | null
           result_id: string
           split_distance: number
         }
@@ -443,6 +472,7 @@ export type Database = {
           cumulative_time_ms?: number
           id?: string
           lap_time_ms?: number | null
+          owner_id?: string | null
           result_id?: string
           split_distance?: number
         }
@@ -463,6 +493,7 @@ export type Database = {
           id: string
           lsc: string | null
           name: string
+          owner_id: string | null
         }
         Insert: {
           code: string
@@ -470,6 +501,7 @@ export type Database = {
           id?: string
           lsc?: string | null
           name: string
+          owner_id?: string | null
         }
         Update: {
           code?: string
@@ -477,6 +509,7 @@ export type Database = {
           id?: string
           lsc?: string | null
           name?: string
+          owner_id?: string | null
         }
         Relationships: []
       }
@@ -488,6 +521,7 @@ export type Database = {
           gender: string | null
           id: string
           name: string
+          owner_id: string | null
           qualifying_time_ms: number
           stroke: number
         }
@@ -498,6 +532,7 @@ export type Database = {
           gender?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           qualifying_time_ms: number
           stroke: number
         }
@@ -508,6 +543,7 @@ export type Database = {
           gender?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           qualifying_time_ms?: number
           stroke?: number
         }
