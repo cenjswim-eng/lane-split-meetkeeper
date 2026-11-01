@@ -24,10 +24,13 @@ function maybe<T>(r: { data: T; error: { message: string } | null }): T {
 
 /** Writes a parsed Hy-Tek file into the database, de-duplicating athletes, teams, meets and events. */
 export async function importParsed(fileName: string, p: ParsedFile, onProgress?: (pct: number) => void): Promise<ImportSummary> {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Inicia sesión para importar tus registros.');
+  const ownerId = auth.user.id;
   // Teams
   const teamIds = new Map<string, string>();
   if (p.teams.length) {
-    const rows = must(await supabase.from("teams").upsert(p.teams.map((t) => ({ code: t.code, name: t.name, lsc: t.lsc ?? null })), { onConflict: "code" }).select("id, code"));
+    const rows = must(await supabase.from("teams").upsert(p.teams.map((t) => ({ owner_id: ownerId, code: t.code, name: t.name, lsc: t.lsc ?? null })), { onConflict: "owner_id,code" }).select("id, code"));
     rows.forEach((t) => teamIds.set(t.code, t.id));
   }
 
