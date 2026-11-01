@@ -8,7 +8,6 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { loadEnv, type Plugin } from "vite";
 import { createRequire } from "node:module";
-import path from "node:path";
 
 Object.assign(process.env, loadEnv(process.env['NODE_ENV'] === 'production' ? 'production' : 'development', process.cwd(), ''));
 
@@ -46,11 +45,7 @@ const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream",
 });
 
 export default defineConfig({
-  vite: { plugins: browserPolyfills, resolve: { alias: {
-    'entities/lib/decode.js': path.resolve('node_modules/entities/lib/decode.js'),
-    'entities/lib/encode.js': path.resolve('node_modules/entities/lib/encode.js'),
-    'entities': path.resolve('node_modules/entities'),
-  } } },
+  vite: { plugins: browserPolyfills },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
