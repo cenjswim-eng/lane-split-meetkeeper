@@ -20,6 +20,7 @@ const emailEntities: Plugin = {
   resolveId(id) {
     if (id === 'entities') return require.resolve('entities').replace('/lib/index.js', '/lib/esm/index.js');
     if (id === 'entities/lib/decode.js' || id === 'entities/lib/encode.js') return require.resolve(id).replace('/lib/', '/lib/esm/');
+    return undefined;
   },
 };
 const browserPolyfills = nodePolyfills({ include: ["buffer", "events", "stream", "util", "process"], overrides: { buffer: "vite-plugin-node-polyfills/shims/buffer" }, protocolImports: true, globals: { Buffer: false, global: false, process: false } }).flat().map((plugin): Plugin => {
