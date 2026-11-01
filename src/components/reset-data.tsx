@@ -28,18 +28,18 @@ export function ResetData() {
       setOpen(false);
       setConfirmation("");
       await router.invalidate();
-      toast.success("Todos los datos de gestión fueron eliminados. Tu cuenta se conserva.");
+      toast.success("Tus datos de gestión fueron eliminados. Tu cuenta y los registros de otras cuentas se conservan.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo completar el borrado.");
     } finally { setBusy(false); }
   }
 
   return <AlertDialog open={open} onOpenChange={(value) => { if (!busy) { setOpen(value); setConfirmation(""); } }}>
-    <Button variant="destructive" onClick={() => setOpen(true)}><Trash2 className="size-4" />Borrar todos los datos</Button>
+    <Button variant="destructive" onClick={() => setOpen(true)}><Trash2 className="size-4" />Borrar mis datos</Button>
     <AlertDialogContent className="max-w-lg">
       <AlertDialogHeader>
-        <AlertDialogTitle>¿Borrar todos los datos?</AlertDialogTitle>
-        <AlertDialogDescription>Se eliminarán permanentemente atletas, tiempos, parciales, competencias, equipos, grupos, mínimas, historial de importaciones, integrantes del club y documentos MDB/PDF guardados. Las cuentas y los permisos de administrador se conservarán. Esta acción no se puede deshacer.</AlertDialogDescription>
+        <AlertDialogTitle>¿Borrar todos tus datos?</AlertDialogTitle>
+        <AlertDialogDescription>Se eliminarán permanentemente tus atletas, tiempos, parciales, competencias, equipos, grupos, mínimas, importaciones, integrantes y documentos guardados. Tu cuenta, tus permisos y todos los registros de otras cuentas se conservan. Esta acción no se puede deshacer.</AlertDialogDescription>
       </AlertDialogHeader>
       <label htmlFor="reset-confirmation" className="text-sm font-medium">Escribe BORRAR TODO para confirmar</label>
       <Input id="reset-confirmation" value={confirmation} disabled={busy} onChange={(e) => setConfirmation(e.target.value)} autoComplete="off" />

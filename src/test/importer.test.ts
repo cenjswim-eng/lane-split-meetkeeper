@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ results: new Map<string, unknown>(), meets: new Map<string, string>() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
+  auth: { getUser: async () => ({ data: { user: { id: 'owner-1' } }, error: null }) },
   rpc: vi.fn(async (_name, args) => {
     if (args.p_kind === "event") return { data: "event-1", error: null };
     const key = JSON.stringify(args.p_data);
