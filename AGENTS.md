@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Swimming system rules
+- Training-zone arithmetic lives in pure `src/lib/training-zones.ts`; use eligible individual event/course references and explicitly coach-entered speed ranges, never claim race-only Olbrecht thresholds; calibration is temporary and isolated by reference in the profile tool because no persistence was requested.
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
 - Decode legacy Hy-Tek text as Windows-1252 when UTF-8 is invalid; keep fixed-width columns stable, reject unsupported athlete layouts visibly, and never overwrite existing final times with entry-only imports.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
