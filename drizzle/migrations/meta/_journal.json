@@ -50,6 +50,13 @@
       "when": 1793442034699,
       "tag": "0006_admin_reset_management_data",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793573900061,
+      "tag": "0007_owner_access_approval",
+      "breakpoints": true
     }
   ]
 }

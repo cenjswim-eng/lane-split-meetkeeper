@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      app_owner: {
+        Row: {
+          singleton: boolean
+          user_id: string
+        }
+        Insert: {
+          singleton?: boolean
+          user_id: string
+        }
+        Update: {
+          singleton?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       athletes: {
         Row: {
           active_status: boolean
@@ -491,6 +536,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decide_app_access: {
+        Args: { p_approve: boolean; p_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -502,6 +551,8 @@ export type Database = {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
       }
+      is_app_owner: { Args: never; Returns: boolean }
+      request_app_access: { Args: never; Returns: Json }
       reset_management_data: {
         Args: { p_confirmation: string }
         Returns: undefined
