@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Separar atletas, clubes, competencias, importaciones, documentos y borrado por cuenta; preservar los datos actuales del dueño y verificar aislamiento entre dos cuentas.
 - [x] Panel privado del dueño disponible en Panel → Accesos para revisar, aprobar o rechazar solicitudes; aprobación autenticada verificada.
 - [ ] Revisar seguridad integral: controles básicos sin hallazgos; análisis profundo en curso y vulnerabilidades de dependencias detectadas, pendientes de evaluación y corrección.
 - [x] Preparar correo con notify.swimlanecoach.app y aprobación exclusiva del dueño; solicitud temporal, bloqueo, aprobación y acceso verificados; envío al dueño confirmado y datos temporales eliminados.
