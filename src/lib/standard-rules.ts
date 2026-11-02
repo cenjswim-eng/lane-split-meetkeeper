@@ -76,3 +76,34 @@ export function prepareStandardRows(drafts: StandardDraft[], year: number) {
 export function standardIdentity(s: StandardScope & { gender: string | null; distance: number; stroke: number; course: string }) {
   return JSON.stringify([s.season_year, s.age_min, s.age_max, s.age_group, s.gender, s.distance, s.stroke, s.course]);
 }
+export interface QualificationResult {
+  athlete_id: string;
+  final_time_ms: number | null;
+  is_dq: boolean;
+  course: string | null;
+  meets: { name: string; start_date: string | null } | null;
+  events: { distance: number; stroke: number; is_relay: boolean } | null;
+  athletes: { first_name: string; last_name: string; gender: string | null; birth_date: string | null } | null;
+}
+export interface QualificationStandard extends StandardScope { id: string; gender: string | null; distance: number; stroke: number; course: string; qualifying_time_ms: number }
+
+/** Best valid swim per athlete/event/course in the season year, compared with the applicable standard for that year. */
+export function qualificationReport(standards: QualificationStandard[], results: QualificationResult[], year: number) {
+  const best = new Map<string, QualificationResult>();
+  for (const r of results) {
+    if (r.is_dq || r.final_time_ms == null || !r.events || r.events.is_relay || !r.athletes || !r.course) continue;
+    if (Number(r.meets?.start_date?.slice(0, 4)) !== year) continue;
+    const key = `${r.athlete_id}|${r.events.distance}|${r.events.stroke}|${r.course}`;
+    const prev = best.get(key);
+    if (!prev || r.final_time_ms < prev.final_time_ms!) best.set(key, r);
+  }
+  const rows = [];
+  for (const r of best.values()) {
+    const a = r.athletes!, e = r.events!;
+    const applicable = standards.filter(s => s.season_year === year && s.distance === e.distance && s.stroke === e.stroke && s.course === r.course && (!s.gender || s.gender === a.gender) && standardApplies(s, a.birth_date, year));
+    if (!applicable.length) continue;
+    const std = applicable.reduce((x, y) => (y.qualifying_time_ms < x.qualifying_time_ms ? y : x));
+    rows.push({ athlete_id: r.athlete_id, name: `${a.last_name}, ${a.first_name}`, gender: a.gender, category: std.age_group, distance: e.distance, stroke: e.stroke, course: r.course!, time_ms: r.final_time_ms!, limit_ms: std.qualifying_time_ms, diff_ms: r.final_time_ms! - std.qualifying_time_ms, met: r.final_time_ms! <= std.qualifying_time_ms, meet: r.meets?.name ?? "" });
+  }
+  return rows.sort((x, y) => Number(y.met) - Number(x.met) || x.name.localeCompare(y.name) || x.distance - y.distance || x.stroke - y.stroke);
+}

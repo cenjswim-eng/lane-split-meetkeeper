@@ -22,6 +22,7 @@ export function ImportStandards({ existing }: { existing: Tables<"time_standards
   const [busy, setBusy] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const [replace, setReplace] = useState(false);
+  const [pool, setPool] = useState<"LCM" | "SCM">("LCM");
   const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const extract = useServerFn(extractStandards);
@@ -44,7 +45,7 @@ export function ImportStandards({ existing }: { existing: Tables<"time_standards
       });
       const response = await extract({ data: { base64, mediaType, filename: file.name.slice(0,200), year: Number(year) } });
       if (!response.ok) throw new Error(response.message);
-      setRows(response.output.standards.map(s => ({ category: (()=>{try{return categoryBounds(s.category ?? "").age_group ?? "Todas";}catch{return s.category ?? "";}})(), gender: s.gender ?? "?", distance: s.distance ?? 0, stroke: s.stroke ?? 0, course: s.course ?? "", time: s.time ?? "", selected: true })));
+      setRows(response.output.standards.map(s => ({ category: (()=>{try{return categoryBounds(s.category ?? "").age_group ?? "Todas";}catch{return s.category ?? "";}})(), gender: s.gender ?? "?", distance: s.distance ?? 0, stroke: s.stroke ?? 0, course: pool, time: s.time ?? "", selected: true })));
       setWarnings([...response.output.warnings, ...(response.output.document_year != null && response.output.document_year !== Number(year) ? [`El documento indica ${response.output.document_year}; seleccionaste ${year}. Revisa el año antes de guardar.`] : [])]);
       if (!response.output.standards.length) setError("No se encontraron mínimas legibles en el archivo.");
     } catch (e) { setError(e instanceof Error ? e.message : "No se pudo leer el archivo."); }
@@ -73,6 +74,7 @@ export function ImportStandards({ existing }: { existing: Tables<"time_standards
   return <><Button variant="outline" onClick={() => setOpen(true)}><Upload />Importar PDF o captura</Button>
     <Dialog open={open} onOpenChange={v => { if (!busy) setOpen(v); }}><DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto"><DialogHeader><DialogTitle>Mínimas nacionales · Venezuela</DialogTitle><DialogDescription>PDF, PNG, JPG o WebP · hasta 8 MB. Lectura con Lovable AI; consume créditos de IA.</DialogDescription></DialogHeader>
       <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]"><div className="grid gap-1.5"><Label htmlFor="standards-year">Año</Label><Input id="standards-year" type="number" min={1900} max={2200} value={year} disabled={busy} onChange={e => {setYear(e.target.value);setReviewed(false);}} /></div><div className="grid gap-1.5"><Label>Documento de mínimas</Label><input ref={input} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" aria-label="Documento de mínimas" onChange={e => {const f=e.target.files?.[0];e.target.value="";if(!f)return;if(!["application/pdf","image/png","image/jpeg","image/webp"].includes(f.type)||f.size>8*1024*1024||!f.size){setError("Selecciona un PDF o imagen válido de hasta 8 MB.");return;}setFile(f);setRows([]);setWarnings([]);setError("");setReviewed(false);}} /><Button variant="outline" disabled={busy} onClick={() => input.current?.click()} className="min-w-0 justify-start"><Upload /><span className="truncate">{file?.name ?? "Seleccionar PDF o captura"}</span></Button></div></div>
+      <div className="grid gap-1.5"><Label htmlFor="standards-pool">Piscina de los tiempos</Label><select id="standards-pool" className={selectClass} value={pool} disabled={busy} onChange={e=>{const v=e.target.value as "LCM"|"SCM";setPool(v);setRows(rs=>rs.map(r=>({...r,course:v})));setReviewed(false);}}><option value="LCM">Piscina de 50 metros (normal)</option><option value="SCM">Piscina de 25 metros (tramos)</option></select></div>
       <Button disabled={!file || busy || !Number.isInteger(Number(year)) || Number(year)<1900 || Number(year)>2200} onClick={read}>{busy ? "Procesando…" : "Leer mínimas"}</Button>
       {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}
       {warnings.length>0 && <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">{warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>}
