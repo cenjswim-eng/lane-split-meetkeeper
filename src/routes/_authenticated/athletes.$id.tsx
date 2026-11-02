@@ -31,7 +31,7 @@ const profileQuery = (id: string) =>
   });
 
 export const Route = createFileRoute("/_authenticated/athletes/$id")({
-  head: () => ({ meta: [{ title: "Perfil del atleta — Natación Pro" }, { name: "description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:title", content: "Perfil del atleta — Natación Pro" }, { property: "og:description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+  head: () => ({ meta: [{ title: "Perfil del atleta — Natacion pro" }, { name: "description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:title", content: "Perfil del atleta — Natacion pro" }, { name: "twitter:title", content: "Perfil del atleta — Natacion pro" }, { property: "og:description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(profileQuery(params.id)),
   component: Profile,
 });

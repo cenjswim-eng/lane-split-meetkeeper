@@ -13,7 +13,7 @@ import { formatTime, eventLabel } from "@/lib/swim";
 import { ResetData } from "@/components/reset-data";
 
 export const Route = createFileRoute("/_authenticated/import")({
-  head: () => ({ meta: [{ title: "Importar Hy-Tek y Access — Natación Pro" }, { name: "description", content: "Carga archivos HY3, CL2, SD3, ZIP y Microsoft Access Jet 4.0 (.mdb)." }, { property: "og:title", content: "Importar Hy-Tek y Access — Natación Pro" }, { property: "og:description", content: "Importa y revisa archivos de natación, incluyendo bases Access .mdb." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+  head: () => ({ meta: [{ title: "Importar Hy-Tek y Access — Natacion pro" }, { name: "description", content: "Carga archivos HY3, CL2, SD3, ZIP y Microsoft Access Jet 4.0 (.mdb)." }, { property: "og:title", content: "Importar Hy-Tek y Access — Natacion pro" }, { name: "twitter:title", content: "Importar Hy-Tek y Access — Natacion pro" }, { property: "og:description", content: "Importa y revisa archivos de natación, incluyendo bases Access .mdb." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ImportPage,
 });
 

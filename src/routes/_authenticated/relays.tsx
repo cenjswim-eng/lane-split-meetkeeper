@@ -29,9 +29,9 @@ const relayQuery = (course: string, distance: number, gender: string) =>
 export const Route = createFileRoute("/_authenticated/relays")({
   head: () => ({
     meta: [
-      { title: "Optimizador de relevos — Natación Pro" },
+      { title: "Optimizador de relevos — Natacion pro" },
       { name: "description", content: "Alineación más rápida de la cuarteta cruzando las mejores marcas de los nadadores activos." },
-      { property: "og:title", content: "Optimizador de relevos — Natación Pro" },
+      { property: "og:title", content: "Optimizador de relevos — Natacion pro" }, { name: "twitter:title", content: "Optimizador de relevos — Natacion pro" },
       { property: "og:description", content: "Alineación más rápida de la cuarteta." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

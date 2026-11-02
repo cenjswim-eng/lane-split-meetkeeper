@@ -108,7 +108,7 @@ export function buildSd3(meet: { name: string; location: string | null; start_da
   const L = (s: string) => s.padEnd(160, " ").slice(0, 160);
   const today = isoToMdy(new Date().toISOString().slice(0, 10));
   const lines: string[] = [];
-  lines.push(L(`A102${pad("Resultados", 30)}${pad("Natacion Pro", 20)}${pad("1.0", 10)}${pad("", 20)}${pad("", 12)}${today}`));
+  lines.push(L(`A102${pad("Resultados", 30)}${pad("Natacion pro", 20)}${pad("1.0", 10)}${pad("", 20)}${pad("", 12)}${today}`));
   lines.push(L(`B1${pad("", 9)}${pad(meet.name, 30)}${pad("", 44)}${pad(meet.location, 20)}${pad("", 16)}${isoToMdy(meet.start_date).padEnd(8)}${isoToMdy(meet.end_date ?? meet.start_date).padEnd(8)}${pad("", 4)}${pad("", 8)}${COURSE_CODE[meet.course] ?? "L"}`));
   let count = 0;
   const byTeam = new Map<string, ExportRow[]>();
