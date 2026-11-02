@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Rediseñar el panel del entrenador con indicadores reales, próximas competencias, resultados recientes, accesos rápidos y navegación móvil; verificar con sesión real.
 - [ ] Crear video corto de lanzamiento con imágenes tipo flyer y voz agradable en español latinoamericano; generación en curso.
 - [x] Separar datos por cuenta: aislamiento completo verificado con dos sesiones reales (registros, importaciones, documentos privados, subida ajena rechazada y borrado); datos del dueño intactos.
 - [x] Panel privado del dueño disponible en Panel → Accesos para revisar, aprobar o rechazar solicitudes; aprobación autenticada verificada.
