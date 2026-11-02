@@ -24,8 +24,20 @@ export interface StandardDraft {
   selected: boolean;
 }
 
+export const SWIM_CATEGORIES = [
+  { name: "Infantil A", label: "Infantil A (10-11 años)", age_min: 10, age_max: 11 },
+  { name: "Infantil B", label: "Infantil B (12-13 años)", age_min: 12, age_max: 13 },
+  { name: "Juvenil A", label: "Juvenil A (14-15 años)", age_min: 14, age_max: 15 },
+  { name: "Juvenil B", label: "Juvenil B (16-17 años)", age_min: 16, age_max: 17 },
+  { name: "Máxima", label: "Máxima (19 años y +)", age_min: 19, age_max: null },
+] as const;
+
+const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
 export function categoryBounds(category: string): { age_group: string | null; age_min: number | null; age_max: number | null } {
   const text = category.trim().toLowerCase();
+  const named = SWIM_CATEGORIES.find(c => fold(category).startsWith(fold(c.name)));
+  if (named) return { age_group: named.label, age_min: named.age_min, age_max: named.age_max };
   if (/^(todas|abierta|open|libre)$/.test(text)) return { age_group: null, age_min: null, age_max: null };
   const range = text.match(/^(\d{1,2})\s*(?:-|–|a)\s*(\d{1,2})(?:\s*años)?$/);
   if (range) {

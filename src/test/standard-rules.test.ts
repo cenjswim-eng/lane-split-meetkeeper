@@ -23,7 +23,7 @@ it("uses exact age intervals at December 31, including categories outside defaul
  expect(standardApplies(row,"2013-12-25",2026)).toBe(false);
 });
 it("requires resolving missing data and does not invent category or pool",()=>{
- expect(()=>prepareStandardRows([{...draft,category:"Infantil B"}],2026)).toThrow();
+ expect(()=>prepareStandardRows([{...draft,category:"Alevín"}],2026)).toThrow();
  expect(()=>prepareStandardRows([{...draft,course:""}],2026)).toThrow();
  expect(()=>prepareStandardRows([{...draft,gender:"?"}],2026)).toThrow();
 });
@@ -33,4 +33,10 @@ it("omits deselected rows and rejects duplicate minima",()=>{
 });
 it("legacy minima keep all-year applicability",()=>{
  expect(standardApplies({age_group:"13-14"},"2013-12-25",2026)).toBe(true);
+});
+import { categoryBounds as cb } from "@/lib/standard-rules";
+describe("categorías nombradas", () => {
+  it("Infantil A es 10-11", () => expect(cb("Infantil A")).toMatchObject({ age_min: 10, age_max: 11 }));
+  it("Juvenil B es 16-17", () => expect(cb("juvenil b (16-17 años)")).toMatchObject({ age_min: 16, age_max: 17 }));
+  it("Máxima es 19 y más", () => expect(cb("Maxima")).toMatchObject({ age_min: 19, age_max: null }));
 });
