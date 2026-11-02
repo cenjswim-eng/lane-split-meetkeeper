@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Importar mínimas nacionales de Venezuela desde PDF o captura, revisar y guardar por año; verificar lectura y aislamiento sin inventar marcas oficiales.
+- [x] Importar mínimas nacionales de Venezuela desde PDF o captura con revisión editable y año; lectura real, guardado y relectura con cuenta temporal verificados, sin mezclar años ni categorías. Prueba sintética retirada; documento oficial pendiente del usuario.
 - [x] Añadir recuperación de carga de archivos con recarga completa; comprobar inicio y reproducir fallo temporal de un archivo en el navegador.
 - [x] Adaptar archivo de inscripciones al formato SDIF de Meet Manager (A0/01, C1/C2, D0, Z0), verificar columnas y descarga autenticada; aceptación dentro de Meet Manager pendiente del programa externo.
 - [x] Rediseñar el panel del entrenador con indicadores reales, próximas competencias, resultados recientes, accesos rápidos y navegación móvil; sesión real y exportación verificadas en celular y computadora.
