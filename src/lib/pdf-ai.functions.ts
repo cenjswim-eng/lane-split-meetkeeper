@@ -42,7 +42,7 @@ export const extractPdfWithAi = createServerFn({ method: "POST" })
     try {
       const result = streamText({
         model: provider.responses("openai/gpt-6-astra"),
-        output: Output.object({ schema }),
+        output: Output.object({ schema: schema as never }),
         messages: [{ role: "user", content: [
           { type: "text", text: PROMPTS[data.kind] },
           { type: "file", data: data.base64, mediaType: "application/pdf", filename: "documento.pdf" },
