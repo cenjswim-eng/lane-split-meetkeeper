@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 const url = process.env['SUPABASE_URL'];
 const key = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 const publicKey = process.env['SUPABASE_PUBLISHABLE_KEY'];
-const tables = ['splits','results','events','athletes','meets','teams','groups','time_standards','import_logs','club_members','club_documents','clubs'];
+const tables = ['meet_entries','splits','results','events','athletes','meets','teams','groups','time_standards','import_logs','club_members','club_documents','clubs'];
 
 it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, import identities, files and resets', async () => {
   if (!url || !key || !publicKey) return;
@@ -44,6 +44,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
       expect(again.data).toBe(meet.data);
       const event = await insert(client, 'events', { meet_id: meet.data, distance: 100, stroke: 1 });
       const result = await insert(client, 'results', { meet_id: meet.data, event_id: event.id, athlete_id: athlete.id, final_time_ms: 60000 });
+      await insert(client, 'meet_entries', { meet_id: meet.data, event_id: event.id, athlete_id: athlete.id, seed_time_ms: 61000 });
       await insert(client, 'splits', { result_id: result.id, split_distance: 50, cumulative_time_ms: 30000 });
       const path = `${club.id}/privacy-check.pdf`;
       const uploaded = await client.storage.from('club-documents').upload(path, new TextEncoder().encode('%PDF-test'), { contentType: 'application/pdf' });
@@ -55,7 +56,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     const [a,b] = records;
     if (!a || !b) throw new Error('Missing records');
     expect(a.meet).not.toBe(b.meet);
-    for (const table of ['teams','clubs','athletes','meets','events','results','splits','club_documents','club_members']) {
+    for (const table of ['meet_entries','teams','clubs','athletes','meets','events','results','splits','club_documents','club_members']) {
       const visible = await first.from(table).select('owner_id');
       expect(visible.error).toBeNull();
       expect(visible.data).toHaveLength(1);
@@ -67,6 +68,8 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     expect((await first.from('athletes').update({ owner_id: users[1] }).eq('id',a.athlete.id)).error).not.toBeNull();
     expect((await first.from('athletes').insert({ first_name:'forged',last_name:'test',team_id:b.team.id })).error).not.toBeNull();
     expect((await first.from('events').insert({ meet_id:b.meet,distance:200,stroke:1 })).error).not.toBeNull();
+    expect((await first.from('meet_entries').insert({ meet_id:b.meet,event_id:b.event.id,athlete_id:a.athlete.id })).error).not.toBeNull();
+    expect((await first.from('meet_entries').insert({ meet_id:a.meet,event_id:b.event.id,athlete_id:a.athlete.id })).error).not.toBeNull();
     expect((await first.from('club_members').insert({ club_id:b.club.id,first_name:'forged' })).error).not.toBeNull();
     expect((await first.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).not.toBeNull();
     const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new TextEncoder().encode('%PDF'),{ contentType: 'application/pdf' });
@@ -74,6 +77,8 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     const reset = await first.rpc('reset_management_data', { p_confirmation:'BORRAR TODO' });
     expect(reset.error).toBeNull();
     expect((await first.from('athletes').select('id')).data).toHaveLength(0);
+    expect((await first.from('meet_entries').select('id')).data).toHaveLength(0);
+    expect((await second.from('meet_entries').select('seed_time_ms')).data?.[0]?.seed_time_ms).toBe(61000);
     expect((await second.from('athletes').select('id')).data).toHaveLength(1);
     expect((await second.from('results').select('final_time_ms')).data?.[0]?.final_time_ms).toBe(60000);
     expect((await second.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).toBeNull();

@@ -16,10 +16,13 @@ import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMeetsRouteImport } from './routes/_authenticated/meets'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRelaysRouteImport } from './routes/_authenticated/relays'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedStandardsRouteImport } from './routes/_authenticated/standards'
 import { Route as AuthenticatedAthletesIndexRouteImport } from './routes/_authenticated/athletes.index'
 import { Route as AuthenticatedAthletesIdRouteImport } from './routes/_authenticated/athletes.$id'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -58,6 +61,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEntriesRoute = AuthenticatedEntriesRouteImport.update({
+  id: '/entries',
+  path: '/entries',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -76,6 +84,16 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
 const AuthenticatedRelaysRoute = AuthenticatedRelaysRouteImport.update({
   id: '/relays',
   path: '/relays',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStandardsRoute = AuthenticatedStandardsRouteImport.update({
+  id: '/standards',
+  path: '/standards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAthletesIndexRoute =
@@ -103,10 +121,13 @@ export interface FileRoutesByFullPath {
   '/access': typeof AuthenticatedAccessRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/entries': typeof AuthenticatedEntriesRoute
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/relays': typeof AuthenticatedRelaysRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/standards': typeof AuthenticatedStandardsRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -118,10 +139,13 @@ export interface FileRoutesByTo {
   '/access': typeof AuthenticatedAccessRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/entries': typeof AuthenticatedEntriesRoute
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/relays': typeof AuthenticatedRelaysRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/standards': typeof AuthenticatedStandardsRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -135,10 +159,13 @@ export interface FileRoutesById {
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/entries': typeof AuthenticatedEntriesRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/meets': typeof AuthenticatedMeetsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/relays': typeof AuthenticatedRelaysRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/standards': typeof AuthenticatedStandardsRoute
   '/_authenticated/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/_authenticated/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -152,10 +179,13 @@ export interface FileRouteTypes {
     | '/access'
     | '/club'
     | '/dashboard'
+    | '/entries'
     | '/import'
     | '/meets'
     | '/profile'
     | '/relays'
+    | '/reports'
+    | '/standards'
     | '/athletes/$id'
     | '/athletes/'
     | '/lovable/email/transactional/preview'
@@ -167,10 +197,13 @@ export interface FileRouteTypes {
     | '/access'
     | '/club'
     | '/dashboard'
+    | '/entries'
     | '/import'
     | '/meets'
     | '/profile'
     | '/relays'
+    | '/reports'
+    | '/standards'
     | '/athletes/$id'
     | '/athletes'
     | '/lovable/email/transactional/preview'
@@ -183,10 +216,13 @@ export interface FileRouteTypes {
     | '/_authenticated/access'
     | '/_authenticated/club'
     | '/_authenticated/dashboard'
+    | '/_authenticated/entries'
     | '/_authenticated/import'
     | '/_authenticated/meets'
     | '/_authenticated/profile'
     | '/_authenticated/relays'
+    | '/_authenticated/reports'
+    | '/_authenticated/standards'
     | '/_authenticated/athletes/$id'
     | '/_authenticated/athletes/'
     | '/lovable/email/transactional/preview'
@@ -251,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/entries': {
+      id: '/_authenticated/entries'
+      path: '/entries'
+      fullPath: '/entries'
+      preLoaderRoute: typeof AuthenticatedEntriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/import': {
       id: '/_authenticated/import'
       path: '/import'
@@ -277,6 +320,20 @@ declare module '@tanstack/react-router' {
       path: '/relays'
       fullPath: '/relays'
       preLoaderRoute: typeof AuthenticatedRelaysRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/standards': {
+      id: '/_authenticated/standards'
+      path: '/standards'
+      fullPath: '/standards'
+      preLoaderRoute: typeof AuthenticatedStandardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/athletes/': {
@@ -307,10 +364,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMeetsRoute: typeof AuthenticatedMeetsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRelaysRoute: typeof AuthenticatedRelaysRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedStandardsRoute: typeof AuthenticatedStandardsRoute
   AuthenticatedAthletesIdRoute: typeof AuthenticatedAthletesIdRoute
   AuthenticatedAthletesIndexRoute: typeof AuthenticatedAthletesIndexRoute
 }
@@ -319,10 +379,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMeetsRoute: AuthenticatedMeetsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRelaysRoute: AuthenticatedRelaysRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedStandardsRoute: AuthenticatedStandardsRoute,
   AuthenticatedAthletesIdRoute: AuthenticatedAthletesIdRoute,
   AuthenticatedAthletesIndexRoute: AuthenticatedAthletesIndexRoute,
 }

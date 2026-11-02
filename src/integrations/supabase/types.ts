@@ -342,6 +342,58 @@ export type Database = {
         }
         Relationships: []
       }
+      meet_entries: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          event_id: string
+          id: string
+          meet_id: string
+          owner_id: string
+          seed_time_ms: number | null
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          meet_id: string
+          owner_id?: string
+          seed_time_ms?: number | null
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          meet_id?: string
+          owner_id?: string
+          seed_time_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_entries_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_entries_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meets: {
         Row: {
           altitude: number | null
