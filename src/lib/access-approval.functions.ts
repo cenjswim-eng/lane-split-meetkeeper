@@ -31,3 +31,12 @@ export const decideAccess = createServerFn({ method: 'POST' }).middleware([requi
     if (error) throw error;
     return { ok: true };
   });
+export const suspendAccess = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), suspend: z.boolean() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const { data: owner, error: ownerError } = await context.supabase.rpc('is_app_owner');
+    if (ownerError || !owner) throw new Error('Solo el dueño puede cambiar accesos');
+    const { error } = await context.supabase.rpc('set_app_access_suspended', { p_id: data.id, p_suspend: data.suspend });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

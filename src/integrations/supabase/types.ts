@@ -646,6 +646,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_app_access_suspended: {
+        Args: { p_id: string; p_suspend: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin"

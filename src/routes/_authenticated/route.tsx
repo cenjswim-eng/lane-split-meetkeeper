@@ -62,7 +62,7 @@ function Layout() {
         ) : (
           <div className="rounded-lg border bg-card p-8 text-center">
             <h2 className="text-2xl font-bold uppercase">Sin permisos</h2>
-            <p className="mt-2 text-muted-foreground">La cuenta {user.email} no es administradora.</p>
+            <p className="mt-2 text-muted-foreground">La cuenta {user.email} no tiene acceso activo. Si tu suscripción venció, contacta al dueño para reactivarla.</p>
           </div>
         )}
       </main>
