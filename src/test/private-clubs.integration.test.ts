@@ -46,7 +46,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
       const result = await insert(client, 'results', { meet_id: meet.data, event_id: event.id, athlete_id: athlete.id, final_time_ms: 60000 });
       await insert(client, 'splits', { result_id: result.id, split_distance: 50, cumulative_time_ms: 30000 });
       const path = `${club.id}/privacy-check.pdf`;
-      const uploaded = await client.storage.from('club-documents').upload(path, new Blob(['%PDF-test'], { type: 'application/pdf' }));
+      const uploaded = await client.storage.from('club-documents').upload(path, new TextEncoder().encode('%PDF-test'), { contentType: 'application/pdf' });
       expect(uploaded.error).toBeNull(); files.push(path);
       await insert(client, 'club_documents', { club_id: club.id, file_name: 'privacy-check.pdf', storage_path: path });
       await insert(client, 'club_members', { club_id: club.id, first_name: `Private member ${i}` });
@@ -69,8 +69,8 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     expect((await first.from('events').insert({ meet_id:b.meet,distance:200,stroke:1 })).error).not.toBeNull();
     expect((await first.from('club_members').insert({ club_id:b.club.id,first_name:'forged' })).error).not.toBeNull();
     expect((await first.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).not.toBeNull();
-    const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new Blob(['%PDF']));
-    expect(wrongUpload.error).not.toBeNull();
+    const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new TextEncoder().encode('%PDF'),{ contentType: 'application/pdf' });
+    expect(wrongUpload.error).not.toBeNull(); expect(wrongUpload.error?.message ?? '').not.toMatch(/fetch failed/);
     const reset = await first.rpc('reset_management_data', { p_confirmation:'BORRAR TODO' });
     expect(reset.error).toBeNull();
     expect((await first.from('athletes').select('id')).data).toHaveLength(0);
