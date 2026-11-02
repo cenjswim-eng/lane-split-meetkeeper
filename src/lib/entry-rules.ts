@@ -1,14 +1,15 @@
 import { ageAtDec31, ageGroup } from "@/lib/swim";
 import { rankedAthleteRecords } from "@/lib/athlete-records";
 import type { DashboardResult, DashboardStandard } from "@/lib/dashboard-summary";
+import { standardApplies } from "@/lib/standard-rules";
 
 export function entrySeed(results: DashboardResult[], athleteId: string, distance: number, stroke: number, course: string, meetDate: string | null, now = new Date()) {
   return rankedAthleteRecords(results, now).find(r => r.athlete_id === athleteId && r.events?.distance === distance && r.events.stroke === stroke && !r.events.is_relay && r.course === course && (!meetDate || (r.meets?.start_date ?? "") < meetDate))?.final_time_ms ?? null;
 }
 
 export function entryMinimum(standards: DashboardStandard[], athlete: { birth_date: string | null; gender: string | null }, event: { distance: number; stroke: number }, course: string, meetDate: string | null, seed: number | null) {
-  const category = ageGroup(ageAtDec31(athlete.birth_date, Number(meetDate?.slice(0, 4) ?? new Date().getFullYear())));
-  const applicable = standards.filter(s => s.distance === event.distance && s.stroke === event.stroke && s.course === course && (!s.gender || s.gender === athlete.gender) && (!s.age_group || (category !== "—" && s.age_group === category)));
+  const year = Number(meetDate?.slice(0, 4) ?? new Date().getFullYear());
+  const applicable = standards.filter(s => s.distance === event.distance && s.stroke === event.stroke && s.course === course && (!s.gender || s.gender === athlete.gender) && standardApplies(s, athlete.birth_date, year));
   const limit = applicable.length ? Math.min(...applicable.map(s => s.qualifying_time_ms)) : null;
   return { limit, status: limit == null ? "unconfigured" : seed == null ? "no-time" : seed <= limit ? "met" : "not-met" } as const;
 }
