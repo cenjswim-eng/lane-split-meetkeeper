@@ -41,9 +41,9 @@ function Layout() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-3">
-          <Link to="/" className="mr-3 flex shrink-0 items-center gap-2 font-display text-xl font-bold uppercase">
+          <Link to="/" className="mr-3 flex shrink-0 items-center gap-2 font-display text-xl font-bold">
             {profile.data?.logoUrl && <img src={profile.data.logoUrl} alt="Logo del club" className="size-8 rounded object-contain" />}
-            <span>Natación <span className="text-accent">Pro</span></span>
+            <span>Natacion <span className="text-accent">pro</span></span>
           </Link>
           <Link to="/dashboard" className={link} activeProps={active}>Panel</Link>
           <Link to="/club" className={link} activeProps={active}>Mi club</Link>

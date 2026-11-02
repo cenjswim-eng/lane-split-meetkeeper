@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/profile")({
-  head: () => ({ meta: [{ title: "Mi perfil — Natación Pro" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Natación Pro" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Mi perfil — Natacion pro" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Natacion pro" }, { name: "twitter:title", content: "Mi perfil — Natacion pro" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(profileQuery),
   component: ProfilePage,
 });
@@ -54,7 +54,7 @@ function ProfilePage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {([["Color principal", primary, setPrimary], ["Color de acento", accent, setAccent]] as const).map(([label, val, set]) => <div key={label}><Label>{label}</Label><div className="mt-1 flex items-center gap-2"><input type="color" aria-label={label} value={val} onChange={(e) => set(e.target.value)} className="h-10 w-14 cursor-pointer rounded border bg-transparent" /><Input value={val} onChange={(e) => set(e.target.value)} className="time" /></div></div>)}
       </div>
-      <div className="flex flex-wrap items-center gap-3 rounded border p-4"><span className="text-sm text-muted-foreground">Vista previa:</span><Button type="button">Botón principal</Button><span className="font-display text-xl font-bold uppercase">Natación <span className="text-accent">Pro</span></span></div>
+      <div className="flex flex-wrap items-center gap-3 rounded border p-4"><span className="text-sm text-muted-foreground">Vista previa:</span><Button type="button">Botón principal</Button><span className="font-display text-xl font-bold">Natacion <span className="text-accent">pro</span></span></div>
       <div className="flex gap-2"><Button disabled={busy} type="submit"><Save className="mr-2 size-4" />Guardar</Button><Button type="button" variant="outline" onClick={() => { setPrimary(DEFAULT_THEME.primary_color); setAccent(DEFAULT_THEME.accent_color); }}><RotateCcw className="mr-2 size-4" />Colores originales</Button></div>
     </form>
     <section className="space-y-4 rounded-lg border bg-card p-6">

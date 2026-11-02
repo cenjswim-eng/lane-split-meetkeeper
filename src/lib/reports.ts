@@ -20,6 +20,7 @@ export interface ReportRow {
 }
 
 function header(doc: jsPDF, title: string, subtitle: string) {
+  doc.setProperties({ title, author: "Natacion pro", creator: "Natacion pro" });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(title, 14, 16);
@@ -28,6 +29,17 @@ function header(doc: jsPDF, title: string, subtitle: string) {
   doc.setTextColor(90);
   doc.text(subtitle, 14, 23);
   doc.setTextColor(0);
+}
+
+function brandedOutput(doc: jsPDF) {
+  for (let page = 1; page <= doc.getNumberOfPages(); page++) {
+    doc.setPage(page);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    doc.text("Natacion pro · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6);
+  }
+  return doc.output("blob");
 }
 
 /** Official results sheet ("listado de marcas"). */
@@ -52,7 +64,7 @@ export function resultsPdf(meetName: string, meta: string, rows: ReportRow[]) {
     styles: { fontSize: 8 },
     headStyles: { fillColor: [12, 74, 110] },
   });
-  return new File([doc.output("blob")], exportFilename(meetName, "_marcas.pdf"), { type: "application/pdf" });
+  return new File([brandedOutput(doc)], exportFilename(meetName, "_marcas.pdf"), { type: "application/pdf" });
 }
 
 /** Pre-entry sheet ("pre-inscripciones") with seed times, ready to send. */
@@ -66,7 +78,7 @@ export function entriesPdf(meetName: string, meta: string, rows: ReportRow[]) {
     styles: { fontSize: 8 },
     headStyles: { fillColor: [12, 74, 110] },
   });
-  return new File([doc.output("blob")], exportFilename(meetName, "_preinscripcion.pdf"), { type: "application/pdf" });
+  return new File([brandedOutput(doc)], exportFilename(meetName, "_preinscripcion.pdf"), { type: "application/pdf" });
 }
 
 export interface AthleteReportResult {
@@ -96,12 +108,12 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   appendAthleteProgressCharts(doc, name, ranked);
-  return new File([doc.output("blob")], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
+  return new File([brandedOutput(doc)], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
 }
 
 export function clubRosterPdf(name: string, members: { first_name: string; last_name: string; member_role: string; active: boolean; email: string | null; phone: string | null }[]) {
   const doc = new jsPDF({ orientation: "landscape" });
   header(doc, `Registro del club — ${name}`, new Date().toLocaleDateString("es-VE"));
   autoTable(doc, { startY: 28, head: [["Integrante", "Tipo", "Estado", "Correo", "Teléfono"]], body: members.map((m) => [`${m.first_name} ${m.last_name}`, MEMBER_ROLES[m.member_role as MemberRole] ?? m.member_role, m.active ? "Activo" : "Inactivo", m.email ?? "—", m.phone ?? "—"]), styles: { fontSize: 9 } });
-  return new File([doc.output("blob")], exportFilename(name, "_integrantes.pdf"), { type: "application/pdf" });
+  return new File([brandedOutput(doc)], exportFilename(name, "_integrantes.pdf"), { type: "application/pdf" });
 }

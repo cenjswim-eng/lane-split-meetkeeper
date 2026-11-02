@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acceso — Natación Pro" },
-      { name: "description", content: "Acceso de administradores a Natación Pro." },
-      { property: "og:title", content: "Acceso — Natación Pro" },
-      { property: "og:description", content: "Acceso de administradores a Natación Pro." },
+      { title: "Acceso — Natacion pro" },
+      { name: "description", content: "Acceso de administradores a Natacion pro." },
+      { property: "og:title", content: "Acceso — Natacion pro" }, { name: "twitter:title", content: "Acceso — Natacion pro" },
+      { property: "og:description", content: "Acceso de administradores a Natacion pro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -62,6 +62,8 @@ function AuthPage() {
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-lg border bg-card p-6">
         <div className="lane-line mb-6" />
+        <p className="font-display text-3xl font-bold">Natacion <span className="text-accent">pro</span></p>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">Compatible con Meet Manager y Team Manager</p>
         <h1 className="text-3xl font-bold uppercase">{mode === "in" ? "Iniciar sesión" : "Crear cuenta"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Acceso privado. Las nuevas cuentas requieren aprobación del dueño.</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
