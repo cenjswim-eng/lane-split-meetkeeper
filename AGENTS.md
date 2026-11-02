@@ -30,3 +30,4 @@
 - Athlete profile rankings and tracking PDFs share the pure calendar-window selector in `src/lib/athlete-records.ts`; preserve stored history and sort eligible times ascending, while progression charts remain chronological.
 - Tracking PDF charts use the pure event/course series selector and vector drawing in `src/lib/athlete-progress-pdf.ts`; paginate labelled swims without truncation so print remains readable and export needs no canvas.
 - Reset deletes only the caller's RLS-visible rows, then cleans only captured private club prefixes through Storage API; never empty the shared bucket. Preserve accounts and roles.
+- PDF imports: Meet Manager result text is parsed by pure `src/lib/pdf-results.ts`; AI extraction (results/roster) runs only in the admin-checked server function `src/lib/pdf-ai.functions.ts` and its output is re-validated by pure normalizers before preview/import, so AI never writes directly.

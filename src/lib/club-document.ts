@@ -40,7 +40,7 @@ export function parseRosterLines(lines: string[]) {
   return [...new Map(members.map((m) => [m.source_key, m])).values()];
 }
 
-export async function readClubPdf(file: File) {
+export async function readPdfLines(file: File) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
@@ -61,5 +61,30 @@ export async function readClubPdf(file: File) {
       for (const [, row] of [...rows].sort(([a], [b]) => b - a)) lines.push(row.sort((a,b) => a.x-b.x).filter((x) => x.text.trim()).map((x) => x.text).join("  "));
     }
   } finally { await task.destroy(); }
-  return parseRosterLines(lines);
+  return lines;
+}
+
+export async function readClubPdf(file: File) {
+  return parseRosterLines(await readPdfLines(file));
+}
+
+export async function pdfToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+/** Normalises AI roster rows with the same validation rules as structured PDFs. */
+export function aiRosterMembers(rows: { first_name: string; last_name: string; member_role: string; birth_date: string | null; email: string | null; phone: string | null }[]): MemberDraft[] {
+  const out: MemberDraft[] = [];
+  for (const r of rows) {
+    const first = r.first_name?.trim(), last = r.last_name?.trim() ?? "";
+    const role = (Object.keys(MEMBER_ROLES) as MemberRole[]).find((x) => x === r.member_role) ?? "nadador";
+    if (!first) continue;
+    const birth = r.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(r.birth_date) && !Number.isNaN(Date.parse(r.birth_date)) ? r.birth_date : null;
+    const email = r.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email) ? r.email : null;
+    out.push({ first_name: first, last_name: last, member_role: role, birth_date: birth, email, phone: r.phone?.trim() || null, active: true, notes: "", source_key: `pdf:name:${first.toLowerCase()}|${last.toLowerCase()}|${birth ?? ""}|${role}` });
+  }
+  return [...new Map(out.map((m) => [m.source_key, m])).values()];
 }
