@@ -8,7 +8,7 @@ import { canShareFile, downloadFile, shareFile, zipExport } from "@/lib/file-del
 
 export type ExportKind = "sd3" | "results" | "entries";
 
-export function MeetExport({ name, prepare }: { name: string; prepare: (kind: ExportKind) => Promise<File> }) {
+export function MeetExport({ name, prepare, entriesOnly = false }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExportKind>("sd3");
   const [file, setFile] = useState<File | null>(null);
@@ -44,17 +44,17 @@ export function MeetExport({ name, prepare }: { name: string; prepare: (kind: Ex
 
   return (
     <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setFile(null); setZip(null); } }}>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}><Share2 />Exportar</Button>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}><Share2 />{entriesOnly ? "Exportar para Meet Manager" : "Exportar"}</Button>
       <DialogContent className="w-[calc(100%-2rem)] rounded-lg">
         <DialogHeader>
-          <DialogTitle>Exportar competencia</DialogTitle>
+          <DialogTitle>{entriesOnly ? "Inscripciones para Meet Manager" : "Exportar competencia"}</DialogTitle>
           <DialogDescription className="break-words">{name}</DialogDescription>
         </DialogHeader>
         <Select value={kind} disabled={busy || sharing} onValueChange={(value: ExportKind) => { setKind(value); setFile(null); setZip(null); setPacked(false); }}>
           <SelectTrigger aria-label="Formato de exportación"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="sd3">SD3 · Compatible con Hy-Tek</SelectItem>
-            <SelectItem value="results">PDF · Marcas</SelectItem>
+            <SelectItem value="sd3">{entriesOnly ? "SD3 · Inscripciones Meet Manager" : "SD3 · Compatible con Hy-Tek"}</SelectItem>
+            {!entriesOnly && <SelectItem value="results">PDF · Marcas</SelectItem>}
             <SelectItem value="entries">PDF · Inscripción</SelectItem>
           </SelectContent>
         </Select>
