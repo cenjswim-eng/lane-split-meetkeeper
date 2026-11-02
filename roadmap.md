@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Adaptar archivo de inscripciones a la especificación SDIF de Meet Manager, verificar columnas y descarga autenticada; importación dentro de Meet Manager requiere el programa externo.
+- [x] Adaptar archivo de inscripciones al formato SDIF de Meet Manager (A0/01, C1/C2, D0, Z0), verificar columnas y descarga autenticada; aceptación dentro de Meet Manager pendiente del programa externo.
 - [x] Rediseñar el panel del entrenador con indicadores reales, próximas competencias, resultados recientes, accesos rápidos y navegación móvil; sesión real y exportación verificadas en celular y computadora.
 - [x] Añadir inscripciones por atleta y prueba con advertencia de mínima y exportación SD3 para Team Manager; guardar, leer, exportar y retirar inscripción temporal verificados sin modificar resultados.
 - [x] Añadir edición de mínimas por categoría, sexo, prueba y piscina; creación, edición, advertencia y borrado temporal verificados.
