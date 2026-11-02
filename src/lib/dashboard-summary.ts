@@ -1,5 +1,5 @@
 import { rankedAthleteRecords } from "@/lib/athlete-records";
-import { ageAtDec31, ageGroup } from "@/lib/swim";
+import { standardApplies } from "@/lib/standard-rules";
 
 export interface DashboardResult {
   id: string;
@@ -13,6 +13,9 @@ export interface DashboardResult {
 }
 
 export interface DashboardStandard {
+  season_year?: number | null;
+  age_min?: number | null;
+  age_max?: number | null;
   id: string;
   course: string;
   distance: number;
@@ -34,8 +37,8 @@ export function dashboardSummary(results: DashboardResult[], standards: Dashboar
   const qualified = new Set<string>();
   for (const [key, r] of best) {
     if (!r.events || !r.athletes || r.final_time_ms == null || !r.meets?.start_date) continue;
-    const category = ageGroup(ageAtDec31(r.athletes.birth_date, Number(r.meets.start_date.slice(0, 4))));
-    if (standards.some(s => s.distance === r.events?.distance && s.stroke === r.events.stroke && s.course === r.course && (!s.gender || s.gender === r.athletes?.gender) && (!s.age_group || (category !== "—" && s.age_group === category)) && s.qualifying_time_ms > 0 && (r.final_time_ms ?? Infinity) <= s.qualifying_time_ms)) qualified.add(key);
+    const year = Number(r.meets.start_date.slice(0, 4));
+    if (standards.some(s => s.distance === r.events?.distance && s.stroke === r.events.stroke && s.course === r.course && (!s.gender || s.gender === r.athletes?.gender) && standardApplies(s, r.athletes?.birth_date ?? null, year) && s.qualifying_time_ms > 0 && (r.final_time_ms ?? Infinity) <= s.qualifying_time_ms)) qualified.add(key);
   }
   const months = Array.from({ length: 10 }, (_, index) => {
     const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 9 + index, 1));

@@ -11,6 +11,7 @@ import { athleteProgressPdf } from "@/lib/reports";
 import { rankedAthleteRecords } from "@/lib/athlete-records";
 import { Button } from "@/components/ui/button";
 import { AthleteTrainingZones } from "@/components/athlete-training-zones";
+import { standardApplies } from "@/lib/standard-rules";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -75,7 +76,7 @@ function Profile() {
     const time = r.final_time_ms;
     if (!event || time == null) return undefined;
     const met = standards
-      .filter((s) => s.distance === event.distance && s.stroke === event.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && time <= s.qualifying_time_ms)
+      .filter((s) => s.distance === event.distance && s.stroke === event.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && standardApplies(s, athlete.birth_date, Number(r.meets?.start_date?.slice(0,4) ?? new Date().getFullYear())) && time <= s.qualifying_time_ms)
       .sort((a, b) => a.qualifying_time_ms - b.qualifying_time_ms);
     return met[0]?.name;
   }

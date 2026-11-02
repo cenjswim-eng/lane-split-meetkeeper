@@ -595,6 +595,8 @@ export type Database = {
       time_standards: {
         Row: {
           age_group: string | null
+          age_max: number | null
+          age_min: number | null
           course: string
           distance: number
           gender: string | null
@@ -602,10 +604,13 @@ export type Database = {
           name: string
           owner_id: string | null
           qualifying_time_ms: number
+          season_year: number | null
           stroke: number
         }
         Insert: {
           age_group?: string | null
+          age_max?: number | null
+          age_min?: number | null
           course: string
           distance: number
           gender?: string | null
@@ -613,10 +618,13 @@ export type Database = {
           name: string
           owner_id?: string | null
           qualifying_time_ms: number
+          season_year?: number | null
           stroke: number
         }
         Update: {
           age_group?: string | null
+          age_max?: number | null
+          age_min?: number | null
           course?: string
           distance?: number
           gender?: string | null
@@ -624,6 +632,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           qualifying_time_ms?: number
+          season_year?: number | null
           stroke?: number
         }
         Relationships: []
