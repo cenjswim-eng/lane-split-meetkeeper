@@ -1,8 +1,8 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { AppNavigation } from "@/components/app-navigation";
 import { applyTheme } from "@/lib/profile-theme";
 import { profileQuery } from "@/lib/profile";
 
@@ -31,32 +31,14 @@ function Layout() {
     router.invalidate();
   }
 
-  const link = "rounded px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground";
-  const active = { className: `${link} bg-secondary text-foreground` };
   const profile = useQuery({ ...profileQuery, enabled: isAdmin });
   useEffect(() => { applyTheme(profile.data?.settings ?? null); }, [profile.data?.settings]);
   useEffect(() => () => applyTheme(null), []);
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-3">
-          <Link to="/" className="mr-3 flex shrink-0 items-center gap-2 font-display text-xl font-bold">
-            {profile.data?.logoUrl && <img src={profile.data.logoUrl} alt="Logo del club" className="size-8 rounded object-contain" />}
-            <span>Natacion <span className="text-accent">pro</span></span>
-          </Link>
-          <Link to="/dashboard" className={link} activeProps={active}>Panel</Link>
-          <Link to="/club" className={link} activeProps={active}>Mi club</Link>
-          <Link to="/athletes" className={link} activeProps={active}>Atletas</Link>
-          <Link to="/meets" className={link} activeProps={active}>Competencias</Link>
-          <Link to="/relays" className={link} activeProps={active}>Relevos</Link>
-          <Link to="/import" className={link} activeProps={active}>Importar</Link>
-          <Link to="/profile" className={link} activeProps={active}>Mi perfil</Link>
-          <Button variant="ghost" size="sm" className="ml-auto" onClick={signOut}>Salir</Button>
-        </div>
-        <div className="lane-line" />
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <AppNavigation name={profile.data?.settings?.display_name || profile.data?.club?.name || "Entrenador"} logoUrl={profile.data?.logoUrl} onSignOut={signOut} />
+      <main className="mx-auto min-w-0 max-w-[1500px] px-4 pb-24 pt-6 sm:px-8 lg:ml-56 lg:pb-10 lg:pt-10">
         {isAdmin ? (
           <Outlet />
         ) : (
