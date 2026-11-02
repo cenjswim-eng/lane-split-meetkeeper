@@ -1,6 +1,10 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { applyTheme } from "@/lib/profile-theme";
+import { profileQuery } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -29,13 +33,17 @@ function Layout() {
 
   const link = "rounded px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground";
   const active = { className: `${link} bg-secondary text-foreground` };
+  const profile = useQuery({ ...profileQuery, enabled: isAdmin });
+  useEffect(() => { applyTheme(profile.data?.settings ?? null); }, [profile.data?.settings]);
+  useEffect(() => () => applyTheme(null), []);
 
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-3">
-          <Link to="/" className="mr-3 font-display text-xl font-bold uppercase">
-            Natación <span className="text-accent">Pro</span>
+          <Link to="/" className="mr-3 flex shrink-0 items-center gap-2 font-display text-xl font-bold uppercase">
+            {profile.data?.logoUrl && <img src={profile.data.logoUrl} alt="Logo del club" className="size-8 rounded object-contain" />}
+            <span>Natación <span className="text-accent">Pro</span></span>
           </Link>
           <Link to="/dashboard" className={link} activeProps={active}>Panel</Link>
           <Link to="/club" className={link} activeProps={active}>Mi club</Link>
@@ -43,6 +51,7 @@ function Layout() {
           <Link to="/meets" className={link} activeProps={active}>Competencias</Link>
           <Link to="/relays" className={link} activeProps={active}>Relevos</Link>
           <Link to="/import" className={link} activeProps={active}>Importar</Link>
+          <Link to="/profile" className={link} activeProps={active}>Mi perfil</Link>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={signOut}>Salir</Button>
         </div>
         <div className="lane-line" />
