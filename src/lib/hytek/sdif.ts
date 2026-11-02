@@ -104,18 +104,19 @@ export interface ExportRow {
   splits: { split_distance: number; cumulative_time_ms: number }[];
 }
 
-export function buildSd3(meet: { name: string; location: string | null; start_date: string | null; end_date: string | null; course: string }, rows: ExportRow[], teams: { code: string; name: string }[]): string {
+export function buildSd3(meet: { name: string; location: string | null; start_date: string | null; end_date: string | null; course: string }, rows: ExportRow[], teams: { code: string; name: string }[], kind: "results" | "entries" = "results"): string {
   const L = (s: string) => s.padEnd(160, " ").slice(0, 160);
   const today = isoToMdy(new Date().toISOString().slice(0, 10));
   const lines: string[] = [];
-  lines.push(L(`A102${pad("Resultados", 30)}${pad("Natacion pro", 20)}${pad("1.0", 10)}${pad("", 20)}${pad("", 12)}${today}`));
+  lines.push(L(`A102${pad(kind === "entries" ? "Inscripciones" : "Resultados", 30)}${pad("Natacion pro", 20)}${pad("1.0", 10)}${pad("", 20)}${pad("", 12)}${today}`));
   lines.push(L(`B1${pad("", 9)}${pad(meet.name, 30)}${pad("", 44)}${pad(meet.location, 20)}${pad("", 16)}${isoToMdy(meet.start_date).padEnd(8)}${isoToMdy(meet.end_date ?? meet.start_date).padEnd(8)}${pad("", 4)}${pad("", 8)}${COURSE_CODE[meet.course] ?? "L"}`));
   let count = 0;
   const byTeam = new Map<string, ExportRow[]>();
   for (const r of rows) {
     const k = r.athlete.team_code ?? "UNAT";
-    if (!byTeam.has(k)) byTeam.set(k, []);
-    byTeam.get(k)!.push(r);
+    const group = byTeam.get(k) ?? [];
+    group.push(r);
+    byTeam.set(k, group);
   }
   for (const [code, list] of byTeam) {
     const name = teams.find((t) => t.code === code)?.name ?? code;
@@ -124,22 +125,24 @@ export function buildSd3(meet: { name: string; location: string | null; start_da
       const e = r.event;
       const age = `${e.min_age ? String(e.min_age).padStart(2, "0") : "UN"}${e.max_age && e.max_age < 99 ? String(e.max_age).padStart(2, "0") : "OV"}`;
       const course = COURSE_CODE[r.course ?? meet.course] ?? "L";
-      const timeStr = r.is_dq ? "DQ".padStart(8) : sdifTime(r.final_time_ms);
+      const timeStr = kind === "entries" ? pad("", 8) : r.is_dq ? "DQ".padStart(8) : sdifTime(r.final_time_ms);
       const isPrelim = r.round === "P";
       const name = `${r.athlete.last_name}, ${r.athlete.first_name}`;
       let d = "D0" + pad("", 9) + pad(name, 28) + pad(r.athlete.federation_id, 12) + " " + pad("", 3) + pad(isoToMdy(r.athlete.birth_date), 8) + pad("", 2) + pad(r.athlete.gender, 1) + pad(e.gender, 1) + String(e.distance).padStart(4) + String(e.stroke) + pad(e.event_number, 4) + age + pad(isoToMdy(meet.start_date), 8) + sdifTime(r.seed_time_ms) + (r.seed_time_ms ? course : " ");
-      d += isPrelim ? timeStr + course : pad("", 9);
+      d += kind === "entries" ? pad("", 9) : isPrelim ? timeStr + course : pad("", 9);
       d += pad("", 9);
-      d += isPrelim ? pad("", 9) : timeStr + course;
+      d += kind === "entries" || isPrelim ? pad("", 9) : timeStr + course;
       d += pad("", 8);
-      d += isPrelim ? String(r.place ?? "").padStart(3) + pad("", 3) : pad("", 3) + String(r.place ?? "").padStart(3);
-      d += String(r.aqua_points ?? "").padStart(4);
+      d += kind === "entries" ? pad("", 6) : isPrelim ? String(r.place ?? "").padStart(3) + pad("", 3) : pad("", 3) + String(r.place ?? "").padStart(3);
+      d += kind === "entries" ? pad("", 4) : String(r.aqua_points ?? "").padStart(4);
       lines.push(L(d));
       count++;
       const sp = [...r.splits].sort((a, b) => a.split_distance - b.split_distance);
-      if (sp.length) {
+      if (sp.length && kind !== "entries") {
         const total = sp.length;
-        const dist = sp[0]!.split_distance;
+        const firstSplit = sp[0];
+        if (!firstSplit) continue;
+        const dist = firstSplit.split_distance;
         for (let i = 0; i < total; i += 10) {
           const chunk = sp.slice(i, i + 10).map((s) => sdifTime(s.cumulative_time_ms)).join("");
           const g = "G0" + pad("", 13) + pad(name, 28) + pad(r.athlete.federation_id, 12) + String(Math.floor(i / 10) + 1) + String(total).padStart(2) + String(dist).padStart(4) + "C" + chunk.padEnd(80) + (isPrelim ? "P" : "F");
