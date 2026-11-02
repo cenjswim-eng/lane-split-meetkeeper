@@ -62,8 +62,8 @@ export function buildMeetManagerEntries(meet: Meet, rows: ExportRow[], teams: { 
     lines.push(record("C2", [[12, 6, teamCode], [60, 6, group.length, true], [66, 6, unique.size, true], [72, 5, 0, true], [77, 6, 0, true], [83, 6, 0, true], [89, 16, ascii(name).slice(0, 16)]]));
     for (const r of group) {
       const a = r.athlete, e = r.event;
-      const ageCode = `${e.min_age == null || e.min_age === 0 ? "UN" : String(e.min_age).padStart(2, "0")}${e.max_age == null || e.max_age >= 99 ? "OV" : String(e.max_age).padStart(2, "0")}`;
-      lines.push(record("D0", [[12, 28, `${a.last_name}, ${a.first_name}`], [40, 12, a.federation_id ?? ""], [52, 1, code === "UN" ? "U" : "A"], [56, 8, date(a.birth_date)], [66, 1, a.gender ?? ""], [67, 1, e.gender ?? a.gender ?? ""], [68, 4, e.distance, true], [72, 1, e.stroke], [73, 4, e.event_number ?? ""], [77, 4, ageCode], [81, 8, date(meet.start_date)], [89, 8, r.seed_time_ms == null ? "NT" : sdifTime(r.seed_time_ms), true], [97, 1, course]]));
+      const ageCode = `${e.min_age == null ? "UN" : String(e.min_age).padStart(2, "0")}${e.max_age == null || e.max_age >= 99 ? "OV" : String(e.max_age).padStart(2, "0")}`;
+      lines.push(record("D0", [[12, 28, `${a.last_name}, ${a.first_name}`], [40, 12, a.federation_id ?? ""], [52, 1, code === "UN" ? "U" : "A"], [56, 8, date(a.birth_date)], [66, 1, a.gender ?? ""], [67, 1, e.gender ?? a.gender ?? ""], [68, 4, e.distance, true], [72, 1, e.stroke], [73, 4, e.event_number ?? "", /^\d+$/.test(e.event_number ?? "")], [77, 4, ageCode], [81, 8, date(meet.start_date)], [89, 8, r.seed_time_ms == null ? "NT" : sdifTime(r.seed_time_ms), r.seed_time_ms != null], [97, 1, course]]));
     }
   }
   lines.push(record("Z0", [[12, 2, "01"], [44, 3, 1, true], [47, 3, 1, true], [50, 4, grouped.size * 2, true], [54, 4, grouped.size, true], [58, 6, rows.length, true], [64, 6, swimmers.size, true], [70, 5, 0, true], [75, 6, 0, true], [81, 6, 0, true]]));
