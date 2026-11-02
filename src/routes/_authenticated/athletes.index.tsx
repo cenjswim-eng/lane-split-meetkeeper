@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
+import { NewAthlete } from "@/components/new-athlete";
 import { DeleteAthlete } from "@/components/delete-athlete";
 
 const athletesQuery = queryOptions({
@@ -37,6 +38,7 @@ function AthletesPage() {
           <h1 className="text-4xl font-bold uppercase">Atletas</h1>
           <p className="text-muted-foreground">{data.length} nadadores</p>
         </div>
+        <NewAthlete />
         <Input placeholder="Buscar por nombre o ID" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
       </div>
       {data.length === 0 ? (

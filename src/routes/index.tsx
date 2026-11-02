@@ -29,7 +29,7 @@ function Index() {
       </p>
       <div className="mt-10 flex gap-3">
         <Button asChild size="lg">
-          <Link to="/athletes">Entrar al panel</Link>
+          <Link to="/dashboard">Entrar al panel</Link>
         </Button>
       </div>
       <div className="mt-20 grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border">
