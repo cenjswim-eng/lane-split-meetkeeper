@@ -71,6 +71,13 @@
       "when": 1793574916622,
       "tag": "0009_private_account_records",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793578100830,
+      "tag": "0010_fix_private_club_files_policy",
+      "breakpoints": true
     }
   ]
 }
