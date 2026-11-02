@@ -23,7 +23,7 @@ it("uses exact age intervals at December 31, including categories outside defaul
  expect(standardApplies(row,"2013-12-25",2026)).toBe(false);
 });
 it("requires resolving missing data and does not invent category or pool",()=>{
- expect(()=>prepareStandardRows([{...draft,category:"Infantil B"}],2026)).toThrow();
+ expect(()=>prepareStandardRows([{...draft,category:"Alevín"}],2026)).toThrow();
  expect(()=>prepareStandardRows([{...draft,course:""}],2026)).toThrow();
  expect(()=>prepareStandardRows([{...draft,gender:"?"}],2026)).toThrow();
 });
