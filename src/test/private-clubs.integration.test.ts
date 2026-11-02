@@ -46,7 +46,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
       const result = await insert(client, 'results', { meet_id: meet.data, event_id: event.id, athlete_id: athlete.id, final_time_ms: 60000 });
       await insert(client, 'splits', { result_id: result.id, split_distance: 50, cumulative_time_ms: 30000 });
       const path = `${club.id}/privacy-check.pdf`;
-      const uploaded = await client.storage.from('club-documents').upload(path, new Blob(['%PDF-test'], { type: 'application/pdf' }));
+      const uploaded = await client.storage.from('club-documents').upload(path, new TextEncoder().encode('%PDF-test'), { contentType: 'application/pdf' });
       expect(uploaded.error).toBeNull(); files.push(path);
       await insert(client, 'club_documents', { club_id: club.id, file_name: 'privacy-check.pdf', storage_path: path });
       await insert(client, 'club_members', { club_id: club.id, first_name: `Private member ${i}` });
