@@ -37,7 +37,7 @@ function Layout() {
 
   return (
     <div className="min-h-screen">
-      <AppNavigation name={profile.data?.settings?.display_name || profile.data?.club?.name || "Entrenador"} logoUrl={profile.data?.logoUrl} onSignOut={signOut} />
+      <AppNavigation name={profile.data?.settings?.display_name || profile.data?.club?.name || "Entrenador"} logoUrl={profile.data?.logoUrl ?? null} onSignOut={signOut} />
       <main className="mx-auto min-w-0 max-w-[1500px] px-4 pb-24 pt-6 sm:px-8 lg:ml-56 lg:pb-10 lg:pt-10">
         {isAdmin ? (
           <Outlet />
