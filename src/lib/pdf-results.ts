@@ -85,7 +85,7 @@ export interface AiSwim {
 }
 export interface AiResults { meet: { name: string; location: string | null; start_date: string | null; end_date: string | null; course: string | null }; swims: AiSwim[] }
 
-const iso = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null);
+const iso = (v: string | null) => { const m = v?.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? isoFromMdy(m[2]!, m[3]!, m[1]!) : null; };
 const courseOf = (v: string | null | undefined) => (v === "LCM" || v === "SCM" || v === "SCY" ? v : null);
 
 /** Validates AI output strictly: swims without a valid distance, stroke or name are dropped and counted. */
