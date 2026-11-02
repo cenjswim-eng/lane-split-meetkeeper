@@ -70,7 +70,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     expect((await first.from('club_members').insert({ club_id:b.club.id,first_name:'forged' })).error).not.toBeNull();
     expect((await first.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).not.toBeNull();
     const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new TextEncoder().encode('%PDF'),{ contentType: 'application/pdf' });
-    expect(wrongUpload.error).not.toBeNull();
+    expect(wrongUpload.error).not.toBeNull(); expect(wrongUpload.error?.message ?? '').not.toMatch(/fetch failed/);
     const reset = await first.rpc('reset_management_data', { p_confirmation:'BORRAR TODO' });
     expect(reset.error).toBeNull();
     expect((await first.from('athletes').select('id')).data).toHaveLength(0);
