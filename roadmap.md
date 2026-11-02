@@ -1,8 +1,8 @@
 # Exportación móvil
-- [ ] Rediseñar el panel del entrenador con indicadores reales, próximas competencias, resultados recientes, accesos rápidos y navegación móvil; verificar con sesión real.
-- [ ] Añadir inscripciones por atleta y prueba con advertencia de mínima y exportación SD3 para Team Manager.
-- [ ] Añadir edición de mínimas por categoría, sexo, prueba y piscina.
-- [ ] Añadir reportes PDF y Excel de ficha del atleta, resultados por competencia y ranking interno, con resumen compartible por WhatsApp.
+- [x] Rediseñar el panel del entrenador con indicadores reales, próximas competencias, resultados recientes, accesos rápidos y navegación móvil; sesión real y exportación verificadas en celular y computadora.
+- [x] Añadir inscripciones por atleta y prueba con advertencia de mínima y exportación SD3 para Team Manager; guardar, leer, exportar y retirar inscripción temporal verificados sin modificar resultados.
+- [x] Añadir edición de mínimas por categoría, sexo, prueba y piscina; creación, edición, advertencia y borrado temporal verificados.
+- [x] Añadir reportes PDF y Excel de ficha del atleta, resultados por competencia y ranking interno; seis archivos descargados con sesión real y resumen WhatsApp revisado (envío externo pendiente en teléfono).
 - [ ] Crear video corto de lanzamiento con imágenes tipo flyer y voz agradable en español latinoamericano; generación en curso.
 - [x] Separar datos por cuenta: aislamiento completo verificado con dos sesiones reales (registros, importaciones, documentos privados, subida ajena rechazada y borrado); datos del dueño intactos.
 - [x] Panel privado del dueño disponible en Panel → Accesos para revisar, aprobar o rechazar solicitudes; aprobación autenticada verificada.

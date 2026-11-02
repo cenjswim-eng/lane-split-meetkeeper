@@ -5,11 +5,13 @@ import { ageAtDec31, eventLabel } from "@/lib/swim";
 import { exportFilename } from "@/lib/file-delivery";
 
 export async function exportMeet(meet: { id: string; name: string; location: string | null; start_date: string | null; end_date: string | null; course: string }) {
-  const { data, error } = await supabase
-    .from("results")
-    .select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, course, round, athletes(first_name, last_name, federation_id, birth_date, gender, teams(code, name)), events(event_number, distance, stroke, gender, min_age, max_age), splits(split_distance, cumulative_time_ms)")
-    .eq("meet_id", meet.id);
-  if (error) throw error;
+  const data = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await supabase.from("results").select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, course, round, athletes(first_name, last_name, federation_id, birth_date, gender, teams(code, name)), events(event_number, distance, stroke, gender, min_age, max_age), splits(split_distance, cumulative_time_ms)").eq("meet_id", meet.id).order("id").range(offset, offset + 999);
+    if (page.error) throw page.error;
+    data.push(...page.data);
+    if (page.data.length < 1000) break;
+  }
   const teams = new Map<string, string>();
   const rows: ExportRow[] = data
     .flatMap((r) => {
@@ -23,12 +25,16 @@ export async function exportMeet(meet: { id: string; name: string; location: str
 }
 
 export async function reportRows(meetId: string): Promise<ReportRow[]> {
-  const { data, error } = await supabase
-    .from("results")
-    .select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, athletes(first_name, last_name, birth_date, gender, teams(name)), events(distance, stroke)")
-    .eq("meet_id", meetId);
-  if (error) throw error;
-  const year = new Date().getFullYear();
+  const meet = await supabase.from("meets").select("start_date").eq("id", meetId).single();
+  if (meet.error) throw meet.error;
+  const data = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await supabase.from("results").select("seed_time_ms, final_time_ms, is_dq, place, aqua_points, athletes(first_name, last_name, birth_date, gender, teams(name)), events(distance, stroke)").eq("meet_id", meetId).order("id").range(offset, offset + 999);
+    if (page.error) throw page.error;
+    data.push(...page.data);
+    if (page.data.length < 1000) break;
+  }
+  const year = Number(meet.data.start_date?.slice(0, 4) ?? new Date().getFullYear());
   return data
     .flatMap((r): ReportRow[] => {
       if (!r.athletes || !r.events) return [];
