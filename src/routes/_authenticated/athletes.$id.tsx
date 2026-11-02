@@ -75,10 +75,12 @@ function Profile() {
     const event = r.events;
     const time = r.final_time_ms;
     if (!event || time == null) return undefined;
-    const met = standards
-      .filter((s) => s.distance === event.distance && s.stroke === event.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && standardApplies(s, athlete.birth_date, Number(r.meets?.start_date?.slice(0,4) ?? new Date().getFullYear())) && time <= s.qualifying_time_ms)
-      .sort((a, b) => a.qualifying_time_ms - b.qualifying_time_ms);
-    return met[0]?.name;
+    const year = Number(r.meets?.start_date?.slice(0, 4) ?? new Date().getFullYear());
+    const s = standards
+      .filter((s) => s.distance === event.distance && s.stroke === event.stroke && s.course === r.course && (!s.gender || s.gender === athlete.gender) && standardApplies(s, athlete.birth_date, year))
+      .sort((a, b) => (b.season_year != null ? 1 : 0) - (a.season_year != null ? 1 : 0) || a.qualifying_time_ms - b.qualifying_time_ms)[0];
+    if (!s) return undefined;
+    return { name: s.name, limit: s.qualifying_time_ms, met: time <= s.qualifying_time_ms, diff: time - s.qualifying_time_ms };
   }
 
   return (
@@ -129,7 +131,14 @@ function Profile() {
                         <td className="time p-3 text-right text-base font-semibold text-primary">{formatTime(b.final_time_ms)}</td>
                         <td className="time p-3 text-right">{b.aqua_points ?? "—"}</td>
                         <td className="p-3 text-muted-foreground">{b.meets?.name}</td>
-                        <td className="p-3">{std ? <Badge className="bg-success text-primary-foreground">{std}</Badge> : <span className="text-muted-foreground">—</span>}</td>
+                        <td className="p-3">{std ? (
+                          <div className="space-y-1">
+                            <div className="time font-semibold">{formatTime(std.limit)}</div>
+                            <Badge variant={std.met ? "default" : "destructive"} className={std.met ? "bg-success text-primary-foreground" : ""}>
+                              {std.met ? "Hizo marca" : `Faltan ${(std.diff / 1000).toFixed(2)} s`}
+                            </Badge>
+                          </div>
+                        ) : <span className="text-xs text-muted-foreground">Sin mínima cargada</span>}</td>
                       </tr>
                     );
                   })}
