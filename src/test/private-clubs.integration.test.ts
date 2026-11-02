@@ -69,7 +69,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     expect((await first.from('events').insert({ meet_id:b.meet,distance:200,stroke:1 })).error).not.toBeNull();
     expect((await first.from('club_members').insert({ club_id:b.club.id,first_name:'forged' })).error).not.toBeNull();
     expect((await first.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).not.toBeNull();
-    const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new Blob(['%PDF']));
+    const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new TextEncoder().encode('%PDF'),{ contentType: 'application/pdf' });
     expect(wrongUpload.error).not.toBeNull();
     const reset = await first.rpc('reset_management_data', { p_confirmation:'BORRAR TODO' });
     expect(reset.error).toBeNull();
