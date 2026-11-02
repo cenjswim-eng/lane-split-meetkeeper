@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { applyTheme } from "@/lib/profile-theme";
-import { profileQuery } from "./profile";
+import { profileQuery } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,

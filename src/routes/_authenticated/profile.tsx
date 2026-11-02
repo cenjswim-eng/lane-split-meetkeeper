@@ -1,26 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ImagePlus, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { profileQuery } from "@/lib/profile";
 import { DEFAULT_THEME, applyTheme, isHexColor } from "@/lib/profile-theme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-export const profileQuery = queryOptions({ queryKey: ["profile-settings"], queryFn: async () => {
-  const { data: u } = await supabase.auth.getUser();
-  const [p, clubs] = await Promise.all([
-    supabase.from("profile_settings").select("*").maybeSingle(),
-    supabase.from("clubs").select("id,name,logo_path").order("created_at"),
-  ]);
-  if (p.error) throw p.error; if (clubs.error) throw clubs.error;
-  const club = clubs.data?.[0] ?? null;
-  let logoUrl: string | null = null;
-  if (club?.logo_path) { const s = await supabase.storage.from("club-documents").createSignedUrl(club.logo_path, 3600); logoUrl = s.data?.signedUrl ?? null; }
-  return { userId: u.user?.id ?? null, settings: p.data, club, logoUrl };
-} });
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Mi perfil — Natación Pro" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Natación Pro" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
