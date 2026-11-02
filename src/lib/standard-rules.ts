@@ -24,7 +24,7 @@ export interface StandardDraft {
   selected: boolean;
 }
 
-export function categoryBounds(category: string) {
+export function categoryBounds(category: string): { age_group: string | null; age_min: number | null; age_max: number | null } {
   const text = category.trim().toLowerCase();
   if (/^(todas|abierta|open|libre)$/.test(text)) return { age_group: null, age_min: null, age_max: null };
   const range = text.match(/^(\d{1,2})\s*(?:-|–|a)\s*(\d{1,2})(?:\s*años)?$/);

@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Swimming system rules
+- National standards import uses admin-checked AI extraction and editable confirmation before owner-scoped writes; shared standard-rules applies season and exact Dec-31 age intervals in dashboard, entries and athlete profiles. Legacy undated standards remain all-year.
 - Root-boundary module download failures retry via a user-triggered full page reload; router invalidation alone retains rejected lazy imports. Ordinary errors keep the existing reset flow.
 - Dashboard metrics use pure `src/lib/dashboard-summary.ts` with the shared nine-month selector; count bests per athlete/event/course and qualifying marks by Dec-31 category to avoid mixed-pool or repeated-swim totals.
 - Client meet file preparation is shared in `src/lib/meet-files.ts`; navigation presentation lives in `src/components/app-navigation.tsx` without changing the authenticated gate.
