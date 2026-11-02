@@ -1,0 +1,5 @@
+ALTER TABLE public.time_standards ADD COLUMN season_year integer, ADD COLUMN age_min integer, ADD COLUMN age_max integer;
+ALTER TABLE public.time_standards ADD CONSTRAINT time_standards_season_year_check CHECK (season_year IS NULL OR season_year BETWEEN 1900 AND 2200), ADD CONSTRAINT time_standards_age_range_check CHECK ((age_min IS NULL OR age_min >= 0) AND (age_max IS NULL OR age_max >= 0) AND (age_min IS NULL OR age_max IS NULL OR age_min <= age_max));
+COMMENT ON COLUMN public.time_standards.season_year IS 'Annual qualifying standard; null preserves existing all-year rules.';
+COMMENT ON COLUMN public.time_standards.age_min IS 'Inclusive Dec-31 age lower bound from reviewed source.';
+COMMENT ON COLUMN public.time_standards.age_max IS 'Inclusive Dec-31 age upper bound from reviewed source.';
