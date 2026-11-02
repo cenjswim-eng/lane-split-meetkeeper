@@ -37,8 +37,8 @@ export function dashboardSummary(results: DashboardResult[], standards: Dashboar
     const category = ageGroup(ageAtDec31(r.athletes.birth_date, Number(r.meets.start_date.slice(0, 4))));
     if (standards.some(s => s.distance === r.events?.distance && s.stroke === r.events.stroke && s.course === r.course && (!s.gender || s.gender === r.athletes?.gender) && (!s.age_group || (category !== "—" && s.age_group === category)) && s.qualifying_time_ms > 0 && (r.final_time_ms ?? Infinity) <= s.qualifying_time_ms)) qualified.add(key);
   }
-  const months = Array.from({ length: 9 }, (_, index) => {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 8 + index, 1));
+  const months = Array.from({ length: 10 }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 9 + index, 1));
     return { month: date.toISOString().slice(0, 7), label: date.toLocaleDateString("es", { month: "short", timeZone: "UTC" }), swims: 0, bests: 0 };
   });
   for (const r of recent) {

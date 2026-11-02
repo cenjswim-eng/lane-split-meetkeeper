@@ -8,6 +8,7 @@ describe("resumen del entrenador", () => {
   it("incluye solo los últimos nueve meses, sin futuras marcas", () => {
     const data = dashboardSummary([row, { ...row, id: "old", meets: { ...row.meets, id: "m2", name: "Old", start_date: "2026-02-01" } }, { ...row, id: "future", meets: { id: "m3", name: "Next", start_date: "2026-11-03" } }], [], now);
     expect(data.recent.map(r => r.id)).toEqual(["r1"]);
+    expect(data.months.reduce((total, month) => total + month.swims, 0)).toBe(1);
   });
   it("separa mejores marcas por atleta y piscina sin contar nados repetidos", () => {
     expect(dashboardSummary([row, { ...row, id: "r2", final_time_ms: 61000 }, { ...row, id: "r3", course: "SCM" }, { ...row, id: "r4", athlete_id: "a2" }], [], now).bestCount).toBe(3);
