@@ -227,18 +227,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          logo_path: string | null
           name: string
           owner_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          logo_path?: string | null
           name: string
           owner_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          logo_path?: string | null
           name?: string
           owner_id?: string | null
         }
@@ -372,6 +375,30 @@ export type Database = {
           name?: string
           owner_id?: string | null
           start_date?: string | null
+        }
+        Relationships: []
+      }
+      profile_settings: {
+        Row: {
+          accent_color: string
+          display_name: string
+          primary_color: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string
+          display_name?: string
+          primary_color?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          accent_color?: string
+          display_name?: string
+          primary_color?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
