@@ -35,7 +35,7 @@ export interface ParsedTeam {
   lsc?: string | null;
 }
 export interface ParsedFile {
-  format: "HY3" | "SDIF" | "MDB";
+  format: "HY3" | "SDIF" | "MDB" | "PDF";
   meet: { name: string; location: string | null; startDate: string | null; endDate: string | null; course: string };
   teams: ParsedTeam[];
   athletes: ParsedAthlete[];
