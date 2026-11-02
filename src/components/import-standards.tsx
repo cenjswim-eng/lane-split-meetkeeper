@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { extractStandards } from "@/lib/standard-import.functions";
-import { prepareStandardRows, standardIdentity, type StandardDraft } from "@/lib/standard-rules";
+import { categoryBounds, SWIM_CATEGORIES, prepareStandardRows, standardIdentity, type StandardDraft } from "@/lib/standard-rules";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
