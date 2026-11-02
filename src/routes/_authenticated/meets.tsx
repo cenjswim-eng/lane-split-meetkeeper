@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MeetExport } from "@/components/meet-export";
@@ -24,6 +25,7 @@ function MeetsPage() {
   return (
     <div>
       <h1 className="text-4xl font-bold uppercase">Competencias</h1>
+      <div className="mt-3 flex gap-2"><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
       <div className="mt-6 space-y-2">
         {data.length === 0 && <p className="text-muted-foreground">Sin competencias todavía.</p>}
         {data.map((m) => (

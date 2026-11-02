@@ -12,6 +12,8 @@
 ## Swimming system rules
 - Dashboard metrics use pure `src/lib/dashboard-summary.ts` with the shared nine-month selector; count bests per athlete/event/course and qualifying marks by Dec-31 category to avoid mixed-pool or repeated-swim totals.
 - Client meet file preparation is shared in `src/lib/meet-files.ts`; navigation presentation lives in `src/components/app-navigation.tsx` without changing the authenticated gate.
+- Manual entries live in owner-scoped `meet_entries`, separate from final results, with parent guards and cascading deletion; pure entry seeding/minimum/ranking rules live in `src/lib/entry-rules.ts` and entries-only SD3 never includes final times or splits.
+- Coach reports use client-only dynamic ExcelJS imports and prepared Files; WhatsApp text sharing requires an explicit preview and user confirmation because sporting data is private.
 - Training-zone arithmetic lives in pure `src/lib/training-zones.ts`; use eligible individual event/course references and explicitly coach-entered speed ranges, never claim race-only Olbrecht thresholds; calibration is temporary and isolated by reference in the profile tool because no persistence was requested.
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
 - Decode legacy Hy-Tek text as Windows-1252 when UTF-8 is invalid; keep fixed-width columns stable, reject unsupported athlete layouts visibly, and never overwrite existing final times with entry-only imports.
