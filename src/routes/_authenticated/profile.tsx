@@ -27,15 +27,15 @@ function ProfilePage() {
   useEffect(() => () => { qc.invalidateQueries({ queryKey: ["profile-settings"] }); }, [qc]);
 
   async function save(e: React.FormEvent) {
-    e.preventDefault(); if (!isHexColor(primary) || !isHexColor(accent)) return toast.error("Color no válido");
+    e.preventDefault(); if (!isHexColor(primary) || !isHexColor(accent)) { toast.error("Color no válido"); return; }
     setBusy(true);
     const r = await supabase.from("profile_settings").upsert({ user_id: data.userId!, display_name: name.trim(), primary_color: primary, accent_color: accent, updated_at: new Date().toISOString() });
-    setBusy(false); if (r.error) return toast.error(r.error.message);
+    setBusy(false); if (r.error) { toast.error(r.error.message); return; }
     await qc.invalidateQueries({ queryKey: ["profile-settings"] }); toast.success("Perfil guardado");
   }
   async function uploadLogo(file: File) {
     if (!data.club) return;
-    if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type) || file.size > 2_000_000) return toast.error("Usa PNG, JPG, WEBP o SVG de hasta 2 MB");
+    if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type) || file.size > 2_000_000) { toast.error("Usa PNG, JPG, WEBP o SVG de hasta 2 MB"); return; }
     setBusy(true);
     try {
       const path = `${data.club.id}/logo-${crypto.randomUUID()}`;

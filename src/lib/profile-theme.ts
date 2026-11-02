@@ -4,7 +4,7 @@ export const isHexColor = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
 /** Dark or light text that stays readable on the given background color. */
 export function readableOn(hex: string): string {
   const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+  const [r = 0, g = 0, b = 0] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });
