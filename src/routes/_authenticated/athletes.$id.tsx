@@ -113,7 +113,14 @@ function Profile() {
       </section>
 
       {byEvent.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Sin marcas válidas en los últimos 9 meses.</div>
+        results.length === 0 ? (
+          <div className="space-y-3 rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+            <p className="font-semibold text-foreground">Este atleta aún no tiene tiempos cargados.</p>
+            <p>Si compitió con otro club, sus resultados no están en los archivos que subiste porque fueron exportados solo para tu equipo.</p>
+            <p>Sube los resultados completos de la competencia (HY3, CL2, SD3 o PDF con todos los equipos) en <Link to="/import" className="text-primary underline">Importar</Link> y luego pulsa «Buscar historial en otros clubes».</p>
+            <div className="flex justify-center"><HistoryTransfer athleteId={id} /></div>
+          </div>
+        ) : <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Sin marcas válidas en los últimos 9 meses.</div>
       ) : (
         <>
           <section>
