@@ -61,14 +61,12 @@ function CategoriesPage() {
       <p className="text-muted-foreground">Define las categorías de tu país. La edad se calcula al 31 de diciembre. Se usan en las mínimas, las inscripciones y la ficha de cada atleta. Deja «Hasta» vacío para «y más».</p></header>
     <div className="space-y-3">
       <div className="hidden grid-cols-[minmax(0,1fr)_6rem_6rem_2.5rem] gap-2 text-sm text-muted-foreground sm:grid"><span>Nombre</span><span>Desde (años)</span><span>Hasta (años)</span><span /></div>
-      {rows.map((r, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-2 rounded-lg border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem_2.5rem] sm:border-0 sm:bg-transparent sm:p-0">
-        <Input aria-label={`Nombre de la categoría ${i + 1}`} value={r.name} placeholder="Infantil A" onChange={(e) => patch(i, { name: e.target.value })} />
-        <Button className="sm:col-start-4 sm:row-start-1" variant="ghost" size="icon" title="Quitar categoría" aria-label={`Quitar categoría ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 /></Button>
-        <div className="col-span-2 grid grid-cols-2 gap-2 sm:col-span-1 sm:contents">
-          <Input aria-label={`Desde ${i + 1}`} type="number" inputMode="numeric" min={0} max={120} placeholder="Desde" value={r.min} onChange={(e) => patch(i, { min: e.target.value })} />
-          <Input aria-label={`Hasta ${i + 1}`} type="number" inputMode="numeric" min={0} max={120} placeholder="y más" value={r.max} onChange={(e) => patch(i, { max: e.target.value })} />
-        </div>
-        {r.name.trim() && (r.min || r.max) && <p className="col-span-2 text-xs text-muted-foreground sm:col-span-4">{categoryLabel(r.name, num(r.min), num(r.max))}</p>}
+      {rows.map((r, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] gap-2 rounded-lg border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem_2.5rem] sm:border-0 sm:bg-transparent sm:p-0">
+        <Input className="col-span-3 sm:col-span-1" aria-label={`Nombre de la categoría ${i + 1}`} value={r.name} placeholder="Infantil A" onChange={(e) => patch(i, { name: e.target.value })} />
+        <Input aria-label={`Desde ${i + 1}`} type="number" inputMode="numeric" min={0} max={120} placeholder="Desde" value={r.min} onChange={(e) => patch(i, { min: e.target.value })} />
+        <Input aria-label={`Hasta ${i + 1}`} type="number" inputMode="numeric" min={0} max={120} placeholder="y más" value={r.max} onChange={(e) => patch(i, { max: e.target.value })} />
+        <Button variant="ghost" size="icon" title="Quitar categoría" aria-label={`Quitar categoría ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 /></Button>
+        {r.name.trim() && (r.min || r.max) && <p className="col-span-3 text-xs text-muted-foreground sm:col-span-4">{categoryLabel(r.name, num(r.min), num(r.max))}</p>}
       </div>)}
     </div>
     <div className="flex flex-wrap gap-2">
