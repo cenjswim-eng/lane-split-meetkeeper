@@ -38,3 +38,23 @@ export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
   const out: ParsedFile = { ...parsed, athletes, results, teams: parsed.teams.filter((t) => athletes.some((a) => a.teamCode === t.code)), warnings: parsed.warnings.filter((w) => !/fecha de nacimiento/.test(w)) };
   return { parsed: out, found, names: [...new Set([...matched.values()].map((r) => `${r.first_name} ${r.last_name}`))] };
 }
+
+/** Meet Manager web results: a frameset whose index frame links one page per event (e.g. 260813F001.htm). */
+export function indexFrameUrl(html: string, base: string): string | null {
+  const src = html.match(/<frame[^>]+src=["']?([^"' >]*evtindex[^"' >]*)/i)?.[1];
+  return src ? new URL(src, base).toString() : null;
+}
+
+export function meetEventPages(indexHtml: string, base: string): string[] {
+  const links = [...indexHtml.matchAll(/href=["']?([^"' >#]+?([FPS])\d{3}\.html?)/gi)].map((m) => ({ href: m[1]!, kind: m[2]!.toUpperCase() }));
+  const finals = links.filter((l) => l.kind === "F");
+  return [...new Set((finals.length ? finals : links).map((l) => new URL(l.href, base).toString()))];
+}
+
+export function meetIndexInfo(html: string, indexHtml: string) {
+  const title = (html.match(/<title>\s*(?:Meet Results:\s*)?([^<]+?)\s*<\/title>/i)?.[1] ?? indexHtml.match(/<h2[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*</i)?.[1] ?? null)?.replace(/&amp;/g, "&") ?? null;
+  const d = indexHtml.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  // Spanish Meet Manager prints day/month; swap when the first number cannot be a month.
+  const iso = (a: string, b: string, y: string) => { const [dd, mm] = +a > 12 || +b <= 12 ? [a, b] : [b, a]; return `${y}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`; };
+  return { title, startDate: d ? iso(d[1]!, d[2]!, d[3]!) : null, endDate: d ? iso(d[4]!, d[5]!, d[6]!) : null };
+}
