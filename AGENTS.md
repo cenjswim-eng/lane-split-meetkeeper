@@ -10,19 +10,17 @@
 <!-- LOVABLE:END -->
 
 ## Swimming system rules
+- Subdirectories have their own `AGENTS.md`; read it before changing files there.
+- MDB polyfills: client-environment-only Vite hooks resolving to ESM shims (no shared/resolve aliases, no global injection); init MDB globals and invoke the reader only in browser file-selection handlers so server imports stay native.
 - National standards import uses admin-checked AI extraction and editable confirmation before owner-scoped writes; shared standard-rules applies season and exact Dec-31 age intervals in dashboard, entries and athlete profiles. Legacy undated standards remain all-year.
 - Root-boundary module download failures retry via a user-triggered full page reload; router invalidation alone retains rejected lazy imports. Ordinary errors keep the existing reset flow.
 - Dashboard metrics use pure `src/lib/dashboard-summary.ts` with the shared nine-month selector; count bests per athlete/event/course and qualifying marks by Dec-31 category to avoid mixed-pool or repeated-swim totals.
 - Client meet file preparation is shared in `src/lib/meet-files.ts`; navigation presentation lives in `src/components/app-navigation.tsx` without changing the authenticated gate.
 - Manual entries live in owner-scoped `meet_entries`, separate from final results, with parent guards and cascading deletion; pure entry seeding/minimum/ranking rules live in `src/lib/entry-rules.ts` and entries-only SD3 never includes final times or splits.
-- Meet Manager entry export uses the dedicated SDIF v3 writer in `src/lib/hytek/meet-manager-entries.ts` (A0/01, C1/C2, D0, Z0), validates identities and emits fixed-width ASCII; leave legacy result export independent.
 - Coach reports use client-only dynamic ExcelJS imports and prepared Files; WhatsApp text sharing requires an explicit preview and user confirmation because sporting data is private.
 - Training-zone arithmetic lives in pure `src/lib/training-zones.ts`; use eligible individual event/course references and explicitly coach-entered speed ranges, never claim race-only Olbrecht thresholds; calibration is temporary and isolated by reference in the profile tool because no persistence was requested.
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
-- Decode legacy Hy-Tek text as Windows-1252 when UTF-8 is invalid; keep fixed-width columns stable, reject unsupported athlete layouts visibly, and never overwrite existing final times with entry-only imports.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
-- Keep MDB crypto polyfill hooks and configuration scoped to Vite's client environment; invoke the reader only from file-selection handlers so server runtime imports retain native implementations.
-- Resolve client polyfill aliases through client-only hooks to ESM shims, never environment.resolve.alias or shared aliases; disable global plugin injection and initialize MDB globals only in the browser file-reading handler to avoid optimizer cycles and server replacement.
 - Club document extraction lives in `src/lib/club-document.ts`: read PDF text locally with a dynamic PDF.js worker, auto-save explicitly structured roster rows and recognized Access member tables, and retain originals with a visible notice when extraction is incomplete.
 - Club membership is separate from competition athletes; explicit Access column mappings populate an admin-only club register, private originals are retained, and atomic reimports match stable source keys without deleting absent members or overwriting manual status and notes.
 - All times are stored as integer milliseconds (`*_ms`); format only at display time via `src/lib/swim.ts`.
