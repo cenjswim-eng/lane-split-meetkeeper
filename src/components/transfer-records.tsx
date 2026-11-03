@@ -16,7 +16,7 @@ export function TransferRecords({ athleteId, defaultName }: { athleteId: string;
 
   async function run() {
     setBusy(true);
-    const { data, error } = await supabase.rpc("transfer_athlete_records", { _target: athleteId, _name: name, _club: club || undefined });
+    const { data, error } = await supabase.rpc("transfer_athlete_records", { _target: athleteId, _name: name, _club: club });
     setBusy(false);
     if (error) return toast.error(error.message);
     const r = data as { sources: number; moved: number; skipped: number; entries: number };
