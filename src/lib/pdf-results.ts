@@ -4,14 +4,16 @@ import { parseTime } from "@/lib/swim";
 /** Pure readers that turn PDF results (Meet Manager text or AI-extracted JSON) into the shared ParsedFile shape. */
 
 const STROKE_WORDS: [RegExp, number][] = [
-  [/individual medley|\bIM\b|combinado|medley/i, 5],
+  [/individual medley|\bIM\b|\bCI\b|combinado|medley/i, 5],
   [/freestyle|\bfree\b|libre/i, 1],
   [/backstroke|\bback\b|espalda/i, 2],
   [/breaststroke|\bbreast\b|pecho/i, 3],
   [/butterfly|\bfly\b|mariposa/i, 4],
 ];
 const TIME = String.raw`(?:\d{1,2}:)?\d{1,2}\.\d{2}`;
-const RESULT_LINE = new RegExp(String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([^,\d]+?),\s*([^\d]+?)\s+(\d{1,2})\s+(.+?)\s+(${TIME}|NT)?\s*(${TIME}|DQ|NS|SCR|DFS|DNF)\s*[A-Za-z]{0,2}\s*(?:\d+)?\s*$`);
+// Age column may be a number or a US college class (FR/SO/JR/SR/5Y/GR); times may carry x/J/X prefixes and qualifier/points suffixes.
+const RESULT_LINE = new RegExp(String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([^,\d]+?),\s*([^\d]+?)\s+(\d{1,2}|FR|SO|JR|SR|5Y|GR)\s+(.+?)\s+[xXJ]?(${TIME}|NT|NS)?\s*[xXJ]?(${TIME}|DQ|NS|SCR|DFS|DNF|DSQ)\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`);
+const SPLIT_LINE = new RegExp(String.raw`^\s+(?:(?:\d{2,4}m?:\s*)?${TIME}(?:\s*\(${TIME}\))?\s*)+$`);
 
 function isoFromMdy(m: string, d: string, y: string) {
   const dt = new Date(Date.UTC(+y, +m - 1, +d));
@@ -57,6 +59,12 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
     const header = parseEventHeader(line);
     if (header) { event = header; if (header.relay) relays++; else if (header.course) courses.add(header.course); continue; }
     if (!event || event.relay) continue;
+    if (SPLIT_LINE.test(line) && results.length && results[results.length - 1]!.distance === event.distance) {
+      const last = results[results.length - 1]!;
+      const cum = [...line.replace(/\([^)]*\)/g, " ").matchAll(new RegExp(TIME, "g"))].map((t) => parseTime(t[0])).filter((v): v is number => v != null);
+      for (const ms of cum) last.splits.push({ distance: 0, cumulative_ms: ms });
+      continue;
+    }
     const m = line.match(RESULT_LINE);
     if (!m) { if (/^\s*\d{1,3}\s+\S+,/.test(line)) skipped++; continue; }
     const [, placeRaw, last, first, age, teamRaw, seedRaw, finalRaw] = m;
@@ -65,10 +73,16 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
     teams.set(code, { code, name: team });
     const key = `pdf:${last!.trim().toLowerCase()}|${first!.trim().toLowerCase()}|${code}`;
     if (!athletes.has(key)) athletes.set(key, { key, tmId: null, federationId: null, firstName: first!.trim(), lastName: last!.trim(), birthDate: null, gender: event.gender === "X" ? null : event.gender, teamCode: code });
-    const dq = /^(DQ|DFS|DNF)$/.test(finalRaw!);
+    const dq = /^(DQ|DSQ|DFS|DNF)$/.test(finalRaw!);
     const noSwim = /^(NS|SCR)$/.test(finalRaw!);
     results.push({ athleteKey: key, eventNumber: event.number, distance: event.distance, stroke: event.stroke, gender: event.gender, minAge: event.minAge, maxAge: event.maxAge, seedMs: seedRaw && seedRaw !== "NT" ? parseTime(seedRaw) : null, finalMs: dq || noSwim ? null : parseTime(finalRaw), course: event.course ?? defaultCourse, place: placeRaw && /^\*?\d+$/.test(placeRaw) ? +placeRaw.replace("*", "") : null, isDq: dq, round: "F", splits: [] });
     void age;
+  }
+  for (const r of results) {
+    const n = r.splits.length;
+    // Keep splits only when they divide the race evenly and end on the final time; distances follow from the count.
+    if (!n || r.distance % n !== 0 || (r.finalMs != null && r.splits[n - 1]!.cumulative_ms !== r.finalMs)) { r.splits = []; continue; }
+    r.splits = r.splits.map((sp, i) => ({ distance: (r.distance / n) * (i + 1), cumulative_ms: sp.cumulative_ms }));
   }
   if (skipped) warnings.push(`${skipped} líneas parecían resultados pero no se pudieron leer; revisa el PDF original.`);
   if (relays) warnings.push(`${relays} pruebas de relevo omitidas.`);
