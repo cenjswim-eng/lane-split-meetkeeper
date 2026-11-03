@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
 import { NewAthlete } from "@/components/new-athlete";
 import { DeleteAthlete } from "@/components/delete-athlete";
+import { HistoryTransfer } from "@/components/history-transfer";
 
 const athletesQuery = queryOptions({
   queryKey: ["athletes"],
@@ -39,6 +40,7 @@ function AthletesPage() {
           <p className="text-muted-foreground">{data.length} nadadores</p>
         </div>
         <NewAthlete />
+        <HistoryTransfer label="Buscar historial de todos los atletas" />
         <Input placeholder="Buscar por nombre o ID" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
       </div>
       {data.length === 0 ? (
