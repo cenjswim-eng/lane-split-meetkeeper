@@ -19,6 +19,7 @@ const MATCH: Record<string, { label: string; strong: boolean; bad?: boolean }> =
   cedula: { label: "Cédula coincide", strong: true },
   nombre_fecha: { label: "Nombre y fecha coinciden", strong: true },
   nombre: { label: "Solo nombre", strong: false },
+  parecido: { label: "Nombre parecido", strong: false },
   conflicto: { label: "Cédula, fecha o sexo distinto", strong: false, bad: true },
 };
 
@@ -33,10 +34,25 @@ export function TransferRecords({ athleteId, defaultName }: { athleteId: string;
   async function search() {
     setBusy(true);
     const { data, error } = await supabase.rpc("find_athlete_record_sources", { _target: athleteId, _name: name });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { setBusy(false); toast.error(error.message); return; }
     const rows = (data ?? []) as Candidate[];
-    setList(rows);
+    // Búsqueda amplia: cualquier atleta de otro club cuyo nombre o apellido contenga alguna palabra buscada.
+    const words = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^A-Za-z0-9]+/).filter((w) => w.length >= 3);
+    if (words.length) {
+      const or = words.flatMap((w) => [`first_name.ilike.%${w}%`, `last_name.ilike.%${w}%`]).join(",");
+      const { data: more } = await supabase.from("athletes")
+        .select("id, first_name, last_name, birth_date, gender, federation_id, teams(code, name), results(count)")
+        .or(or).neq("id", athleteId).limit(100);
+      const seen = new Set(rows.map((r) => r.id));
+      for (const a of more ?? []) {
+        if (seen.has(a.id)) continue;
+        const t = a.teams as { code: string; name: string } | null;
+        const cnt = (a.results as unknown as { count: number }[] | null)?.[0]?.count ?? 0;
+        rows.push({ id: a.id, first_name: a.first_name, last_name: a.last_name, birth_date: a.birth_date, gender: a.gender, federation_id: a.federation_id, team: t?.name ?? t?.code ?? null, results: cnt, match: "parecido" });
+      }
+    }
+    setBusy(false);
+    setList(rows.filter((r) => r.results > 0));
     setSel(new Set(rows.filter((r) => MATCH[r.match]?.strong && r.results > 0).map((r) => r.id)));
   }
 
