@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterToRoster, htmlToLines } from "@/lib/results-link";
+import { commaTimes, filterToRoster, htmlToLines } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 const base = (names: [string, string][]): ParsedFile => ({
@@ -19,4 +19,5 @@ describe("results link", () => {
   it("extracts pre text lines from html", () => {
     expect(htmlToLines("<pre>Event 1  Boys\n 1 Barreto, Ezequiel &amp; X</pre>")).toEqual(["Event 1  Boys", " 1 Barreto, Ezequiel & X"]);
   });
+  it("reads decimal-comma times", () => expect(commaTimes("Leal, Camila  15 JSWIM  1:36,97  1:29,14")).toBe("Leal, Camila  15 JSWIM  1:36.97  1:29.14"));
 });

@@ -17,6 +17,9 @@ export function htmlToLines(html: string): string[] {
   return text.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim());
 }
 
+/** Spanish Meet Manager pages print times with decimal commas (1:29,14). */
+export const commaTimes = (l: string) => l.replace(/(\d),(\d{2})(?!\d)/g, "$1.$2");
+
 /** Keeps only swims of athletes registered in the roster, adopting the roster identity so imports land on the existing profile. */
 export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
   const matched = new Map<string, RosterAthlete>();

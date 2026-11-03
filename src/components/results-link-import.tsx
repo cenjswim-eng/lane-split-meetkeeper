@@ -9,7 +9,7 @@ import { readPdfLines } from "@/lib/club-document";
 import { aiResultsToParsed, parseMeetManagerResults, type AiResults } from "@/lib/pdf-results";
 import { extractPdfWithAi } from "@/lib/pdf-ai.functions";
 import { fetchResultsLink } from "@/lib/results-link.functions";
-import { filterToRoster, htmlToLines, type RosterAthlete } from "@/lib/results-link";
+import { commaTimes, filterToRoster, htmlToLines, type RosterAthlete } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
@@ -40,8 +40,11 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       if (res.kind === "pdf") {
         const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
         lines = await readPdfLines(new File([bytes], `${name}.pdf`, { type: "application/pdf" }));
-      } else lines = htmlToLines(res.html);
+      } else if (res.kind === "meet") lines = res.pages.flatMap((h) => htmlToLines(h));
+      else lines = htmlToLines(res.html);
+      lines = lines.map(commaTimes);
       const parsed = parseMeetManagerResults(lines, name);
+      if (res.kind === "meet") parsed.meet = { ...parsed.meet, name: res.title ?? parsed.meet.name, startDate: res.startDate ?? parsed.meet.startDate, endDate: res.endDate ?? parsed.meet.endDate };
       if (!parsed.results.length) {
         if (res.kind === "pdf") { setPdf({ base64: res.base64, name }); setSummary("No se reconoció el formato Meet Manager. Puedes intentar la lectura con IA."); }
         else setSummary("No se encontraron resultados en esa página. Si la página tiene un enlace a un PDF de resultados, pega ese enlace.");
@@ -62,13 +65,13 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
 
   return <section className="space-y-2 rounded-lg border bg-card p-4">
     <h2 className="text-xl font-semibold uppercase">Resultados desde un enlace</h2>
-    <p className="text-sm text-muted-foreground">Pega el enlace de una página o PDF de resultados. Solo se toman los tiempos de los atletas que ya tienes registrados; el resto se ignora. Siempre verás el resumen antes de importar.</p>
+    <p className="text-sm text-muted-foreground">Pega el enlace de resultados en vivo de Meet Manager (por ejemplo, el de ADAEL), de una página o de un PDF. Se revisan todas las pruebas. Solo se toman los tiempos de los atletas que ya tienes registrados; el resto se ignora. Siempre verás el resumen antes de importar.</p>
     <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); if (url.trim()) read(); }}>
       <Input type="url" inputMode="url" placeholder="https://…/resultados.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Enlace de resultados" disabled={busy || disabled} />
       <Button type="submit" disabled={busy || disabled || !url.trim()}><Link2 className="mr-2 size-4" />Extraer mis atletas</Button>
     </form>
     {pdf && <Button variant="outline" onClick={readAi} disabled={busy}><Sparkles className="mr-2 size-4" />Leer con IA</Button>}
-    {busy && <p role="status" className="text-sm">Leyendo el enlace…</p>}
+    {busy && <p role="status" className="text-sm">Leyendo todas las pruebas del enlace, puede tardar un minuto…</p>}
     {summary && <p role="status" className="text-sm">{summary}</p>}
   </section>;
 }
