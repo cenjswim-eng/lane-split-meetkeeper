@@ -18,7 +18,7 @@ export function TransferRecords({ athleteId, defaultName }: { athleteId: string;
     setBusy(true);
     const { data, error } = await supabase.rpc("transfer_athlete_records", { _target: athleteId, _name: name, _club: club });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     const r = data as { sources: number; moved: number; skipped: number; entries: number };
     if (!r.sources) toast.info("No se encontraron registros con ese nombre" + (club ? " y club" : "") + " en tus competencias.");
     else toast.success(`${r.moved} tiempos traídos de ${r.sources} registro(s)` + (r.skipped ? ` · ${r.skipped} ya existían y se omitieron` : ""));
