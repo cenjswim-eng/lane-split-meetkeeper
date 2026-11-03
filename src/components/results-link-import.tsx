@@ -9,13 +9,14 @@ import { readPdfLines } from "@/lib/club-document";
 import { aiResultsToParsed, parseMeetManagerResults, type AiResults } from "@/lib/pdf-results";
 import { extractPdfWithAi } from "@/lib/pdf-ai.functions";
 import { fetchResultsLink } from "@/lib/results-link.functions";
-import { commaTimes, filterToRoster, htmlToLines, type RosterAthlete } from "@/lib/results-link";
+import { commaTimes, filterToRoster, htmlToLines, indexFrameUrl, meetEventPages, meetIndexInfo, type RosterAthlete } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [pdf, setPdf] = useState<{ base64: string; name: string } | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const fetchLink = useServerFn(fetchResultsLink);
   const extract = useServerFn(extractPdfWithAi);
@@ -97,11 +98,11 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
     <h2 className="text-xl font-semibold uppercase">Resultados desde un enlace</h2>
     <p className="text-sm text-muted-foreground">Pega el enlace de resultados en vivo de Meet Manager (por ejemplo, el de ADAEL), de una página o de un PDF. Se revisan todas las pruebas. Solo se toman los tiempos de los atletas que ya tienes registrados; el resto se ignora. Siempre verás el resumen antes de importar.</p>
     <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); if (url.trim()) read(); }}>
-      <Input type="url" inputMode="url" placeholder="https://…/resultados.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Enlace de resultados" disabled={busy || disabled} />
+      <Input type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="https://…/resultados.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Enlace de resultados" disabled={busy || disabled} />
       <Button type="submit" disabled={busy || disabled || !url.trim()}><Link2 className="mr-2 size-4" />Extraer mis atletas</Button>
     </form>
     {pdf && <Button variant="outline" onClick={readAi} disabled={busy}><Sparkles className="mr-2 size-4" />Leer con IA</Button>}
-    {busy && <p role="status" className="text-sm">Leyendo todas las pruebas del enlace, puede tardar un minuto…</p>}
+    {busy && <p role="status" className="text-sm">Leyendo todas las pruebas del enlace{progress ? ` (${progress})` : ""}, puede tardar un minuto…</p>}
     {summary && <p role="status" className="text-sm">{summary}</p>}
   </section>;
 }
