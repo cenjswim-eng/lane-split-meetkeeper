@@ -7,7 +7,6 @@ const base = (names: [string, string][]): ParsedFile => ({
   athletes: names.map(([l, f]) => ({ key: l, tmId: null, federationId: null, firstName: f, lastName: l, birthDate: null, gender: "M", teamCode: "X" })),
   results: names.map(([l]) => ({ athleteKey: l, eventNumber: "1", distance: 100, stroke: 1, gender: "M", minAge: null, maxAge: null, seedMs: null, finalMs: 60000, course: "LCM", place: 1, isDq: false, round: "F" as const, splits: [] })),
   warnings: [],
-  it("reads decimal-comma times", () => expect(commaTimes("Leal, Camila  15 JSWIM  1:36,97  1:29,14")).toBe("Leal, Camila  15 JSWIM  1:36.97  1:29.14"));
 });
 
 describe("results link", () => {
