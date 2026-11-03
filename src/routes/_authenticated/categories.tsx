@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/categories")({
 });
 
 type Row = { name: string; min: string; max: string };
-const toRows = (list: { name: string; age_min: number | null; age_max: number | null }[]): Row[] => list.map((c) => ({ name: c.name, min: c.age_min?.toString() ?? "", max: c.age_max?.toString() ?? "" }));
+const toRows = (list: readonly { name: string; age_min: number | null; age_max: number | null }[]): Row[] => list.map((c) => ({ name: c.name, min: c.age_min?.toString() ?? "", max: c.age_max?.toString() ?? "" }));
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
 function CategoriesPage() {
