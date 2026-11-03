@@ -21,3 +21,11 @@ describe("results link", () => {
   });
   it("reads decimal-comma times", () => expect(commaTimes("Leal, Camila  15 JSWIM  1:36,97  1:29,14")).toBe("Leal, Camila  15 JSWIM  1:36.97  1:29.14"));
 });
+
+import { parseMeetManagerResults } from "@/lib/pdf-results";
+describe("Meet Manager web pages", () => {
+  it("reads college-class rows and splits", () => {
+    const p = parseMeetManagerResults(["Event 7  Women 100 Yard Freestyle", "  1 Waggoner, Allie  SR Seton Hall        50.72    49.45 B       32", "             24.10        49.45 (25.35)"], "x");
+    expect(p.results[0]).toMatchObject({ finalMs: 49450, splits: [{ distance: 50, cumulative_ms: 24100 }, { distance: 100, cumulative_ms: 49450 }] });
+  });
+});
