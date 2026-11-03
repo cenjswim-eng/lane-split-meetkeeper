@@ -40,3 +40,16 @@ describe("categorías nombradas", () => {
   it("Juvenil B es 16-18", () => expect(cb("juvenil b")).toMatchObject({ age_min: 16, age_max: 18 }));
   it("Máxima es 19 y más", () => expect(cb("Maxima")).toMatchObject({ age_min: 19, age_max: null }));
 });
+
+import { validateCategories, categoryBounds as bounds } from "@/lib/standard-rules";
+describe("categorías personalizadas", () => {
+  it("usa las edades definidas por la cuenta", () => {
+    const cats = validateCategories([{ name: "Juvenil B", age_min: 16, age_max: 19 }, { name: "Mayores", age_min: 20, age_max: null }]);
+    expect(bounds("Juvenil B", cats)).toMatchObject({ age_min: 16, age_max: 19, age_group: "Juvenil B (16-19 años)" });
+    expect(bounds("Mayores", cats)).toMatchObject({ age_min: 20, age_max: null });
+  });
+  it("rechaza edades invertidas o nombres repetidos", () => {
+    expect(() => validateCategories([{ name: "A", age_min: 12, age_max: 10 }])).toThrow();
+    expect(() => validateCategories([{ name: "A", age_min: 10, age_max: 11 }, { name: "a", age_min: 12, age_max: 13 }])).toThrow();
+  });
+});

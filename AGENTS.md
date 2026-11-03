@@ -17,7 +17,7 @@
 - Dashboard metrics use pure `src/lib/dashboard-summary.ts` with the shared nine-month selector; count bests per athlete/event/course and qualifying marks by Dec-31 category to avoid mixed-pool or repeated-swim totals.
 - Client meet file preparation is shared in `src/lib/meet-files.ts`; navigation presentation lives in `src/components/app-navigation.tsx` without changing the authenticated gate.
 - Manual entries live in owner-scoped `meet_entries`, separate from final results, with parent guards and cascading deletion; pure entry seeding/minimum/ranking rules live in `src/lib/entry-rules.ts` and entries-only SD3 never includes final times or splits.
-- Coach reports use client-only dynamic ExcelJS imports and prepared Files; WhatsApp text sharing requires an explicit preview and user confirmation because sporting data is private.
+- Coach reports: client-only dynamic ExcelJS; WhatsApp sharing needs preview + confirmation (private data).
 - Training-zone arithmetic lives in pure `src/lib/training-zones.ts`; use eligible individual event/course references and explicitly coach-entered speed ranges, never claim race-only Olbrecht thresholds; calibration is temporary and isolated by reference in the profile tool because no persistence was requested.
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
@@ -32,8 +32,9 @@
 - Exports return prepared Files; the shared export dialog delivers them through native file sharing or delayed-revocation downloads, with ZIP wrapping for SD3 compatibility, so mobile user activation survives generation.
 - Athlete deletion requires explicit permanent-deletion confirmation and relies on database cascades for results/splits; club membership remains independently managed.
 - Club documents accept private Access originals and PDF attachments; roster and individual tracking reports use prepared-file sharing with all eligible records and splits, without a display-count truncation.
-- Athlete profile rankings and tracking PDFs share the pure calendar-window selector in `src/lib/athlete-records.ts`; preserve stored history and sort eligible times ascending, while progression charts remain chronological.
+- Profile rankings and tracking PDFs share the window selector in `src/lib/athlete-records.ts`; sort eligible times ascending, charts chronological.
 - Tracking PDF charts use the pure event/course series selector and vector drawing in `src/lib/athlete-progress-pdf.ts`; paginate labelled swims without truncation so print remains readable and export needs no canvas.
 - Reset deletes only the caller's RLS-visible rows, then cleans only captured private club prefixes through Storage API; never empty the shared bucket. Preserve accounts and roles.
 - PDF imports: Meet Manager result text is parsed by pure `src/lib/pdf-results.ts`; AI extraction (results/roster) runs only in the admin-checked server function `src/lib/pdf-ai.functions.ts` and its output is re-validated by pure normalizers before preview/import, so AI never writes directly.
 - Athlete history transfers copy results/splits (never move or edit originals) via admin-checked copy_athlete_history, logged in record_transfers and undoable; fuzzy identity scoring is pure in src/lib/history-match.ts.
+- Age categories: per-account swim_categories (Venezuela fallback) passed to categoryBounds; saving re-links standards by name.

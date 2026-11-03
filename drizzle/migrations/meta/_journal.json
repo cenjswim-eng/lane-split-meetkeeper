@@ -127,6 +127,13 @@
       "when": 1793727121226,
       "tag": "0017_athlete_history_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793733153902,
+      "tag": "0018_custom_swim_categories",
+      "breakpoints": true
     }
   ]
 }

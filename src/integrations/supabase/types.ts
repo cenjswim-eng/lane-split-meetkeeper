@@ -626,6 +626,36 @@ export type Database = {
           },
         ]
       }
+      swim_categories: {
+        Row: {
+          age_max: number | null
+          age_min: number | null
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          sort: number
+        }
+        Insert: {
+          age_max?: number | null
+          age_min?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string
+          sort?: number
+        }
+        Update: {
+          age_max?: number | null
+          age_min?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          sort?: number
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           code: string
