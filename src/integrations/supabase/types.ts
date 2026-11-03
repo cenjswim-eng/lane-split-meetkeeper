@@ -664,6 +664,20 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string }
         Returns: undefined
       }
+      find_athlete_record_sources: {
+        Args: { _name?: string; _target: string }
+        Returns: {
+          birth_date: string
+          federation_id: string
+          first_name: string
+          gender: string
+          id: string
+          last_name: string
+          match: string
+          results: number
+          team: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -714,6 +728,10 @@ export type Database = {
       swim_name_key: { Args: { _t: string }; Returns: string }
       transfer_athlete_records: {
         Args: { _club?: string; _name?: string; _target: string }
+        Returns: Json
+      }
+      transfer_selected_athlete_records: {
+        Args: { _sources: string[]; _target: string }
         Returns: Json
       }
     }
