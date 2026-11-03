@@ -1,5 +1,5 @@
 import type { ParsedFile } from "@/lib/hytek/types";
-import { matchScore, HIGH_MATCH } from "@/lib/history-match";
+import { matchScore, HIGH_MATCH, nameSimilarity, nameTokens } from "@/lib/history-match";
 
 export interface RosterAthlete { id: string; first_name: string; last_name: string; birth_date: string | null; gender: string | null; federation_id: string | null; tm_athlete_id: string | null }
 
@@ -27,7 +27,8 @@ export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
     let best: { r: RosterAthlete; score: number } | null = null;
     for (const r of roster) {
       const { score } = matchScore(r, { id: a.key, first_name: a.firstName, last_name: a.lastName, birth_date: a.birthDate, gender: a.gender, federation_id: a.federationId });
-      if (score >= HIGH_MATCH && (!best || score > best.score)) best = { r, score };
+      const final = Math.max(score, truncatedScore(r, a));
+      if (final >= HIGH_MATCH && (!best || final > best.score)) best = { r, score: final };
     }
     if (!best) return [];
     matched.set(a.key, best.r);
@@ -57,4 +58,15 @@ export function meetIndexInfo(html: string, indexHtml: string) {
   // Spanish Meet Manager prints day/month; swap when the first number cannot be a month.
   const iso = (a: string, b: string, y: string) => { const [dd, mm] = +a > 12 || +b <= 12 ? [a, b] : [b, a]; return `${y}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`; };
   return { title, startDate: d ? iso(d[1]!, d[2]!, d[3]!) : null, endDate: d ? iso(d[4]!, d[5]!, d[6]!) : null };
+}
+
+/** Meet Manager pages cut long names ("Colmenarez, Val"): accept a first-name prefix when the surname matches and no identity field conflicts. */
+function truncatedScore(r: RosterAthlete, a: { firstName: string; lastName: string; gender: string | null; birthDate: string | null }) {
+  if (a.gender && r.gender && a.gender !== r.gender) return 0;
+  if (a.birthDate && r.birth_date && a.birthDate !== r.birth_date) return 0;
+  if (nameSimilarity(a.lastName, r.last_name) < 0.9 && nameSimilarity(a.lastName, `${r.last_name} ${r.first_name}`) < 0.9) return 0;
+  const first = nameTokens(a.firstName).filter((t) => t.length >= 3);
+  const rosterTokens = nameTokens(`${r.first_name} ${r.last_name}`);
+  if (!first.length || !first.every((t) => rosterTokens.some((x) => x.startsWith(t)))) return 0;
+  return HIGH_MATCH;
 }
