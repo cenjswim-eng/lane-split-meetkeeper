@@ -12,6 +12,7 @@ import { rankedAthleteRecords } from "@/lib/athlete-records";
 import { Button } from "@/components/ui/button";
 import { AthleteTrainingZones } from "@/components/athlete-training-zones";
 import { standardApplies } from "@/lib/standard-rules";
+import { TransferRecords } from "@/components/transfer-records";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -86,7 +87,7 @@ function Profile() {
   return (
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
-      <div className="flex flex-wrap justify-end gap-2"><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
+      <div className="flex flex-wrap justify-end gap-2"><TransferRecords athleteId={id} defaultName={`${athlete.first_name} ${athlete.last_name}`} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>
