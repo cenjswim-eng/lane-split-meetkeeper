@@ -28,7 +28,7 @@ export function parseEventHeader(line: string) {
   const dist = rest.match(/\b(25|50|100|200|400|800|1500|1650)\b/);
   const stroke = STROKE_WORDS.find(([re]) => re.test(rest))?.[1];
   if (!dist || !stroke) return null;
-  const gender = /girls|women|female|mujeres|damas|femenino|niñas/i.test(rest) ? "F" : /boys|\bmen\b|male|hombres|varones|masculino|niños/i.test(rest) ? "M" : /mixed|mixto/i.test(rest) ? "X" : null;
+  const gender = /girls|women|female|mujeres|damas|\bfem|niñas/i.test(rest) ? "F" : /boys|\bmen\b|male|hombres|varones|caballeros|\bmasc|niños/i.test(rest) ? "M" : /mixed|mixto/i.test(rest) ? "X" : null;
   let minAge: number | null = null, maxAge: number | null = null;
   const range = rest.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\b/);
   const over = rest.match(/\b(\d{1,2})\s*(?:&|y|and)\s*(?:over|mayores|más)/i);

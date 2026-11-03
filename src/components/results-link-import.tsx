@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { readPdfLines } from "@/lib/club-document";
 import { aiResultsToParsed, parseMeetManagerResults, type AiResults } from "@/lib/pdf-results";
 import { extractPdfWithAi } from "@/lib/pdf-ai.functions";
-import { fetchResultsLink } from "@/lib/results-link.functions";
+import { browserBatchStatus, fetchResultsLink, startBrowserBatch } from "@/lib/results-link.functions";
 import { commaTimes, filterToRoster, htmlToLines, indexFrameUrl, meetEventPages, meetIndexInfo, type RosterAthlete } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
 
@@ -19,6 +19,8 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
   const [progress, setProgress] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const fetchLink = useServerFn(fetchResultsLink);
+  const startBatch = useServerFn(startBrowserBatch);
+  const batchStatus = useServerFn(browserBatchStatus);
   const extract = useServerFn(extractPdfWithAi);
 
   async function finish(name: string, parsed: ParsedFile) {
@@ -45,9 +47,9 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         lines = await readPdfLines(new File([bytes], `${name}.pdf`, { type: "application/pdf" }));
       } else {
         // Meet Manager web results: open the event index and read each event page (one request each).
-        let indexHtml = res.html, indexUrl = res.url;
+        let indexHtml = res.html, indexUrl = res.url, protectedSite = res.via === "browser";
         const frame = indexFrameUrl(res.html, res.url) ?? (/<frameset/i.test(res.html) ? new URL("evtindex.htm", res.url).toString() : null);
-        if (frame) { const idx = await fetchLink({ data: { url: frame } }); if (idx.kind === "html") { indexHtml = idx.html; indexUrl = idx.url; } }
+        if (frame) { const idx = await fetchLink({ data: { url: frame } }); if (idx.kind === "html") { indexHtml = idx.html; indexUrl = idx.url; protectedSite ||= idx.via === "browser"; } }
         const pages = meetEventPages(indexHtml, indexUrl);
         if (pages.length) {
           info = meetIndexInfo(res.html, indexHtml);
@@ -63,7 +65,23 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
               setProgress(`${++done}/${pages.length}`);
             }
           };
-          await Promise.all(Array.from({ length: 6 }, worker));
+          if (protectedSite) {
+            // Protected sites are opened with a real browser in one batch, so per-page limits don't apply.
+            const { id } = await startBatch({ data: { urls: pages } });
+            const byUrl = new Map<string, string>();
+            for (let tries = 0; tries < 120; tries++) {
+              await new Promise((r) => setTimeout(r, 3000));
+              const st = await batchStatus({ data: { id } });
+              setProgress(`${st.completed}/${st.total || pages.length}`);
+              if (st.status === "failed") throw new Error("No se pudieron abrir las pruebas protegidas.");
+              if (st.status !== "completed") continue;
+              let page = st, next = st.next;
+              for (const p of page.pages) byUrl.set(p.url, p.html);
+              while (next) { page = await batchStatus({ data: { id, next } }); for (const p of page.pages) byUrl.set(p.url, p.html); next = page.next; }
+              break;
+            }
+            pages.forEach((u, i) => { htmls[i] = byUrl.get(u) ?? byUrl.get(u.replace(/^http:/, "https:")) ?? ""; });
+          } else await Promise.all(Array.from({ length: 6 }, worker));
           const missing = htmls.filter((h) => !h).length;
           if (missing === pages.length) throw new Error("No se pudo abrir ninguna prueba del enlace.");
           if (missing) toast.warning(`${missing} pruebas no se pudieron abrir; el resto se leyó.`);

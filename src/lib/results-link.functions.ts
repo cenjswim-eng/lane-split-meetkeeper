@@ -17,9 +17,13 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
     if (role.error || !role.data) throw new Error("No tienes permiso para importar resultados.");
     let res: Response;
     try {
-      res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (NatacionPro results reader)", Accept: "text/html,application/pdf,text/plain,*/*" } });
-    } catch { throw new Error("No se pudo abrir el enlace. Revisa que la página esté disponible."); }
-    if (!res.ok) throw new Error(`La página respondió con error ${res.status}.`);
+      res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", Accept: "text/html,application/xhtml+xml,application/pdf,*/*;q=0.8", "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } });
+    } catch { return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const }; }
+    if (!res.ok) {
+      // Anti-bot protections (e.g. Cloudflare challenges) reject server requests: read the page with a real browser instead.
+      if ([401, 403, 406, 429, 503].includes(res.status)) return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+      throw new Error(`La página respondió con error ${res.status}.`);
+    }
     const buf = new Uint8Array(await res.arrayBuffer());
     if (buf.byteLength > MAX_BYTES) throw new Error("El documento del enlace pesa más de 8 MB.");
     const isPdf = (res.headers.get("content-type") ?? "").includes("pdf") || new TextDecoder().decode(buf.slice(0, 5)) === "%PDF-";
@@ -29,7 +33,7 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
       return { kind: "pdf" as const, base64: btoa(bin), url: res.url || data.url };
     }
     const finalUrl = res.url || data.url;
-    return { kind: "html" as const, html: decode(buf), url: finalUrl };
+    return { kind: "html" as const, html: decode(buf), url: finalUrl, via: "direct" as const };
   });
 
 function decode(buf: Uint8Array) {
@@ -37,3 +41,84 @@ function decode(buf: Uint8Array) {
   return t.includes("\uFFFD") ? new TextDecoder("windows-1252").decode(buf) : t;
 }
 
+
+async function browserFetch(url: string): Promise<string> {
+  const apiKey = process.env["LOVABLE_API_KEY"], fc = process.env["FIRECRAWL_API_KEY"];
+  if (!apiKey || !fc) throw new Error("La página bloquea la lectura automática y el lector con navegador no está configurado.");
+  const r = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/scrape", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "X-Connection-Api-Key": fc },
+    body: JSON.stringify({ url, formats: ["rawHtml"], onlyMainContent: false, timeout: 45000 }),
+    signal: AbortSignal.timeout(55_000),
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    console.error(`Browser fetch failed [${r.status}]: ${body.slice(0, 300)}`);
+    if (r.status === 402 || /credit limit/i.test(body)) throw new Error("No quedan créditos para leer páginas protegidas. Revisa los créditos del espacio de trabajo.");
+    throw new Error(`La página está protegida y no se pudo abrir (error ${r.status}).`);
+  }
+  const j = (await r.json()) as { data?: { rawHtml?: string; metadata?: { statusCode?: number } }; rawHtml?: string };
+  const html = j.data?.rawHtml ?? j.rawHtml;
+  const status = j.data?.metadata?.statusCode;
+  if (!html || (status && status >= 400)) throw new Error(`La página respondió con error ${status ?? "desconocido"}, incluso abriéndola como navegador.`);
+  return html;
+}
+
+const GATEWAY = "https://connector-gateway.lovable.dev/firecrawl";
+function gatewayHeaders() {
+  const apiKey = process.env["LOVABLE_API_KEY"], fc = process.env["FIRECRAWL_API_KEY"];
+  if (!apiKey || !fc) throw new Error("El lector con navegador no está configurado.");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "X-Connection-Api-Key": fc };
+}
+async function gatewayJson(path: string, init?: RequestInit) {
+  const r = await fetch(`${GATEWAY}${path}`, { ...init, headers: gatewayHeaders(), signal: AbortSignal.timeout(55_000) });
+  const body = await r.text();
+  if (!r.ok) {
+    console.error(`Browser batch failed [${r.status}]: ${body.slice(0, 300)}`);
+    if (r.status === 402 || /credit limit/i.test(body)) throw new Error("No quedan créditos para leer páginas protegidas. Revisa los créditos del espacio de trabajo.");
+    throw new Error(`No se pudieron abrir las pruebas protegidas (error ${r.status}).`);
+  }
+  return JSON.parse(body);
+}
+
+async function requireAdmin(context: { supabase: { rpc: (...a: never[]) => unknown }; userId: string }) {
+  const role = (await (context.supabase.rpc as unknown as (f: string, a: object) => Promise<{ data: unknown; error: unknown }>)("has_role", { _user_id: context.userId, _role: "admin" }));
+  if (role.error || !role.data) throw new Error("No tienes permiso para importar resultados.");
+}
+
+const publicUrl = (u: unknown) => {
+  let url: URL;
+  try { url = new URL(String(u)); } catch { throw new Error("Enlace no válido."); }
+  if (!/^https?:$/.test(url.protocol) || PRIVATE_HOST.test(url.hostname)) throw new Error("Enlace no válido.");
+  return url.toString();
+};
+
+/** Starts one browser batch for many protected event pages (avoids per-request rate limits). */
+export const startBrowserBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { urls: string[] }) => {
+    if (!Array.isArray(input?.urls) || !input.urls.length || input.urls.length > 400) throw new Error("Lista de pruebas no válida.");
+    return { urls: input.urls.map(publicUrl) };
+  })
+  .handler(async ({ data, context }) => {
+    await requireAdmin(context as never);
+    const j = await gatewayJson("/v2/batch/scrape", { method: "POST", body: JSON.stringify({ urls: data.urls, formats: ["rawHtml"], onlyMainContent: false, ignoreInvalidURLs: true }) });
+    if (!j.id) throw new Error("No se pudo iniciar la lectura de las pruebas.");
+    return { id: String(j.id) };
+  });
+
+export const browserBatchStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; next?: string }) => {
+    if (!/^[\w-]{8,80}$/.test(String(input?.id))) throw new Error("Lectura no válida.");
+    if (input.next && !/^\d{1,6}$/.test(input.next)) throw new Error("Lectura no válida.");
+    return { id: String(input.id), next: input.next };
+  })
+  .handler(async ({ data, context }) => {
+    await requireAdmin(context as never);
+    const j = await gatewayJson(`/v2/batch/scrape/${data.id}${data.next ? `?skip=${data.next}` : ""}`);
+    const pages = ((j.data ?? []) as { rawHtml?: string; metadata?: { sourceURL?: string; url?: string; statusCode?: number } }[])
+      .map((d) => ({ url: d.metadata?.sourceURL ?? d.metadata?.url ?? "", html: d.metadata?.statusCode && d.metadata.statusCode >= 400 ? "" : d.rawHtml ?? "" }));
+    const next = typeof j.next === "string" ? new URL(j.next).searchParams.get("skip") ?? undefined : undefined;
+    return { status: String(j.status), completed: Number(j.completed ?? 0), total: Number(j.total ?? 0), pages, next };
+  });
