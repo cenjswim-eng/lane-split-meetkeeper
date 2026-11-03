@@ -15,6 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const selectClass = "h-10 w-full rounded-md border bg-background px-2 text-sm";
 export function ImportStandards({ existing }: { existing: Tables<"time_standards">[] }) {
+  const cats = useSwimCategories();
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState("2026");
   const [file, setFile] = useState<File | null>(null);
