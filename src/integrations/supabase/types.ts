@@ -711,6 +711,11 @@ export type Database = {
         Args: { p_id: string; p_suspend: boolean }
         Returns: undefined
       }
+      swim_name_key: { Args: { _t: string }; Returns: string }
+      transfer_athlete_records: {
+        Args: { _club?: string; _name?: string; _target: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin"
