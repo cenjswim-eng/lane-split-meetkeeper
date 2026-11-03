@@ -70,7 +70,7 @@ export function TransferRecords({ athleteId, defaultName }: { athleteId: string;
         ) : (
           <div className="max-h-80 overflow-y-auto space-y-2">
             {list.map((c) => {
-              const m = MATCH[c.match] ?? MATCH.nombre;
+              const m = MATCH[c.match] ?? { label: "Solo nombre", strong: false, bad: false };
               return (
                 <label key={c.id} className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer">
                   <Checkbox checked={sel.has(c.id)} onCheckedChange={() => toggle(c.id)} disabled={!c.results} />
