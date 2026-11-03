@@ -37,3 +37,4 @@
 - Reset deletes only the caller's RLS-visible rows, then cleans only captured private club prefixes through Storage API; never empty the shared bucket. Preserve accounts and roles.
 - PDF imports: Meet Manager result text is parsed by pure `src/lib/pdf-results.ts`; AI extraction (results/roster) runs only in the admin-checked server function `src/lib/pdf-ai.functions.ts` and its output is re-validated by pure normalizers before preview/import, so AI never writes directly.
 - Athlete history transfers copy results/splits (never move or edit originals) via admin-checked copy_athlete_history, logged in record_transfers and undoable; fuzzy identity scoring is pure in src/lib/history-match.ts.
+- Age categories are per-account rows (swim_categories) with the Venezuelan list as fallback; pass the account list into categoryBounds/prepareStandardRows, and re-link loaded standards by category name on save.
