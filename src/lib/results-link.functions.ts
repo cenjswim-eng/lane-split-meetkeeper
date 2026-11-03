@@ -17,9 +17,13 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
     if (role.error || !role.data) throw new Error("No tienes permiso para importar resultados.");
     let res: Response;
     try {
-      res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (NatacionPro results reader)", Accept: "text/html,application/pdf,text/plain,*/*" } });
-    } catch { throw new Error("No se pudo abrir el enlace. Revisa que la página esté disponible."); }
-    if (!res.ok) throw new Error(`La página respondió con error ${res.status}.`);
+      res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", Accept: "text/html,application/xhtml+xml,application/pdf,*/*;q=0.8", "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } });
+    } catch { return { kind: "html" as const, html: await browserFetch(data.url), url: data.url }; }
+    if (!res.ok) {
+      // Anti-bot protections (e.g. Cloudflare challenges) reject server requests: read the page with a real browser instead.
+      if ([401, 403, 406, 429, 503].includes(res.status)) return { kind: "html" as const, html: await browserFetch(data.url), url: data.url };
+      throw new Error(`La página respondió con error ${res.status}.`);
+    }
     const buf = new Uint8Array(await res.arrayBuffer());
     if (buf.byteLength > MAX_BYTES) throw new Error("El documento del enlace pesa más de 8 MB.");
     const isPdf = (res.headers.get("content-type") ?? "").includes("pdf") || new TextDecoder().decode(buf.slice(0, 5)) === "%PDF-";
@@ -37,3 +41,25 @@ function decode(buf: Uint8Array) {
   return t.includes("\uFFFD") ? new TextDecoder("windows-1252").decode(buf) : t;
 }
 
+
+async function browserFetch(url: string): Promise<string> {
+  const apiKey = process.env["LOVABLE_API_KEY"], fc = process.env["FIRECRAWL_API_KEY"];
+  if (!apiKey || !fc) throw new Error("La página bloquea la lectura automática y el lector con navegador no está configurado.");
+  const r = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/scrape", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "X-Connection-Api-Key": fc },
+    body: JSON.stringify({ url, formats: ["rawHtml"], onlyMainContent: false, timeout: 45000 }),
+    signal: AbortSignal.timeout(55_000),
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    console.error(`Browser fetch failed [${r.status}]: ${body.slice(0, 300)}`);
+    if (r.status === 402 || /credit limit/i.test(body)) throw new Error("No quedan créditos para leer páginas protegidas. Revisa los créditos del espacio de trabajo.");
+    throw new Error(`La página está protegida y no se pudo abrir (error ${r.status}).`);
+  }
+  const j = (await r.json()) as { data?: { rawHtml?: string; metadata?: { statusCode?: number } }; rawHtml?: string };
+  const html = j.data?.rawHtml ?? j.rawHtml;
+  const status = j.data?.metadata?.statusCode;
+  if (!html || (status && status >= 400)) throw new Error(`La página respondió con error ${status ?? "desconocido"}, incluso abriéndola como navegador.`);
+  return html;
+}
