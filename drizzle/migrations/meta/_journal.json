@@ -113,6 +113,13 @@
       "when": 1793670945964,
       "tag": "0015_transfer_athlete_records",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793726417965,
+      "tag": "0016_athlete_record_candidates",
+      "breakpoints": true
     }
   ]
 }
