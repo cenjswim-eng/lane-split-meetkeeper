@@ -12,7 +12,7 @@ import { rankedAthleteRecords } from "@/lib/athlete-records";
 import { Button } from "@/components/ui/button";
 import { AthleteTrainingZones } from "@/components/athlete-training-zones";
 import { standardApplies } from "@/lib/standard-rules";
-import { TransferRecords } from "@/components/transfer-records";
+import { HistoryTransfer, TransferLog } from "@/components/history-transfer";
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -22,7 +22,7 @@ const profileQuery = (id: string) =>
         supabase.from("athletes").select("*, teams(code, name), groups(name)").eq("id", id).single(),
         supabase
           .from("results")
-          .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, is_dq, round, meets(id, name, start_date, location), events(distance, stroke, event_number), splits(split_distance, cumulative_time_ms, lap_time_ms)")
+          .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, is_dq, round, origin_team, meets(id, name, start_date, location), events(distance, stroke, event_number), splits(split_distance, cumulative_time_ms, lap_time_ms)")
           .eq("athlete_id", id),
         supabase.from("time_standards").select("*"),
       ]);
@@ -69,7 +69,10 @@ function Profile() {
   const age = ageAt(athlete.birth_date);
   const totalPts = Math.max(0, ...valid.map((r) => r.aqua_points ?? 0));
 
-  const recent = results;
+  const clubOf = (r: Res) => r.origin_team ?? athlete.teams?.name ?? "Sin club";
+  const clubs = [...new Set(results.map(clubOf))];
+  const [club, setClub] = useState("");
+  const recent = club ? results.filter((r) => clubOf(r) === club) : results;
   const [openSplit, setOpenSplit] = useState<string | null>(null);
 
   function standardFor(r: Res) {
@@ -87,7 +90,7 @@ function Profile() {
   return (
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
-      <div className="flex flex-wrap justify-end gap-2"><TransferRecords athleteId={id} defaultName={`${athlete.first_name} ${athlete.last_name}`} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
+      <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>
@@ -170,8 +173,16 @@ function Profile() {
 
       <AthleteTrainingZones key={id} records={results} />
 
+      <TransferLog athleteId={id} />
+
       <section>
         <h2 className="mb-3 text-2xl font-bold uppercase">Marcas · mejor a peor <span className="text-base font-normal text-muted-foreground">Últimos 9 meses</span></h2>
+        {clubs.length > 1 && (
+          <select aria-label="Filtrar por club" className="mb-3 h-9 rounded-md border bg-background px-2 text-sm" value={club} onChange={(e) => setClub(e.target.value)}>
+            <option value="">Todos los clubes</option>
+            {clubs.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
         <div className="space-y-2">
           {recent.map((r) => (
             <div key={r.id} className="rounded-lg border bg-card">
@@ -179,6 +190,7 @@ function Profile() {
                 <span className="w-16 time text-xs text-muted-foreground">{r.meets?.start_date ?? ""}</span>
                 <span className="flex-1 font-medium">{r.events ? eventLabel(r.events.distance, r.events.stroke) : "—"} <span className="text-muted-foreground">· {r.meets?.name}</span></span>
                 {r.round === "P" && <Badge variant="outline">Elim.</Badge>}
+                {r.origin_team && <Badge variant="secondary">Club anterior: {r.origin_team}</Badge>}
                 <span className="time text-xs text-muted-foreground">sembrado {formatTime(r.seed_time_ms)}</span>
                 <span className="time w-20 text-right font-semibold">{r.is_dq ? <span className="text-destructive">DQ</span> : formatTime(r.final_time_ms)}</span>
                 <span className="time w-10 text-right text-accent">{r.place ? `${r.place}º` : ""}</span>
