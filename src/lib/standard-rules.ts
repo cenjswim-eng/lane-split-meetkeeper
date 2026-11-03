@@ -24,19 +24,43 @@ export interface StandardDraft {
   selected: boolean;
 }
 
-export const SWIM_CATEGORIES = [
+export interface SwimCategory { name: string; label: string; age_min: number | null; age_max: number | null }
+
+export function categoryLabel(name: string, age_min: number | null, age_max: number | null) {
+  const n = name.trim();
+  if (age_min != null && age_max != null) return age_min === age_max ? `${n} (${age_min} años)` : `${n} (${age_min}-${age_max} años)`;
+  if (age_min != null) return `${n} (${age_min} años y +)`;
+  return `${n} (hasta ${age_max} años)`;
+}
+
+/** Validates an account's category list: names unique, ages within 0-120, min <= max. */
+export function validateCategories(list: { name: string; age_min: number | null; age_max: number | null }[]): SwimCategory[] {
+  const seen = new Set<string>();
+  return list.map((c) => {
+    const name = c.name.trim();
+    if (!name) throw new Error("Cada categoría necesita un nombre.");
+    if (seen.has(name.toLowerCase())) throw new Error(`La categoría «${name}» está repetida.`);
+    seen.add(name.toLowerCase());
+    for (const a of [c.age_min, c.age_max]) if (a != null && (!Number.isInteger(a) || a < 0 || a > 120)) throw new Error(`Revisa las edades de «${name}».`);
+    if (c.age_min == null && c.age_max == null) throw new Error(`Indica al menos una edad para «${name}».`);
+    if (c.age_min != null && c.age_max != null && c.age_min > c.age_max) throw new Error(`En «${name}» la edad mínima es mayor que la máxima.`);
+    return { name, label: categoryLabel(name, c.age_min, c.age_max), age_min: c.age_min, age_max: c.age_max };
+  });
+}
+
+export const SWIM_CATEGORIES: readonly SwimCategory[] = [
   { name: "Infantil A", label: "Infantil A (10-11 años)", age_min: 10, age_max: 11 },
   { name: "Infantil B", label: "Infantil B (12-13 años)", age_min: 12, age_max: 13 },
   { name: "Juvenil A", label: "Juvenil A (14-15 años)", age_min: 14, age_max: 15 },
   { name: "Juvenil B", label: "Juvenil B (16-18 años)", age_min: 16, age_max: 18 },
   { name: "Máxima", label: "Máxima (19 años y +)", age_min: 19, age_max: null },
-] as const;
+];
 
 const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-export function categoryBounds(category: string): { age_group: string | null; age_min: number | null; age_max: number | null } {
+export function categoryBounds(category: string, categories: readonly SwimCategory[] = SWIM_CATEGORIES): { age_group: string | null; age_min: number | null; age_max: number | null } {
   const text = category.trim().toLowerCase();
-  const named = SWIM_CATEGORIES.find(c => fold(category).startsWith(fold(c.name)));
+  const named = [...categories].sort((a, b) => b.name.length - a.name.length).find(c => fold(category).startsWith(fold(c.name)));
   if (named) return { age_group: named.label, age_min: named.age_min, age_max: named.age_max };
   if (/^(todas|abierta|open|libre)$/.test(text)) return { age_group: null, age_min: null, age_max: null };
   const range = text.match(/^(\d{1,2})\s*(?:-|–|a)\s*(\d{1,2})(?:\s*años)?$/);
@@ -56,7 +80,7 @@ export function categoryBounds(category: string): { age_group: string | null; ag
   throw new Error("Indica edades para la categoría (por ejemplo 13-14, 15-17 o 18+).");
 }
 
-export function prepareStandardRows(drafts: StandardDraft[], year: number) {
+export function prepareStandardRows(drafts: StandardDraft[], year: number, categories: readonly SwimCategory[] = SWIM_CATEGORIES) {
   if (!Number.isInteger(year) || year < 1900 || year > 2200) throw new Error("Indica un año válido.");
   const seen = new Set<string>();
   return drafts.filter(d => d.selected).map(d => {
@@ -64,7 +88,7 @@ export function prepareStandardRows(drafts: StandardDraft[], year: number) {
     if (!/^\d+(?::[0-5]\d)?(?:\.\d{1,3})?$/.test(time)) throw new Error("Revisa los tiempos antes de guardar.");
     const qualifying_time_ms = parseTime(time);
     if (qualifying_time_ms == null || !Number.isInteger(d.distance) || d.distance <= 0 || ![1,2,3,4,5].includes(d.stroke) || !["LCM","SCM"].includes(d.course) || !["F","M",""].includes(d.gender)) throw new Error("Revisa sexo, prueba, piscina y tiempo antes de guardar.");
-    const ages = categoryBounds(d.category);
+    const ages = categoryBounds(d.category, categories);
     const row = { name: `Venezuela · Mínimas nacionales ${year}`, season_year: year, ...ages, gender: d.gender || null, distance: d.distance, stroke: d.stroke, course: d.course, qualifying_time_ms };
     const key = standardIdentity(row);
     if (seen.has(key)) throw new Error("Hay pruebas duplicadas en la revisión. Desmarca una de ellas.");
