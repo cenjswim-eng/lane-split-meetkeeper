@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Users, CalendarDays, Building2, Upload, Waves, UserRound, ShieldCheck, MoreHorizontal, LogOut, ClipboardList, Medal, FileText } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Building2, Upload, Waves, UserRound, ShieldCheck, MoreHorizontal, LogOut, ClipboardList, Medal, FileText, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -12,6 +12,7 @@ const items = [
   { to: "/import", label: "Importar", icon: Upload },
   { to: "/entries", label: "Inscripciones", icon: ClipboardList },
   { to: "/standards", label: "Mínimas", icon: Medal },
+  { to: "/categories", label: "Categorías", icon: Layers },
   { to: "/reports", label: "Reportes", icon: FileText },
   { to: "/relays", label: "Relevos", icon: Waves },
   { to: "/profile", label: "Mi perfil", icon: UserRound },

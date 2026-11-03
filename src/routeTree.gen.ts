@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
+import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
@@ -49,6 +50,11 @@ const RequestAccessRoute = RequestAccessRouteImport.update({
 const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
   id: '/access',
   path: '/access',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClubRoute = AuthenticatedClubRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/request-access': typeof RequestAccessRoute
   '/access': typeof AuthenticatedAccessRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entries': typeof AuthenticatedEntriesRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/request-access': typeof RequestAccessRoute
   '/access': typeof AuthenticatedAccessRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entries': typeof AuthenticatedEntriesRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/request-access': typeof RequestAccessRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
+  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entries': typeof AuthenticatedEntriesRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/request-access'
     | '/access'
+    | '/categories'
     | '/club'
     | '/dashboard'
     | '/entries'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/request-access'
     | '/access'
+    | '/categories'
     | '/club'
     | '/dashboard'
     | '/entries'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/request-access'
     | '/_authenticated/access'
+    | '/_authenticated/categories'
     | '/_authenticated/club'
     | '/_authenticated/dashboard'
     | '/_authenticated/entries'
@@ -271,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/access'
       fullPath: '/access'
       preLoaderRoute: typeof AuthenticatedAccessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/categories': {
+      id: '/_authenticated/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/club': {
@@ -362,6 +381,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
+  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
@@ -377,6 +397,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
+  AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
