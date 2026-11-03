@@ -28,7 +28,7 @@ const profileQuery = (id: string) =>
       ]);
       if (a.error) throw a.error;
       if (r.error) throw r.error;
-      return { athlete: a.data, results: rankedAthleteRecords(r.data), standards: s.data ?? [] };
+      return { athlete: a.data, results: rankedAthleteRecords(r.data), total: r.data.length, standards: s.data ?? [] };
     },
   });
 
@@ -44,7 +44,7 @@ function Profile() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(profileQuery(id));
-  const { athlete, results, standards } = data;
+  const { athlete, results, standards, total } = data;
 
   const valid = useMemo(() => results.filter((r) => r.events != null && r.final_time_ms != null && !r.is_dq), [results]);
   const byEvent = useMemo(() => {
@@ -113,7 +113,14 @@ function Profile() {
       </section>
 
       {byEvent.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Sin marcas válidas en los últimos 9 meses.</div>
+        total === 0 ? (
+          <div className="space-y-3 rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+            <p className="font-semibold text-foreground">Este atleta aún no tiene tiempos cargados.</p>
+            <p>Si compitió con otro club, sus resultados no están en los archivos que subiste porque fueron exportados solo para tu equipo.</p>
+            <p>Sube los resultados completos de la competencia (HY3, CL2, SD3 o PDF con todos los equipos) en <Link to="/import" className="text-primary underline">Importar</Link> y luego pulsa «Buscar historial en otros clubes».</p>
+            <div className="flex justify-center"><HistoryTransfer athleteId={id} /></div>
+          </div>
+        ) : <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">Sin marcas válidas en los últimos 9 meses.</div>
       ) : (
         <>
           <section>
