@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { readHytekFile, type ParsedFile } from "@/lib/hytek";
 import { importParsed, type ImportSummary } from "@/lib/importer";
 import { PdfResultsImport } from "@/components/pdf-results-import";
+import { ResultsLinkImport } from "@/components/results-link-import";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { readAccessFile, normalizeAccess, type AccessDatabase, type AccessTimeUnit } from "@/lib/access";
@@ -97,6 +98,7 @@ function ImportPage() {
         <input type="file" aria-label="Elegir archivos para importar" multiple accept=".hy3,.cl2,.sd3,.zip,.mdb" disabled={reading || progress != null} className="hidden" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
       </label>
 
+      <ResultsLinkImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
       <PdfResultsImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
       {reading && <p role="status" className="text-muted-foreground">Leyendo archivos…</p>}
       {access.map((a, i) => <div key={`${a.db.name}-${i}`} className="min-w-0 space-y-3">
