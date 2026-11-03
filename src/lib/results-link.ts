@@ -23,7 +23,7 @@ export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
   const athletes = parsed.athletes.flatMap((a) => {
     let best: { r: RosterAthlete; score: number } | null = null;
     for (const r of roster) {
-      const { score } = matchScore(r, { first_name: a.firstName, last_name: a.lastName, birth_date: a.birthDate, gender: a.gender, federation_id: a.federationId });
+      const { score } = matchScore(r, { id: a.key, first_name: a.firstName, last_name: a.lastName, birth_date: a.birthDate, gender: a.gender, federation_id: a.federationId });
       if (score >= HIGH_MATCH && (!best || score > best.score)) best = { r, score };
     }
     if (!best) return [];
