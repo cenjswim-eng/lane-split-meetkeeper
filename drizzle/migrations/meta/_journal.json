@@ -120,6 +120,13 @@
       "when": 1793726417965,
       "tag": "0016_athlete_record_candidates",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793727121226,
+      "tag": "0017_athlete_history_transfers",
+      "breakpoints": true
     }
   ]
 }

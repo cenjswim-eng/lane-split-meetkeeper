@@ -454,6 +454,44 @@ export type Database = {
         }
         Relationships: []
       }
+      record_transfers: {
+        Row: {
+          copied: number
+          created_at: string
+          id: string
+          owner_id: string
+          skipped: number
+          target_athlete_id: string
+          undone_at: string | null
+        }
+        Insert: {
+          copied?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          skipped?: number
+          target_athlete_id: string
+          undone_at?: string | null
+        }
+        Update: {
+          copied?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          skipped?: number
+          target_athlete_id?: string
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_transfers_target_athlete_id_fkey"
+            columns: ["target_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       results: {
         Row: {
           aqua_points: number | null
@@ -465,11 +503,14 @@ export type Database = {
           id: string
           is_dq: boolean
           meet_id: string
+          origin_team: string | null
           owner_id: string | null
           place: number | null
           round: string | null
           seed_time_ms: number | null
+          source_result_id: string | null
           stroke_rate: number | null
+          transfer_id: string | null
           video_url: string | null
         }
         Insert: {
@@ -482,11 +523,14 @@ export type Database = {
           id?: string
           is_dq?: boolean
           meet_id: string
+          origin_team?: string | null
           owner_id?: string | null
           place?: number | null
           round?: string | null
           seed_time_ms?: number | null
+          source_result_id?: string | null
           stroke_rate?: number | null
+          transfer_id?: string | null
           video_url?: string | null
         }
         Update: {
@@ -499,11 +543,14 @@ export type Database = {
           id?: string
           is_dq?: boolean
           meet_id?: string
+          origin_team?: string | null
           owner_id?: string | null
           place?: number | null
           round?: string | null
           seed_time_ms?: number | null
+          source_result_id?: string | null
           stroke_rate?: number | null
+          transfer_id?: string | null
           video_url?: string | null
         }
         Relationships: [
@@ -526,6 +573,20 @@ export type Database = {
             columns: ["meet_id"]
             isOneToOne: false
             referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_source_result_id_fkey"
+            columns: ["source_result_id"]
+            isOneToOne: false
+            referencedRelation: "results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "record_transfers"
             referencedColumns: ["id"]
           },
         ]
@@ -660,6 +721,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      copy_athlete_history: {
+        Args: { _results: string[]; _target: string }
+        Returns: Json
+      }
       decide_app_access: {
         Args: { p_approve: boolean; p_id: string }
         Returns: undefined
@@ -734,6 +799,7 @@ export type Database = {
         Args: { _sources: string[]; _target: string }
         Returns: Json
       }
+      undo_athlete_history: { Args: { _transfer: string }; Returns: number }
     }
     Enums: {
       app_role: "admin"
