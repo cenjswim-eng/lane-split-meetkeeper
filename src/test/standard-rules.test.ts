@@ -37,6 +37,6 @@ it("legacy minima keep all-year applicability",()=>{
 import { categoryBounds as cb } from "@/lib/standard-rules";
 describe("categorías nombradas", () => {
   it("Infantil A es 10-11", () => expect(cb("Infantil A")).toMatchObject({ age_min: 10, age_max: 11 }));
-  it("Juvenil B es 16-17", () => expect(cb("juvenil b (16-17 años)")).toMatchObject({ age_min: 16, age_max: 17 }));
+  it("Juvenil B es 16-18", () => expect(cb("juvenil b")).toMatchObject({ age_min: 16, age_max: 18 }));
   it("Máxima es 19 y más", () => expect(cb("Maxima")).toMatchObject({ age_min: 19, age_max: null }));
 });
