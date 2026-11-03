@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterToRoster, htmlToLines } from "@/lib/results-link";
+import { commaTimes, filterToRoster, htmlToLines } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 const base = (names: [string, string][]): ParsedFile => ({
@@ -7,6 +7,7 @@ const base = (names: [string, string][]): ParsedFile => ({
   athletes: names.map(([l, f]) => ({ key: l, tmId: null, federationId: null, firstName: f, lastName: l, birthDate: null, gender: "M", teamCode: "X" })),
   results: names.map(([l]) => ({ athleteKey: l, eventNumber: "1", distance: 100, stroke: 1, gender: "M", minAge: null, maxAge: null, seedMs: null, finalMs: 60000, course: "LCM", place: 1, isDq: false, round: "F" as const, splits: [] })),
   warnings: [],
+  it("reads decimal-comma times", () => expect(commaTimes("Leal, Camila  15 JSWIM  1:36,97  1:29,14")).toBe("Leal, Camila  15 JSWIM  1:36.97  1:29.14"));
 });
 
 describe("results link", () => {
@@ -19,4 +20,5 @@ describe("results link", () => {
   it("extracts pre text lines from html", () => {
     expect(htmlToLines("<pre>Event 1  Boys\n 1 Barreto, Ezequiel &amp; X</pre>")).toEqual(["Event 1  Boys", " 1 Barreto, Ezequiel & X"]);
   });
+  it("reads decimal-comma times", () => expect(commaTimes("Leal, Camila  15 JSWIM  1:36,97  1:29,14")).toBe("Leal, Camila  15 JSWIM  1:36.97  1:29.14"));
 });
