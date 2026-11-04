@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Añadir mínima y tiempo restante en ambos PDF individuales; comprobar cálculo y descargar con sesión real.
 - [ ] Buscar atletas por nombre en campeonatos importados y vincular sus resultados al perfil seleccionado, sin duplicados ni cambios en inscripciones; verificar con sesión real.
 - [x] Importar mínimas nacionales de Venezuela desde PDF o captura con revisión editable y año; lectura real, guardado y relectura con cuenta temporal verificados, sin mezclar años ni categorías. Prueba sintética retirada; documento oficial pendiente del usuario.
 - [x] Añadir recuperación de carga de archivos con recarga completa; comprobar inicio y reproducir fallo temporal de un archivo en el navegador.

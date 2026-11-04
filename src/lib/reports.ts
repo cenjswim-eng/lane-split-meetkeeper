@@ -5,6 +5,8 @@ import { MEMBER_ROLES, type MemberRole } from "./club";
 import { exportFilename } from "./file-delivery";
 import { rankedAthleteRecords } from "./athlete-records";
 import { appendAthleteProgressCharts } from "./athlete-progress-pdf";
+import { athleteMinimum } from "./athlete-minimum";
+import type { QualificationStandard } from "./standard-rules";
 
 export interface ReportRow {
   athlete: string;
@@ -87,7 +89,7 @@ export interface AthleteReportResult {
   meets: { name: string; start_date: string | null } | null;
   splits: { split_distance: number; cumulative_time_ms: number; lap_time_ms: number | null }[];
 }
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[]) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = []) {
   const ranked = rankedAthleteRecords(results);
   const doc = new jsPDF({ orientation: "landscape" });
   const name = `${athlete.first_name} ${athlete.last_name}`;
@@ -102,9 +104,14 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     if (!prev || r.final_time_ms < (prev.final_time_ms ?? Infinity)) best.set(key, r);
   }
   const y = () => (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 28;
-  autoTable(doc, { startY: y() + 10, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—"]), styles: { fontSize: 8 } });
+  const minimumCells = (r: AthleteReportResult) => {
+    const minimum = athleteMinimum(athlete, r, standards);
+    if (!minimum) return ["Sin mínima cargada", "—"];
+    return [formatTime(minimum.limit_ms), minimum.remaining_ms == null ? "No válido" : minimum.remaining_ms === 0 ? "Hizo marca" : `Faltan ${(minimum.remaining_ms / 1000).toFixed(2)} s`];
+  };
+  autoTable(doc, { startY: y() + 10, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Mínima", "Por mejorar"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...minimumCells(r)]), styles: { fontSize: 8 } });
   const sorted = ranked;
-  autoTable(doc, { startY: y() + 10, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—"]), styles: { fontSize: 8 } });
+  autoTable(doc, { startY: y() + 10, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Mínima", "Por mejorar"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", ...minimumCells(r)]), styles: { fontSize: 8 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   appendAthleteProgressCharts(doc, name, ranked);
