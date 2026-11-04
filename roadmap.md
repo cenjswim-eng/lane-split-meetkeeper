@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Añadir clasificación interna por mejor puntuación AQUA de cada atleta; verificar empates, vigencia y exportaciones.
+- [ ] Clasificación interna AQUA añadida; 8 pruebas verifican orden, mejor puntuación, empates y vigencia. Verificación de pantalla y exportaciones bloqueada por sesión caducada; requiere iniciar sesión en el preview.
 - [x] Añadir mínima y tiempo restante en ambos PDF individuales; 26 pruebas pasan y descargas desde Reportes y perfil verificadas con sesión real y PDF revisado.
 - [ ] Buscar atletas por nombre en campeonatos importados y vincular sus resultados al perfil seleccionado, sin duplicados ni cambios en inscripciones; verificar con sesión real.
 - [x] Importar mínimas nacionales de Venezuela desde PDF o captura con revisión editable y año; lectura real, guardado y relectura con cuenta temporal verificados, sin mezclar años ni categorías. Prueba sintética retirada; documento oficial pendiente del usuario.
