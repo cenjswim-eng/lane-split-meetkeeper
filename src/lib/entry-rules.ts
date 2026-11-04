@@ -33,3 +33,19 @@ export function internalRanking(results: DashboardResult[], now = new Date()) {
     return sorted.map((r, index) => ({ ...r, rank: sorted.findIndex(other => other.final_time_ms === r.final_time_ms) + 1, category: ageGroup(ageAtDec31(r.athletes?.birth_date ?? null, now.getFullYear())) }));
   });
 }
+
+/** One athlete, one best stored AQUA score; repeated swims cannot inflate rank. */
+export function aquaRanking<T extends DashboardResult & { aqua_points: number | null }>(results: T[], now = new Date()) {
+  const best = new Map<string, T>();
+  for (const r of rankedAthleteRecords(results, now)) {
+    if (!r.athletes || !r.events || r.events.is_relay || r.events.stroke < 1 || r.events.stroke > 5 || !r.course || r.aqua_points == null || !Number.isFinite(r.aqua_points) || r.aqua_points <= 0) continue;
+    const previous = best.get(r.athlete_id);
+    if (!previous || (r.aqua_points ?? 0) > (previous.aqua_points ?? 0)) best.set(r.athlete_id, r);
+  }
+  const sorted = [...best.values()].sort((a, b) => (b.aqua_points ?? 0) - (a.aqua_points ?? 0) || `${a.athletes?.last_name} ${a.athletes?.first_name}`.localeCompare(`${b.athletes?.last_name} ${b.athletes?.first_name}`) || a.athlete_id.localeCompare(b.athlete_id));
+  let rank = 0;
+  return sorted.map((r, i) => {
+    if (i === 0 || r.aqua_points !== sorted[i - 1]?.aqua_points) rank = i + 1;
+    return { ...r, rank };
+  });
+}
