@@ -23,9 +23,9 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <main className="landing min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center gap-2 px-6 py-6 sm:px-10">
+      <header className="mx-auto flex max-w-6xl items-center gap-3 border-b border-border px-6 py-6 sm:px-10">
         <Waves className="size-6 text-primary" aria-hidden="true" />
-        <span className="text-lg font-semibold">Natación Pro</span>
+        <span className="text-xl font-semibold">Natación <span className="text-accent">Pro</span></span>
       </header>
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-6 sm:px-10 sm:pt-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-20 lg:pt-16">
         <div className="min-w-0">
