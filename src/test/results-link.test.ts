@@ -45,6 +45,17 @@ describe("Meet Manager web pages", () => {
 });
 
 describe("truncated Meet Manager names", () => {
+  it("does not choose one of two indistinguishable registered names", () => {
+    const roster = ["one", "two"].map(id => ({ id, first_name: "Daniel", last_name: "Aranguren", birth_date: null, gender: "M", federation_id: null, tm_athlete_id: null }));
+    expect(filterToRoster(base([["Aranguren", "Daniel"]]), roster).parsed.results).toEqual([]);
+  });
+  it("rejects conflicting federation IDs even when names match", () => {
+    const p = base([["Aranguren", "Daniel"]]);
+    const athlete = p.athletes[0];
+    if (athlete) athlete.federationId = "V123";
+    const roster = [{ id: "one", first_name: "Daniel", last_name: "Aranguren", birth_date: null, gender: "M", federation_id: "V456", tm_athlete_id: null }];
+    expect(filterToRoster(p, roster).parsed.results).toEqual([]);
+  });
   it("matches a cut first name to the registered swimmer and reads 'Masc.' as male", () => {
     const p = parseMeetManagerResults(["Evento 29  Masc. 16-18 200 LC Metros Libre", " 29 Aranguren, Dani  18 JSWIM             2:10,44    2:11,94".replace(/(\d),(\d{2})/g, "$1.$2")], "x");
     expect(p.results[0]?.gender).toBe("M");
