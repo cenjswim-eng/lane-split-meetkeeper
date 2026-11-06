@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle } from "lucide-react";
 import { LandingProgress } from "@/components/landing-progress";
 
+const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Natacion pro.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -39,7 +41,8 @@ function Index() {
             <Button asChild variant="link" className="min-h-11 h-auto max-w-full whitespace-normal px-0 text-sm text-muted-foreground">
               <Link to="/dashboard">Ya tengo cuenta, iniciar sesión</Link>
             </Button>
-            <Button asChild variant="outline" className="mt-3 min-h-11 h-auto max-w-full whitespace-normal border-border bg-background px-4 py-3 shadow-none hover:bg-muted hover:text-foreground"><a href="https://wa.me/584128503939?text=Hola%2C%20quiero%20conocer%20los%20planes%20de%20pago%20de%20Natacion%20pro." target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Consultar planes por WhatsApp<ArrowRight aria-hidden="true" /></a></Button>
+            <Button asChild variant="outline" className="mt-3 min-h-11 h-auto max-w-full whitespace-normal border-border bg-background px-4 py-3 shadow-none hover:bg-muted hover:text-foreground"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Consultar planes por WhatsApp<ArrowRight aria-hidden="true" /></a></Button>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">Consulta el plan y la forma de pago por WhatsApp. El acceso requiere aprobación del dueño; crear una cuenta no lo activa automáticamente.</p>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="mr-1">Compatible con</span>
@@ -66,13 +69,36 @@ function Index() {
       <section className="mx-auto max-w-6xl px-6 py-14 sm:px-10 md:py-20">
         <h2 className="max-w-3xl text-2xl font-medium leading-relaxed sm:text-3xl">Todo tu club en un panel: compara equipos, categorías y temporadas sin armar hojas de cálculo a mano.</h2>
       </section>
+      <section aria-labelledby="plans-heading" className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
+          <p className="text-sm font-medium text-primary">Planes y acceso para entrenadores</p>
+          <h2 id="plans-heading" className="mt-3 text-2xl font-semibold sm:text-3xl">De la consulta al acceso de tu club</h2>
+          <ol className="mt-8 grid gap-8 md:grid-cols-3 md:gap-10">
+            {[
+              { title: "Consulta por WhatsApp", text: "Envíanos tu nombre, club y país. Consulta los planes disponibles, su precio, duración y qué incluyen antes de decidir." },
+              { title: "Acuerda el plan y el pago", text: "Confirma por WhatsApp el importe y el medio de pago con el dueño. Una vez acordados, realiza el pago y envía el comprobante en esa conversación." },
+              { title: "Solicita la activación", text: "Crea tu cuenta desde «Iniciar sesión» e indica por WhatsApp el correo que registraste. El dueño revisa tu solicitud y confirma la aprobación del acceso." },
+            ].map(({ title, text }, index) => (
+              <li key={title} className="min-w-0">
+                <span className="time text-sm text-primary">0{index + 1}</span>
+                <h3 className="mt-3 text-lg font-semibold">{title}</h3>
+                <p className="mt-3 leading-relaxed text-muted-foreground">{text}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 flex flex-col items-start gap-3">
+            <Button asChild size="lg" className="min-h-12 h-auto max-w-full whitespace-normal px-5 py-3 text-base shadow-none"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Solicitar plan y acceso por WhatsApp<ArrowRight aria-hidden="true" /></a></Button>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">El pago se coordina directamente por WhatsApp, no en esta página. No compartas contraseñas ni datos de tarjetas en el chat. La activación no es automática.</p>
+          </div>
+        </div>
+      </section>
       <section className="border-t border-border bg-muted">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center">
           <h2 className="text-2xl font-semibold">Prueba con el archivo de tu última competencia</h2>
           <Button asChild size="lg" className="h-12 max-w-full shrink-0 px-6 text-base shadow-none"><Link to="/dashboard">Importar mi primer archivo<ArrowRight aria-hidden="true" /></Link></Button>
         </div>
       </section>
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground sm:px-10"><span>Compatible con Meet Manager y Team Manager</span><Button asChild variant="link" className="h-auto min-h-11 px-0 text-sm"><a href="https://wa.me/584128503939?text=Hola%2C%20quiero%20conocer%20los%20planes%20de%20pago%20de%20Natacion%20pro." target="_blank" rel="noopener noreferrer"><MessageCircle />Planes y suscripciones</a></Button></footer>
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground sm:px-10"><span>Compatible con Meet Manager y Team Manager</span><Button asChild variant="link" className="h-auto min-h-11 px-0 text-sm"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle />Planes y suscripciones</a></Button></footer>
     </main>
   );
 }
