@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Users, CalendarDays, Building2, Upload, Waves, UserRound, ShieldCheck, MoreHorizontal, LogOut, ClipboardList, Medal, FileText, Layers } from "lucide-react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { LayoutDashboard, Users, CalendarDays, Building2, Upload, Waves, UserRound, ShieldCheck, MoreHorizontal, LogOut, ClipboardList, Medal, FileText, Layers, ChevronRight, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -19,25 +19,42 @@ const items = [
   { to: "/access", label: "Accesos", icon: ShieldCheck },
 ] as const;
 
+const groups = [
+  { label: "Mi club", paths: ["/dashboard", "/athletes", "/club"] },
+  { label: "Competición", paths: ["/meets", "/entries", "/relays", "/import"] },
+  { label: "Rendimiento", paths: ["/reports", "/standards", "/categories"] },
+  { label: "Mi cuenta", paths: ["/profile", "/access"] },
+];
+
 export function AppNavigation({ name, logoUrl, onSignOut }: { name: string; logoUrl?: string | null; onSignOut: () => void }) {
   const [more, setMore] = useState(false);
+  const { pathname } = useLocation();
+  const current = items.find(item => pathname === item.to || pathname.startsWith(`${item.to}/`));
+  const group = groups.find(group => group.paths.includes(current?.to ?? ""));
+  function navigationItem(item: typeof items[number], mobile = false) {
+    const Icon = item.icon;
+    const active = current?.to === item.to;
+    return <Button key={item.to} asChild variant="ghost" className={`h-10 w-full justify-start gap-3 px-3 ${active ? "bg-sidebar-accent text-primary" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}><Link to={item.to} aria-current={active ? "page" : undefined} onClick={() => { if (mobile) setMore(false); }}><Icon className="size-4" /><span>{item.label}</span>{active && <span className="ml-auto size-1.5 rounded-full bg-primary" />}</Link></Button>;
+  }
   return <>
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar px-4 py-6 lg:flex">
-      <Link to="/dashboard" className="flex min-w-0 items-center gap-2 font-display text-3xl font-bold">{logoUrl ? <img src={logoUrl} alt="Logo del club" className="size-9 shrink-0 object-contain" /> : <Waves className="size-7 shrink-0 text-primary" />}<span>Natacion <span className="text-accent">pro</span></span></Link>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Compatible con Meet Manager y Team Manager</p>
-      <div className="lane-line my-6" />
-      <nav aria-label="Navegación principal" className="space-y-1">
-        {items.map(({ to, label, icon: Icon }) => <Button key={to} asChild variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground"><Link to={to} activeProps={{ className: "bg-sidebar-accent text-primary" }}><Icon />{label}</Link></Button>)}
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+      <div className="border-b border-sidebar-border px-5 py-6"><Link to="/dashboard" className="flex min-w-0 items-center gap-3 font-sans text-xl font-semibold"><Waves className="size-7 shrink-0 text-primary" /><span>Natacion <span className="text-accent">pro</span></span></Link>
+      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">Compatible con Meet Manager<br />y Team Manager</p></div>
+      <nav aria-label="Navegación principal" className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-5">
+        {groups.map(group => <div key={group.label}><p className="mb-2 px-3 text-[10px] font-semibold uppercase text-muted-foreground">{group.label}</p><div className="space-y-0.5">{group.paths.map(path => { const item = items.find(item => item.to === path); return item ? navigationItem(item) : null; })}</div></div>)}
       </nav>
-      <div className="mt-auto border-t pt-5"><p className="truncate text-sm font-medium">{name}</p><p className="mt-1 text-xs text-muted-foreground">Cuenta privada</p><Button variant="ghost" className="mt-3 w-full justify-start text-muted-foreground" onClick={onSignOut}><LogOut />Salir</Button></div>
+      <div className="border-t border-sidebar-border p-4"><Button asChild variant="ghost" className="h-auto w-full justify-start gap-3 px-2 py-2"><Link to="/profile">{logoUrl ? <img src={logoUrl} alt="Logo del club" className="size-9 shrink-0 rounded-md border bg-card object-contain" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary text-primary"><UserRound /></span>}<span className="min-w-0 text-left"><span className="block truncate text-sm font-medium">{name}</span><span className="mt-0.5 block text-xs font-normal text-muted-foreground">Cuenta privada</span></span><Settings2 className="ml-auto text-muted-foreground" /></Link></Button><Button variant="ghost" className="mt-2 h-9 w-full justify-start text-muted-foreground" onClick={onSignOut}><LogOut />Cerrar sesión</Button></div>
     </aside>
+    <header className="sticky top-0 z-20 hidden h-16 items-center justify-between gap-4 border-b bg-background/95 px-8 backdrop-blur lg:ml-64 lg:flex">
+      <div className="flex min-w-0 items-center gap-3 text-sm"><span className="text-muted-foreground">{group?.label ?? "Mi club"}</span><ChevronRight className="size-3.5 text-muted-foreground" /><span className="truncate font-medium">{current?.label ?? "Panel"}</span></div>
+      <Button asChild variant="ghost" className="max-w-64 gap-2"><Link to="/profile">{logoUrl ? <img src={logoUrl} alt="Logo del club" className="size-7 object-contain" /> : <UserRound />}<span className="truncate">{name}</span></Link></Button>
+    </header>
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur lg:hidden">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"><Link to="/dashboard" className="flex min-w-0 items-center gap-2 font-display text-2xl font-bold">{logoUrl ? <img src={logoUrl} alt="Logo del club" className="size-8 shrink-0 object-contain" /> : <Waves className="size-6 shrink-0 text-primary" />}<span className="truncate">Natacion <span className="text-accent">pro</span></span></Link><Button variant="ghost" size="icon" title="Mi perfil" aria-label="Mi perfil" asChild><Link to="/profile"><UserRound /></Link></Button></div>
-      <div className="lane-line" />
     </header>
     <nav aria-label="Navegación móvil" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:hidden">
       {items.slice(0, 4).map(({ to, label, icon: Icon }) => <Button key={to} asChild variant="ghost" className="h-12 flex-col gap-1 px-1 text-[10px] text-muted-foreground"><Link to={to} activeProps={{ className: "bg-secondary text-primary" }}><Icon className="size-5" />{label}</Link></Button>)}
-      <Dialog open={more} onOpenChange={setMore}><DialogTrigger asChild><Button variant="ghost" className="h-12 flex-col gap-1 px-1 text-[10px] text-muted-foreground"><MoreHorizontal className="size-5" />Más</Button></DialogTrigger><DialogContent aria-describedby={undefined} className="w-[calc(100%-2rem)] rounded-lg"><DialogHeader><DialogTitle>Natacion pro</DialogTitle></DialogHeader><nav className="grid gap-1">{items.slice(4).map(({ to, label, icon: Icon }) => <Button key={to} asChild variant="ghost" className="h-12 justify-start"><Link to={to} onClick={() => setMore(false)}><Icon />{label}</Link></Button>)}<Button variant="ghost" className="h-12 justify-start" onClick={() => { setMore(false); onSignOut(); }}><LogOut />Salir</Button></nav></DialogContent></Dialog>
+      <Dialog open={more} onOpenChange={setMore}><DialogTrigger asChild><Button variant="ghost" className="h-12 flex-col gap-1 px-1 text-[10px] text-muted-foreground"><MoreHorizontal className="size-5" />Más</Button></DialogTrigger><DialogContent aria-describedby={undefined} className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg"><DialogHeader><DialogTitle>Todos los paneles</DialogTitle></DialogHeader><nav className="grid gap-5">{groups.map(group => <div key={group.label}><p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">{group.label}</p>{group.paths.map(path => { const item = items.find(item => item.to === path); return item ? navigationItem(item, true) : null; })}</div>)}<Button variant="ghost" className="h-11 justify-start text-muted-foreground" onClick={() => { setMore(false); onSignOut(); }}><LogOut />Cerrar sesión</Button></nav></DialogContent></Dialog>
     </nav>
   </>;
 }
