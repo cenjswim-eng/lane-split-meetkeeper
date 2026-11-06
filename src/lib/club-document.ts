@@ -59,6 +59,15 @@ export async function readPdfLines(file: File) {
         row.push({ x: item.transform[4], text: item.str }); rows.set(y, row);
       }
       for (const [, row] of [...rows].sort(([a], [b]) => b - a)) lines.push(row.sort((a,b) => a.x-b.x).filter((x) => x.text.trim()).map((x) => x.text).join("  "));
+      if (![...rows.values()].some(row => row.some(item => /[a-záéíóúñ]{3}/i.test(item.text)))) {
+        const canvas = document.createElement("canvas");
+        const viewport = page.getViewport({ scale: 2 });
+        canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+        await page.render({ canvas, viewport }).promise;
+        const { readImageLines } = await import("./document-ocr");
+        lines.push(...await readImageLines(canvas));
+        canvas.width = 0; canvas.height = 0;
+      }
     }
   } finally { await task.destroy(); }
   return lines;
