@@ -1,4 +1,6 @@
 # Exportación móvil
+- [x] Lectura PDF local sin créditos en resultados, club y mínimas, con OCR de escaneos y revisión manual; PDF de texto y escaneado verificados en navegador. ADAEL: 97 páginas leídas, 36 nados publicados en 6 pruebas, tiempos oficiales y fechas 5–7 noviembre correctos; pruebas pasan.
+- [ ] Verificar guardado y vinculación del tercer estadal con atletas desde la pantalla autenticada; no hay sesión disponible y la cuenta del solicitante no pudo recuperarse automáticamente. Requiere iniciar sesión en el preview.
 - [x] Actualizar solo la portada con textos exactos, «Natación Pro» y gráfica de ejemplo; insignia publicada oculta, 320/375/430 px sin desbordamiento y botón visible de 48 px; enlace /dashboard abre acceso sin sesión, prueba de ruta pasa.
 - [ ] Clasificación interna AQUA añadida; 8 pruebas verifican orden, mejor puntuación, empates y vigencia. Verificación de pantalla y exportaciones bloqueada por sesión caducada; requiere iniciar sesión en el preview.
 - [x] Añadir mínima y tiempo restante en ambos PDF individuales; 26 pruebas pasan y descargas desde Reportes y perfil verificadas con sesión real y PDF revisado.
