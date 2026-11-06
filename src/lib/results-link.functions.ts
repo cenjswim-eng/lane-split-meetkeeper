@@ -6,11 +6,11 @@ const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\
 
 export const fetchResultsLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { url: string }) => {
+  .inputValidator((input: { url: string; allowBrowser?: boolean }) => {
     let u: URL;
     try { u = new URL(String(input?.url ?? "").trim()); } catch { throw new Error("Escribe un enlace válido (https://…)."); }
     if (!/^https?:$/.test(u.protocol) || PRIVATE_HOST.test(u.hostname)) throw new Error("Escribe un enlace público http o https.");
-    return { url: u.toString() };
+    return { url: u.toString(), allowBrowser: input.allowBrowser === true };
   })
   .handler(async ({ data, context }) => {
     const role = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
@@ -18,10 +18,16 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
     let res: Response;
     try {
       res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", Accept: "text/html,application/xhtml+xml,application/pdf,*/*;q=0.8", "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } });
-    } catch { return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const }; }
+    } catch {
+      if (!data.allowBrowser || /\.pdf(?:\?|$)/i.test(data.url)) throw new Error("No se pudo abrir el enlace. Puedes descargar el PDF y cargarlo sin créditos, o autorizar la lectura de páginas protegidas.");
+      return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+    }
     if (!res.ok) {
       // Anti-bot protections (e.g. Cloudflare challenges) reject server requests: read the page with a real browser instead.
-      if ([401, 403, 406, 429, 503].includes(res.status)) return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+      if ([401, 403, 406, 429, 503].includes(res.status)) {
+        if (!data.allowBrowser || /\.pdf(?:\?|$)/i.test(data.url)) throw new Error(`El sitio bloquea la lectura (error ${res.status}). Descarga el PDF y cárgalo sin créditos, o autoriza la lectura de páginas protegidas.`);
+        return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+      }
       throw new Error(`La página respondió con error ${res.status}.`);
     }
     const buf = new Uint8Array(await res.arrayBuffer());

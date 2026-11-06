@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, Sparkles } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { readPdfLines } from "@/lib/club-document";
-import { aiResultsToParsed, parseMeetManagerResults, type AiResults } from "@/lib/pdf-results";
-import { extractPdfWithAi } from "@/lib/pdf-ai.functions";
+import { parseMeetManagerResults } from "@/lib/pdf-results";
 import { browserBatchStatus, fetchResultsLink, startBrowserBatch } from "@/lib/results-link.functions";
 import { commaTimes, filterToRoster, htmlToLines, indexFrameUrl, meetEventPages, meetIndexInfo, type RosterAthlete } from "@/lib/results-link";
 import type { ParsedFile } from "@/lib/hytek/types";
@@ -15,13 +14,12 @@ import type { ParsedFile } from "@/lib/hytek/types";
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pdf, setPdf] = useState<{ base64: string; name: string } | null>(null);
+  const [allowBrowser, setAllowBrowser] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const fetchLink = useServerFn(fetchResultsLink);
   const startBatch = useServerFn(startBrowserBatch);
   const batchStatus = useServerFn(browserBatchStatus);
-  const extract = useServerFn(extractPdfWithAi);
 
   async function finish(name: string, parsed: ParsedFile) {
     const { data, error } = await supabase.from("athletes").select("id, first_name, last_name, birth_date, gender, federation_id, tm_athlete_id");
@@ -35,10 +33,10 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
   }
 
   async function read() {
-    setBusy(true); setSummary(null); setPdf(null); setProgress(null);
+    setBusy(true); setSummary(null); setProgress(null);
     try {
       const link = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
-      const res = await fetchLink({ data: { url: link } });
+      const res = await fetchLink({ data: { url: link, allowBrowser } });
       const name = decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Resultados").replace(/\.(pdf|html?)$/i, "") || "Resultados";
       let lines: string[];
       let info: ReturnType<typeof meetIndexInfo> | null = null;
@@ -48,8 +46,15 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       } else {
         // Meet Manager web results: open the event index and read each event page (one request each).
         let indexHtml = res.html, indexUrl = res.url, protectedSite = res.via === "browser";
-        const frame = indexFrameUrl(res.html, res.url) ?? (/<frameset/i.test(res.html) ? new URL("evtindex.htm", res.url).toString() : null);
-        if (frame) { const idx = await fetchLink({ data: { url: frame } }); if (idx.kind === "html") { indexHtml = idx.html; indexUrl = idx.url; protectedSite ||= idx.via === "browser"; } }
+        const visited = new Set([indexUrl]);
+        for (let depth = 0; depth < 5 && !meetEventPages(indexHtml, indexUrl).length; depth++) {
+          const frame = indexFrameUrl(indexHtml, indexUrl) ?? (/<frameset/i.test(indexHtml) ? new URL("evtindex.htm", indexUrl).toString() : null);
+          if (!frame || visited.has(frame)) break;
+          visited.add(frame);
+          const idx = await fetchLink({ data: { url: frame, allowBrowser } });
+          if (idx.kind !== "html") break;
+          indexHtml = idx.html; indexUrl = idx.url; protectedSite ||= idx.via === "browser";
+        }
         const pages = meetEventPages(indexHtml, indexUrl);
         if (pages.length) {
           info = meetIndexInfo(res.html, indexHtml);
@@ -60,7 +65,9 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
             while (next < pages.length) {
               const i = next++;
               for (let attempt = 0; attempt < 3 && !htmls[i]; attempt++) {
-                try { const r = await fetchLink({ data: { url: pages[i]! } }); if (r.kind === "html") htmls[i] = r.html; } catch { /* retry */ }
+                const pageUrl = pages[i];
+                if (!pageUrl) break;
+                try { const r = await fetchLink({ data: { url: pageUrl, allowBrowser } }); if (r.kind === "html") htmls[i] = r.html; } catch { /* retry */ }
               }
               setProgress(`${++done}/${pages.length}`);
             }
@@ -95,21 +102,12 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       const parsed = parseMeetManagerResults(lines, name);
       if (info) parsed.meet = { ...parsed.meet, name: info.title ?? parsed.meet.name, startDate: info.startDate ?? parsed.meet.startDate, endDate: info.endDate ?? parsed.meet.endDate };
       if (!parsed.results.length) {
-        if (res.kind === "pdf") { setPdf({ base64: res.base64, name }); setSummary("No se reconoció el formato Meet Manager. Puedes intentar la lectura con IA."); }
+        if (res.kind === "pdf") setSummary("No se reconoció el formato del PDF. No se consumieron créditos; usa un reporte de resultados Meet Manager o un archivo HY3/SD3.");
         else setSummary("No se encontraron resultados en esa página. Pega el enlace principal de los resultados (el que muestra la lista de pruebas) o el de un PDF de resultados.");
         return;
       }
       await finish(name, parsed);
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); setProgress(null); }
-  }
-
-  async function readAi() {
-    if (!pdf) return;
-    setBusy(true);
-    try {
-      const out = await extract({ data: { kind: "results", base64: pdf.base64 } });
-      if (await finish(pdf.name, aiResultsToParsed(out.output as AiResults, pdf.name))) setPdf(null);
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
   return <section className="space-y-2 rounded-lg border bg-card p-4">
@@ -119,7 +117,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       <Input type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="https://…/resultados.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Enlace de resultados" disabled={busy || disabled} />
       <Button type="submit" disabled={busy || disabled || !url.trim()}><Link2 className="mr-2 size-4" />Extraer mis atletas</Button>
     </form>
-    {pdf && <Button variant="outline" onClick={readAi} disabled={busy}><Sparkles className="mr-2 size-4" />Leer con IA</Button>}
+    <label className="flex items-start gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={allowBrowser} disabled={busy} onChange={e => setAllowBrowser(e.target.checked)} />Permitir lectura con créditos solo si el sitio bloquea el acceso. Los PDF se leen localmente sin créditos.</label>
     {busy && <p role="status" className="text-sm">Leyendo todas las pruebas del enlace{progress ? ` (${progress})` : ""}, puede tardar un minuto…</p>}
     {summary && <p role="status" className="text-sm">{summary}</p>}
   </section>;
