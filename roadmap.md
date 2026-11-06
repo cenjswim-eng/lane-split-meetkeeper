@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Adaptar toda la interfaz a español e inglés con detección automática, ubicación aproximada como señal secundaria y selección manual persistente.
 - [x] Organizar paneles en Mi club, Competición, Rendimiento y Mi cuenta; diseño compartido profesional y personalización de nombre, colores, combinaciones y logo. Todos los paneles verificados con sesión real en computadora y celular sin desbordamientos; guardado/relectura de ajustes probado y valores originales restaurados. WhatsApp de planes enlaza al +58 412 850 3939; apertura externa pendiente en el teléfono del dueño, sin cobro automático.
 - [x] Lectura PDF local sin créditos en resultados, club y mínimas, con OCR de escaneos y revisión manual; PDF de texto y escaneado verificados en navegador. ADAEL: 97 páginas leídas, 36 nados publicados en 6 pruebas, tiempos oficiales y fechas 5–7 noviembre correctos; pruebas pasan.
 - [ ] Verificar guardado y vinculación del tercer estadal con atletas desde la pantalla autenticada; no hay sesión disponible y la cuenta del solicitante no pudo recuperarse automáticamente. Requiere iniciar sesión en el preview.
