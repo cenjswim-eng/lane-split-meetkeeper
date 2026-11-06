@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ImagePlus, RotateCcw, Save } from "lucide-react";
+import { ImagePlus, RotateCcw, Save, UserRound, Palette, Check, Waves } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/profile";
@@ -28,8 +28,9 @@ function ProfilePage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault(); if (!isHexColor(primary) || !isHexColor(accent)) { toast.error("Color no válido"); return; }
+    if (!data.userId) { toast.error("Inicia sesión nuevamente para guardar tu perfil"); return; }
     setBusy(true);
-    const r = await supabase.from("profile_settings").upsert({ user_id: data.userId!, display_name: name.trim(), primary_color: primary, accent_color: accent, updated_at: new Date().toISOString() });
+    const r = await supabase.from("profile_settings").upsert({ user_id: data.userId, display_name: name.trim(), primary_color: primary, accent_color: accent, updated_at: new Date().toISOString() });
     setBusy(false); if (r.error) { toast.error(r.error.message); return; }
     await qc.invalidateQueries({ queryKey: ["profile-settings"] }); toast.success("Perfil guardado");
   }
@@ -46,23 +47,24 @@ function ProfilePage() {
     } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }
 
-  return <div className="max-w-3xl space-y-8">
-    <header><h1 className="text-4xl font-bold uppercase">Mi perfil</h1><p className="text-muted-foreground">Personaliza tu espacio. Solo tú ves estos ajustes.</p></header>
-    <form onSubmit={save} className="space-y-5 rounded-lg border bg-card p-6">
-      <h2 className="text-2xl font-semibold uppercase">Colores</h2>
-      <div><Label htmlFor="display-name">Nombre para mostrar</Label><Input id="display-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="Ej. Entrenador Juan" /></div>
+  return <div className="max-w-5xl space-y-8">
+    <header><p className="mb-2 text-xs font-medium text-primary">MI CUENTA</p><h1>Mi perfil</h1><p className="mt-2 text-sm text-muted-foreground">{data.club?.name ?? "Entrenador"} · Cuenta privada</p></header>
+    <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_280px]">
+    <form onSubmit={save} className="min-w-0 space-y-8">
+      <section className="space-y-5"><h2 className="flex items-center gap-3"><UserRound className="size-5 text-primary" />Identidad</h2><div className="space-y-2"><Label htmlFor="display-name">Nombre para mostrar</Label><Input id="display-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="Ej. Entrenador Juan" /></div></section>
+      <section className="space-y-5 border-t pt-7"><h2 className="flex items-center gap-3"><Palette className="size-5 text-primary" />Colores de mi espacio</h2>
+      <div className="flex flex-wrap gap-3" role="group" aria-label="Combinaciones de colores">{[["pool", "Piscina"], ["forest", "Bosque"], ["coral", "Coral"]].map(([id, label]) => <Button key={id} type="button" variant="outline" aria-label={`Usar colores ${label}`} title={label} className={`theme-${id} h-12 gap-2 bg-card px-3 hover:bg-secondary hover:text-foreground`} onClick={() => { const style = getComputedStyle(document.documentElement); const p = style.getPropertyValue(`--preset-${id}-primary`).trim(); const a = style.getPropertyValue(`--preset-${id}-accent`).trim(); if (isHexColor(p) && isHexColor(a)) { setPrimary(p); setAccent(a); } }}><span className="theme-swatch-primary size-5 rounded-full border" /><span className="theme-swatch-accent size-5 rounded-full border" /><span className="text-xs">{label}</span></Button>)}</div>
       <div className="grid gap-4 sm:grid-cols-2">
-        {([["Color principal", primary, setPrimary], ["Color de acento", accent, setAccent]] as const).map(([label, val, set]) => <div key={label}><Label>{label}</Label><div className="mt-1 flex items-center gap-2"><input type="color" aria-label={label} value={val} onChange={(e) => set(e.target.value)} className="h-10 w-14 cursor-pointer rounded border bg-transparent" /><Input value={val} onChange={(e) => set(e.target.value)} className="time" /></div></div>)}
-      </div>
-      <div className="flex flex-wrap items-center gap-3 rounded border p-4"><span className="text-sm text-muted-foreground">Vista previa:</span><Button type="button">Botón principal</Button><span className="font-display text-xl font-bold">Natacion <span className="text-accent">pro</span></span></div>
-      <div className="flex gap-2"><Button disabled={busy} type="submit"><Save className="mr-2 size-4" />Guardar</Button><Button type="button" variant="outline" onClick={() => { setPrimary(DEFAULT_THEME.primary_color); setAccent(DEFAULT_THEME.accent_color); }}><RotateCcw className="mr-2 size-4" />Colores originales</Button></div>
+        {([["Color principal", primary, setPrimary], ["Color de acento", accent, setAccent]] as const).map(([label, val, set], index) => <div key={label} className="space-y-2"><Label htmlFor={`profile-color-${index}`}>{label}</Label><div className="flex items-center gap-2"><input type="color" aria-label={label} value={isHexColor(val) ? val : DEFAULT_THEME.primary_color} onChange={(e) => set(e.target.value)} className="h-11 w-12 shrink-0 cursor-pointer rounded-md border bg-transparent p-1" /><Input id={`profile-color-${index}`} aria-label={`Código de ${label.toLowerCase()}`} value={val} maxLength={7} onChange={(e) => set(e.target.value)} className="time min-w-0" /></div></div>)}
+      </div></section>
+      <section className="space-y-5 border-t pt-7"><h2 className="flex items-center gap-3"><ImagePlus className="size-5 text-primary" />Logo del club</h2>
+      {!data.club ? <p className="text-sm text-muted-foreground">Primero crea tu club en “Mi club”.</p> : <div className="flex flex-wrap items-center gap-5">
+        <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-card">{data.logoUrl ? <img src={data.logoUrl} alt={`Logo de ${data.club.name}`} className="size-full object-contain" /> : <Waves className="size-8 text-muted-foreground" />}</div>
+        <div className="min-w-0 space-y-2"><p className="break-words font-medium">{data.club.name}</p><Button type="button" variant="outline" disabled={busy} onClick={() => document.getElementById("logo")?.click()}><ImagePlus />{data.logoUrl ? "Cambiar logo" : "Subir logo"}</Button><input id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ""; }} /><p className="text-xs text-muted-foreground">PNG, JPG, WEBP o SVG · máx. 2 MB</p></div>
+      </div>}</section>
+      <div className="flex flex-wrap gap-3 border-t pt-6"><Button disabled={busy} type="submit" className="h-11"><Save />{busy ? "Guardando…" : "Guardar cambios"}</Button><Button type="button" variant="ghost" className="h-11 text-muted-foreground" onClick={() => { setPrimary(DEFAULT_THEME.primary_color); setAccent(DEFAULT_THEME.accent_color); }}><RotateCcw />Restaurar colores</Button></div>
     </form>
-    <section className="space-y-4 rounded-lg border bg-card p-6">
-      <h2 className="text-2xl font-semibold uppercase">Logo del club</h2>
-      {!data.club ? <p className="text-sm text-muted-foreground">Primero crea tu club en “Mi club”.</p> : <div className="flex flex-wrap items-center gap-6">
-        <div className="flex size-28 items-center justify-center overflow-hidden rounded-lg border bg-background">{data.logoUrl ? <img src={data.logoUrl} alt={`Logo de ${data.club.name}`} className="size-full object-contain" /> : <span className="text-xs text-muted-foreground">Sin logo</span>}</div>
-        <div className="space-y-2"><p className="font-medium">{data.club.name}</p><Label htmlFor="logo" className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm"><ImagePlus className="mr-2 size-4" />{data.logoUrl ? "Cambiar logo" : "Subir logo"}</Label><input id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ""; }} /><p className="text-xs text-muted-foreground">PNG, JPG, WEBP o SVG · máx. 2 MB. Aparece en la barra superior.</p></div>
-      </div>}
-    </section>
+    <aside className="min-w-0 border-t pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0" aria-label="Vista previa del perfil"><p className="mb-4 text-xs font-medium text-muted-foreground">VISTA PREVIA</p><div className="overflow-hidden rounded-lg border bg-card"><div className="flex items-center gap-3 border-b p-5">{data.logoUrl ? <img src={data.logoUrl} alt="Logo del club en vista previa" className="size-10 object-contain" /> : <Waves className="size-8 shrink-0 text-primary" />}<div className="min-w-0"><p className="break-words font-semibold">{name.trim() || "Entrenador"}</p><p className="mt-1 break-words text-xs text-muted-foreground">{data.club?.name ?? "Mi club"}</p></div></div><div className="space-y-4 p-5"><p className="text-lg font-semibold">Natacion <span className="text-accent">pro</span></p><div className="flex items-center gap-2 text-sm text-primary"><Check className="size-4" />Cuenta privada</div><div className="h-1 rounded-full bg-primary" /><div className="h-1 w-2/3 rounded-full bg-accent" /></div></div></aside>
+    </div>
   </div>;
 }

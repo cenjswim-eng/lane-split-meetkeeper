@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves } from "lucide-react";
+import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle } from "lucide-react";
 import { LandingProgress } from "@/components/landing-progress";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +39,7 @@ function Index() {
             <Button asChild variant="link" className="min-h-11 h-auto max-w-full whitespace-normal px-0 text-sm text-muted-foreground">
               <Link to="/dashboard">Ya tengo cuenta, iniciar sesión</Link>
             </Button>
+            <Button asChild variant="outline" className="mt-3 min-h-11 h-auto max-w-full whitespace-normal border-border bg-background px-4 py-3 shadow-none hover:bg-muted hover:text-foreground"><a href="https://wa.me/584128503939?text=Hola%2C%20quiero%20conocer%20los%20planes%20de%20pago%20de%20Natacion%20pro." target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Consultar planes por WhatsApp<ArrowRight aria-hidden="true" /></a></Button>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="mr-1">Compatible con</span>
@@ -71,7 +72,7 @@ function Index() {
           <Button asChild size="lg" className="h-12 max-w-full shrink-0 px-6 text-base shadow-none"><Link to="/dashboard">Importar mi primer archivo<ArrowRight aria-hidden="true" /></Link></Button>
         </div>
       </section>
-      <footer className="mx-auto max-w-6xl px-6 py-6 text-xs text-muted-foreground sm:px-10">Compatible con Meet Manager y Team Manager</footer>
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground sm:px-10"><span>Compatible con Meet Manager y Team Manager</span><Button asChild variant="link" className="h-auto min-h-11 px-0 text-sm"><a href="https://wa.me/584128503939?text=Hola%2C%20quiero%20conocer%20los%20planes%20de%20pago%20de%20Natacion%20pro." target="_blank" rel="noopener noreferrer"><MessageCircle />Planes y suscripciones</a></Button></footer>
     </main>
   );
 }
