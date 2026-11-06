@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Añadir un video breve al final de la portada que resuma la app para posibles compradores; estilo pendiente de elección.
+- [ ] Añadir un video breve con escenas generadas al final de la portada para posibles compradores; generación bloqueada por saldo insuficiente (herramienta estimó 6,09 créditos). No añadir reproductor sin archivo.
 - [ ] Adaptar toda la interfaz a español e inglés con detección automática, ubicación aproximada como señal secundaria y selección manual persistente.
 - [x] Organizar paneles en Mi club, Competición, Rendimiento y Mi cuenta; diseño compartido profesional y personalización de nombre, colores, combinaciones y logo. Todos los paneles verificados con sesión real en computadora y celular sin desbordamientos; guardado/relectura de ajustes probado y valores originales restaurados. WhatsApp de planes enlaza al +58 412 850 3939; apertura externa pendiente en el teléfono del dueño, sin cobro automático.
 - [x] Lectura PDF local sin créditos en resultados, club y mínimas, con OCR de escaneos y revisión manual; PDF de texto y escaneado verificados en navegador. ADAEL: 97 páginas leídas, 36 nados publicados en 6 pruebas, tiempos oficiales y fechas 5–7 noviembre correctos; pruebas pasan.

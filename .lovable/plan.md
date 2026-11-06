@@ -30,3 +30,10 @@ La app ofrecerá español e inglés, elegirá el idioma al ingresar y permitirá
 - Leer país únicamente de metadatos del alojamiento cuando existan; su ausencia no bloquea la app.
 - Parametrizar textos y formatos de fecha de presentación sin cambiar cálculos deportivos ni almacenamiento en milisegundos.
 - Pruebas de prioridad de selección, detección español/inglés, ausencia de ubicación, preferencia manual y persistencia entre sesiones.
+
+## Video al final de la portada
+- Añadir un resumen breve con escenas generadas, el estilo elegido por el usuario, cuando haya saldo suficiente. El intento de generación fue rechazado por saldo insuficiente; la herramienta estimó aproximadamente 6,09 créditos.
+- Mostrar resultados, seguimiento de nadadores, mínimas, reportes y contacto por WhatsApp sin inventar pantallas ni promesas de rendimiento.
+- Colocar el video cerca del cierre de la portada con controles, reproducción voluntaria y reproducción dentro de la página en teléfonos; no iniciar sonido automáticamente ni cargar todo el video antes de reproducirlo.
+- Servir el archivo mediante los recursos de la app y comprobar reproducción real, audio y presentación en teléfono y computadora antes de darlo por terminado.
+- No añadir un reproductor vacío mientras falta el archivo ni afirmar que el video está listo. Este bloqueo no impide implementar español e inglés.
