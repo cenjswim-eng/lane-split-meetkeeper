@@ -55,7 +55,8 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
   const teams = new Map<string, ParsedTeam>(), athletes = new Map<string, ParsedAthlete>(), results: ParsedResult[] = [];
   let event: ReturnType<typeof parseEventHeader> = null, skipped = 0, relays = 0;
   const courses = new Set<string>();
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/(\d),(\d{2})(?!\d)/g, "$1.$2");
     const header = parseEventHeader(line);
     if (header) { event = header; if (header.relay) relays++; else if (header.course) courses.add(header.course); continue; }
     if (!event || event.relay) continue;
