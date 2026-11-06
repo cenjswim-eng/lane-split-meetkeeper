@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Swimming system rules
+- Scope public landing tokens to `.landing` to preserve account themes.
 - Subdirectories have their own `AGENTS.md`; read it before changing files there.
 - MDB polyfills: client-environment-only Vite hooks resolving to ESM shims (no shared/resolve aliases, no global injection); init MDB globals and invoke the reader only in browser file-selection handlers so server imports stay native.
 - National standards import uses admin-checked AI extraction and editable confirmation before owner-scoped writes; shared standard-rules applies season and exact Dec-31 age intervals in dashboard, entries and athlete profiles. Legacy undated standards remain all-year.
