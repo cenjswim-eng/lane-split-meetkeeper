@@ -10,7 +10,7 @@ import { readPdfLines } from "@/lib/club-document";
 import { readImageLines } from "@/lib/document-ocr";
 import { parseStandardsDocument } from "@/lib/standards-document";
 import { useSwimCategories } from "@/lib/categories";
-import { categoryBounds, prepareStandardRows, standardIdentity, type StandardDraft } from "@/lib/standard-rules";
+import { prepareStandardRows, standardIdentity, type StandardDraft } from "@/lib/standard-rules";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 

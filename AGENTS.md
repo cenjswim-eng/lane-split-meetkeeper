@@ -13,7 +13,7 @@
 - Scope public landing tokens to `.landing` to preserve account themes.
 - Subdirectories have their own `AGENTS.md`; read it before changing files there.
 - MDB polyfills: client-environment-only Vite hooks resolving to ESM shims (no shared/resolve aliases, no global injection); init MDB globals and invoke the reader only in browser file-selection handlers so server imports stay native.
-- National standards import uses admin-checked AI extraction and editable confirmation before owner-scoped writes; shared standard-rules applies season and exact Dec-31 age intervals in dashboard, entries and athlete profiles. Legacy undated standards remain all-year.
+- National standards use local PDF/OCR extraction and editable confirmation before owner-scoped writes; shared standard-rules applies season and Dec-31 age intervals across sporting views. Legacy undated standards remain all-year.
 - Root-boundary module download failures retry via a user-triggered full page reload; router invalidation alone retains rejected lazy imports. Ordinary errors keep the existing reset flow.
 - Dashboard metrics use pure `src/lib/dashboard-summary.ts` with the shared nine-month selector; count bests per athlete/event/course and qualifying marks by Dec-31 category to avoid mixed-pool or repeated-swim totals.
 - Client meet file preparation is shared in `src/lib/meet-files.ts`; navigation presentation lives in `src/components/app-navigation.tsx` without changing the authenticated gate.
@@ -38,6 +38,6 @@
 - Profile rankings and tracking PDFs share the window selector in `src/lib/athlete-records.ts`; sort eligible times ascending, charts chronological.
 - Tracking PDF charts use the pure event/course series selector and vector drawing in `src/lib/athlete-progress-pdf.ts`; paginate labelled swims without truncation so print remains readable and export needs no canvas.
 - Reset deletes only the caller's RLS-visible rows, then cleans only captured private club prefixes through Storage API; never empty the shared bucket. Preserve accounts and roles.
-- PDF imports: Meet Manager result text is parsed by pure `src/lib/pdf-results.ts`; AI extraction (results/roster) runs only in the admin-checked server function `src/lib/pdf-ai.functions.ts` and its output is re-validated by pure normalizers before preview/import, so AI never writes directly.
+- PDF imports use browser-local PDF.js/Tesseract without paid calls; pure result and standards parsers feed review before writes. Link crawling follows portal/index pages; labelled HTML tables use official-time columns and each event page retains its round.
 - Athlete history transfers copy results/splits (never move or edit originals) via admin-checked copy_athlete_history, logged in record_transfers and undoable; fuzzy identity scoring is pure in src/lib/history-match.ts.
 - Age categories: per-account swim_categories (Venezuela fallback) passed to categoryBounds; saving re-links standards by name.

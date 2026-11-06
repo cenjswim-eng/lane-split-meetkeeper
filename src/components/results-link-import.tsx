@@ -39,6 +39,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       const res = await fetchLink({ data: { url: link, allowBrowser } });
       const name = decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Resultados").replace(/\.(pdf|html?)$/i, "") || "Resultados";
       let lines: string[];
+      let eventParsed: ParsedFile[] | null = null;
       let info: ReturnType<typeof meetIndexInfo> | null = null;
       if (res.kind === "pdf") {
         const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
@@ -93,6 +94,13 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
           if (missing === pages.length) throw new Error("No se pudo abrir ninguna prueba del enlace.");
           if (missing) toast.warning(`${missing} pruebas no se pudieron abrir; el resto se leyó.`);
           lines = htmls.flatMap((h) => htmlToLines(h));
+          eventParsed = htmls.flatMap((h, i) => {
+            if (!h) return [];
+            const p = parseMeetManagerResults(htmlToLines(h).map(commaTimes), name);
+            const round = pages[i]?.match(/([FPS])\d{3,4}\.html?/i)?.[1]?.toUpperCase();
+            if (round === "P" || round === "S") p.results = p.results.map(r => ({ ...r, round }));
+            return [p];
+          });
         } else {
           lines = htmlToLines(res.html);
           info = meetIndexInfo(res.html, res.html);
@@ -100,6 +108,12 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       }
       lines = lines.map(commaTimes);
       const parsed = parseMeetManagerResults(lines, name);
+      if (eventParsed?.length) {
+        parsed.athletes = [...new Map(eventParsed.flatMap(p => p.athletes).map(a => [a.key,a])).values()];
+        parsed.teams = [...new Map(eventParsed.flatMap(p => p.teams).map(t => [t.code,t])).values()];
+        parsed.results = eventParsed.flatMap(p => p.results);
+        parsed.warnings = [...new Set(eventParsed.flatMap(p => p.warnings))].filter(w => !/No se reconoci/.test(w));
+      }
       if (info) parsed.meet = { ...parsed.meet, name: info.title ?? parsed.meet.name, startDate: info.startDate ?? parsed.meet.startDate, endDate: info.endDate ?? parsed.meet.endDate };
       if (!parsed.results.length) {
         if (res.kind === "pdf") setSummary("No se reconoció el formato del PDF. No se consumieron créditos; usa un reporte de resultados Meet Manager o un archivo HY3/SD3.");
