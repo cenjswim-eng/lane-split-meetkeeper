@@ -138,3 +138,7 @@
   letter-spacing: 0;
 }
 .landing-preview { box-shadow: var(--landing-shadow); }
+@media (max-width: 359px) {
+  .landing h1 { font-size: 36px; }
+  .landing header { padding-block: 16px; }
+}

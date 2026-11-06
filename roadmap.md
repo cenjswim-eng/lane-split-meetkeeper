@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Actualizar solo la portada con los textos solicitados, vista de progresión de ejemplo y diseño móvil; ocultar insignia publicada y verificar enlaces al panel.
+- [x] Actualizar solo la portada con textos exactos, «Natación Pro» y gráfica de ejemplo; insignia publicada oculta, 320/375/430 px sin desbordamiento y botón visible de 48 px; enlace /dashboard abre acceso sin sesión, prueba de ruta pasa.
 - [ ] Clasificación interna AQUA añadida; 8 pruebas verifican orden, mejor puntuación, empates y vigencia. Verificación de pantalla y exportaciones bloqueada por sesión caducada; requiere iniciar sesión en el preview.
 - [x] Añadir mínima y tiempo restante en ambos PDF individuales; 26 pruebas pasan y descargas desde Reportes y perfil verificadas con sesión real y PDF revisado.
 - [ ] Buscar atletas por nombre en campeonatos importados y vincular sus resultados al perfil seleccionado, sin duplicados ni cambios en inscripciones; verificar con sesión real.
