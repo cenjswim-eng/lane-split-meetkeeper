@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Mostrar mejora/empeoramiento frente a la competencia anterior de la misma prueba y piscina, y diferencia exacta con la mínima en el PDF individual; verificar cálculos y descarga.
 - [ ] Añadir un video breve con escenas generadas al final de la portada para posibles compradores; generación bloqueada por saldo insuficiente (herramienta estimó 6,09 créditos). No añadir reproductor sin archivo.
 - [ ] Adaptar toda la interfaz a español e inglés con detección automática, ubicación aproximada como señal secundaria y selección manual persistente.
 - [x] Organizar paneles en Mi club, Competición, Rendimiento y Mi cuenta; diseño compartido profesional y personalización de nombre, colores, combinaciones y logo. Todos los paneles verificados con sesión real en computadora y celular sin desbordamientos; guardado/relectura de ajustes probado y valores originales restaurados. WhatsApp de planes enlaza al +58 412 850 3939; apertura externa pendiente en el teléfono del dueño, sin cobro automático.
