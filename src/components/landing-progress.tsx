@@ -1,9 +1,22 @@
+import { useState } from "react";
 import { Activity, ArrowDownRight, Waves } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const progress = [
+  { month: "Mar", time: "1:12.00", x: 54, y: 24 },
+  { month: "Abr", time: "1:10.43", x: 126, y: 60 },
+  { month: "May", time: "1:10.74", x: 198, y: 53 },
+  { month: "Jun", time: "1:08.17", x: 270, y: 112 },
+  { month: "Jul", time: "1:07.13", x: 342, y: 136 },
+  { month: "Ago", time: "1:06.00", x: 414, y: 162 },
+];
 
 // Illustrative data only; never reads or exposes account records.
 export function LandingProgress() {
+  const [selected, setSelected] = useState(5);
+  const swim = progress[selected] ?? { month: "Ago", time: "1:06.00", x: 414, y: 162 };
   return (
-    <figure className="landing-preview min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+    <figure className="landing-preview landing-enter min-w-0 overflow-hidden rounded-lg border border-border bg-card">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-5 py-4">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <Waves className="size-5 shrink-0 text-primary" aria-hidden="true" /> Natación Pro
@@ -17,7 +30,7 @@ export function LandingProgress() {
             <h2 className="mt-1 text-lg font-semibold">100 m Libre</h2>
             <p className="mt-1 text-sm text-muted-foreground">Piscina de 50 m</p>
           </div>
-          <Activity className="size-5 shrink-0 text-primary" aria-hidden="true" />
+          <div className="text-right"><Activity className="ml-auto size-5 text-primary" aria-hidden="true" /><p className="time mt-2 text-xl font-semibold text-primary" aria-live="polite">{swim.time}</p></div>
         </div>
         <svg viewBox="0 0 440 235" className="mt-6 w-full" role="img" aria-label="Gráfica de ejemplo: el tiempo en 100 metros libre mejora de 1:12 a 1:06 entre marzo y agosto.">
           <g className="text-border" stroke="currentColor" strokeWidth="1">
@@ -27,11 +40,16 @@ export function LandingProgress() {
             <text x="0" y="28">1:12</text><text x="0" y="74">1:10</text><text x="0" y="120">1:08</text><text x="0" y="166">1:06</text>
             <text x="54" y="204" textAnchor="middle">Mar</text><text x="126" y="204" textAnchor="middle">Abr</text><text x="198" y="204" textAnchor="middle">May</text><text x="270" y="204" textAnchor="middle">Jun</text><text x="342" y="204" textAnchor="middle">Jul</text><text x="414" y="204" textAnchor="middle">Ago</text>
           </g>
-          <path d="M54 24L126 60L198 53L270 112L342 136L414 162" className="text-primary" stroke="currentColor" strokeWidth="3" fill="none" strokeLinejoin="round" />
+          <path d="M54 24L126 60L198 53L270 112L342 136L414 162L414 175L54 175Z" className="text-primary opacity-10" fill="currentColor" />
+          <path d="M54 24L126 60L198 53L270 112L342 136L414 162" className="landing-chart-line text-primary" stroke="currentColor" strokeWidth="3" fill="none" strokeLinejoin="round" />
+          <path d={`M${swim.x} 16V175`} className="text-accent" stroke="currentColor" strokeDasharray="4 5" />
           <g className="text-primary" fill="currentColor" stroke="var(--card)" strokeWidth="3">
-            {[[54,24],[126,60],[198,53],[270,112],[342,136],[414,162]].map(([x,y]) => <circle key={x} cx={x} cy={y} r="5" />)}
+            {progress.map(({ x, y }, index) => <circle key={x} cx={x} cy={y} r={selected === index ? "7" : "5"} className={selected === index ? "text-accent" : ""} />)}
           </g>
         </svg>
+        <div className="mb-5 grid grid-cols-6 gap-1" aria-label="Mes del resultado de ejemplo">
+          {progress.map(({ month }, index) => <Button key={month} variant="ghost" size="sm" aria-pressed={selected === index} aria-label={`Ver resultado de ${month}`} onClick={() => setSelected(index)} className={`min-w-0 px-0 ${selected === index ? "bg-muted text-accent" : "text-muted-foreground"}`}>{month}</Button>)}
+        </div>
         <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
           <span className="text-muted-foreground">Mejor tiempo</span>
           <span className="flex items-center gap-2 font-semibold"><ArrowDownRight className="size-4 text-primary" aria-hidden="true" /><span className="time">1:06.00</span></span>
