@@ -1,7 +1,7 @@
 # Exportación móvil
 - [x] Mostrar mejora/empeoramiento frente a la competencia anterior de la misma prueba y piscina, y diferencia exacta con la mínima en ambos PDF individuales; 26 pruebas pasan, PDF generado y presentación revisados, compilación correcta.
 - [ ] Verificar descarga del nuevo PDF individual desde la cuenta del solicitante; recuperación automática de sesión falló y requiere iniciar sesión en el preview.
-- [ ] Añadir un video breve con escenas generadas al final de la portada para posibles compradores; generación bloqueada por saldo insuficiente (herramienta estimó 6,09 créditos). No añadir reproductor sin archivo.
+- [x] Añadir video resumen con escenas realistas generadas al final de la portada, de 10 segundos y con pista de audio; reproductor y consulta de planes por WhatsApp.
 - [ ] Adaptar toda la interfaz a español e inglés con detección automática, ubicación aproximada como señal secundaria y selección manual persistente.
 - [x] Organizar paneles en Mi club, Competición, Rendimiento y Mi cuenta; diseño compartido profesional y personalización de nombre, colores, combinaciones y logo. Todos los paneles verificados con sesión real en computadora y celular sin desbordamientos; guardado/relectura de ajustes probado y valores originales restaurados. WhatsApp de planes enlaza al +58 412 850 3939; apertura externa pendiente en el teléfono del dueño, sin cobro automático.
 - [x] Lectura PDF local sin créditos en resultados, club y mínimas, con OCR de escaneos y revisión manual; PDF de texto y escaneado verificados en navegador. ADAEL: 97 páginas leídas, 36 nados publicados en 6 pruebas, tiempos oficiales y fechas 5–7 noviembre correctos; pruebas pasan.
