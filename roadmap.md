@@ -1,5 +1,5 @@
 # Exportación móvil
-- [ ] Crear video explicativo publicable con pantallas reales de la interfaz y consulta de planes por WhatsApp; captura de paneles bloqueada hasta que el solicitante inicie sesión en el preview, porque la recuperación automática de su cuenta no encontró un usuario asociado.
+- [ ] Crear video explicativo publicable con pantallas reales de la interfaz y consulta de planes por WhatsApp, y sustituir el video ilustrativo de la portada; captura de paneles bloqueada hasta que el solicitante inicie sesión en el preview, porque la recuperación automática de su cuenta no encontró un usuario asociado.
 - [x] Mostrar mejora/empeoramiento frente a la competencia anterior de la misma prueba y piscina, y diferencia exacta con la mínima en ambos PDF individuales; 26 pruebas pasan, PDF generado y presentación revisados, compilación correcta.
 - [ ] Verificar descarga del nuevo PDF individual desde la cuenta del solicitante; recuperación automática de sesión falló y requiere iniciar sesión en el preview.
 - [x] Añadir video resumen con escenas realistas generadas al final de la portada, de 10 segundos y con pista de audio; reproductor y consulta de planes por WhatsApp.
