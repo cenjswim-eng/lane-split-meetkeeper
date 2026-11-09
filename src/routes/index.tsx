@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle } from "lucide-react";
 import { LandingProgress } from "@/components/landing-progress";
+import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
 
 const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Natacion pro.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
 
@@ -96,6 +97,16 @@ function Index() {
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center">
           <h2 className="text-2xl font-semibold">Prueba con el archivo de tu última competencia</h2>
           <Button asChild size="lg" className="h-12 max-w-full shrink-0 px-6 text-base shadow-none"><Link to="/dashboard">Importar mi primer archivo<ArrowRight aria-hidden="true" /></Link></Button>
+        </div>
+      </section>
+      <section aria-labelledby="video-heading" className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
+          <h2 id="video-heading" className="text-2xl font-semibold sm:text-3xl">Natación Pro en 10 segundos</h2>
+          <video aria-label="Video resumen de Natación Pro" className="mt-6 aspect-video w-full rounded-lg bg-muted object-contain" controls playsInline preload="metadata" src={summaryVideo.url}>
+            Tu navegador no puede reproducir este video.
+          </video>
+          <p className="mt-3 text-sm text-muted-foreground">Atletas y resultados organizados, seguimiento del progreso y comparación con marcas mínimas. Escenas ilustrativas generadas.</p>
+          <Button asChild variant="outline" className="mt-5 min-h-11 h-auto max-w-full whitespace-normal"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Consultar planes por WhatsApp</a></Button>
         </div>
       </section>
       <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground sm:px-10"><span>Compatible con Meet Manager y Team Manager</span><Button asChild variant="link" className="h-auto min-h-11 px-0 text-sm"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle />Planes y suscripciones</a></Button></footer>
