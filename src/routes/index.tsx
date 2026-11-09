@@ -5,20 +5,24 @@ import { LandingProgress } from "@/components/landing-progress";
 import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
 
 const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Natacion pro.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
+const homeTitle = "Natación Pro | Software para entrenadores y clubes de natación";
+const homeDescription = "Gestiona atletas, resultados y marcas mínimas de tu club de natación. Software para entrenadores, compatible con Meet Manager y Team Manager. Consulta planes.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Natación Pro — Compatible con Meet Manager y Team Manager" },
-      { name: "description", content: "Natación Pro. Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar." },
-      { property: "og:title", content: "Natación Pro — Compatible con Meet Manager y Team Manager" },
+      { title: homeTitle },
+      { name: "description", content: homeDescription },
+      { property: "og:title", content: homeTitle },
       { property: "og:site_name", content: "Natación Pro" },
-      { name: "twitter:title", content: "Natación Pro — Compatible con Meet Manager y Team Manager" },
-      { property: "og:description", content: "Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar." },
-      { name: "twitter:description", content: "Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar." },
+      { name: "twitter:title", content: homeTitle },
+      { property: "og:description", content: homeDescription },
+      { name: "twitter:description", content: homeDescription },
+      { property: "og:url", content: "https://swimlanecoach.app/" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://swimlanecoach.app/" }],
   }),
   component: Index,
 });
