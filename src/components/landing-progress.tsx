@@ -14,7 +14,7 @@ const progress = [
 // Illustrative data only; never reads or exposes account records.
 export function LandingProgress() {
   const [selected, setSelected] = useState(5);
-  const swim = progress[selected] ?? progress[5];
+  const swim = progress[selected] ?? { month: "Ago", time: "1:06.00", x: 414, y: 162 };
   return (
     <figure className="landing-preview landing-enter min-w-0 overflow-hidden rounded-lg border border-border bg-card">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-5 py-4">

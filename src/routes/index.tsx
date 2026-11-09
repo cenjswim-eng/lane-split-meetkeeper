@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle, LogIn, Play, Check, UserRound, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle, LogIn, Play, UserRound, CreditCard, ShieldCheck } from "lucide-react";
 import { LandingProgress } from "@/components/landing-progress";
 import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
 
