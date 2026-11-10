@@ -8,6 +8,7 @@ import { appendAthleteProgressCharts } from "./athlete-progress-pdf";
 import { athleteMinimum } from "./athlete-minimum";
 import { athleteComparisons, comparisonLabel } from "./athlete-comparison";
 import type { QualificationStandard } from "./standard-rules";
+import { standardSourceNote, STANDARD_AGE_NOTE, type StandardVersion } from "./standard-versions";
 
 export interface ReportRow {
   athlete: string;
@@ -90,7 +91,7 @@ export interface AthleteReportResult {
   meets: { name: string; start_date: string | null } | null;
   splits: { split_distance: number; cumulative_time_ms: number; lap_time_ms: number | null }[];
 }
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = []) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
   const doc = new jsPDF({ orientation: "landscape" });
@@ -108,7 +109,7 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const y = () => (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 28;
   const minimumCells = (r: AthleteReportResult) => {
     const minimum = athleteMinimum(athlete, r, standards);
-    if (!minimum) return ["Sin mínima cargada", "—"];
+    if (!minimum) return ["—", "—"];
     const margin = minimum.limit_ms - (r.final_time_ms ?? minimum.limit_ms);
     return [formatTime(minimum.limit_ms), minimum.remaining_ms == null ? "No válido" : minimum.remaining_ms > 0 ? `Faltan ${(minimum.remaining_ms / 1000).toFixed(2)} s` : margin === 0 ? "Hizo marca: igualó la mínima" : `Hizo marca: ${(margin / 1000).toFixed(2)} s por debajo`];
   };
@@ -124,6 +125,14 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   appendAthleteProgressCharts(doc, name, ranked);
+  for (let page = 1; page <= doc.getNumberOfPages(); page++) {
+    doc.setPage(page);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(90);
+    const note = doc.splitTextToSize(`${standardSourceNote(source)}\n${STANDARD_AGE_NOTE}`, 268);
+    doc.text(note, 14, doc.internal.pageSize.getHeight() - 12 - (note.length - 1) * 2.5);
+  }
   return new File([brandedOutput(doc)], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
 }
 
