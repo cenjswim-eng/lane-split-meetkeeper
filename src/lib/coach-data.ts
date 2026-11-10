@@ -1,12 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { loadStandardVersions } from "./standard-version-data";
 
 export const coachQuery = queryOptions({ queryKey: ["coach-data"], queryFn: async () => {
   const [athletes, meets, events, standards, entries] = await Promise.all([
     supabase.from("athletes").select("*, teams(code, name)").order("last_name"),
     supabase.from("meets").select("*").order("start_date", { ascending: false }),
     supabase.from("events").select("*").eq("is_relay", false).order("distance"),
-    supabase.from("time_standards").select("*").order("name"),
+    loadStandardVersions(),
     supabase.from("meet_entries").select("*"),
   ]);
   for (const response of [athletes, meets, events, standards, entries]) if (response.error) throw response.error;
@@ -17,5 +18,5 @@ export const coachQuery = queryOptions({ queryKey: ["coach-data"], queryFn: asyn
     results.push(...page.data);
     if (page.data.length < 1000) break;
   }
-  return { athletes: athletes.data ?? [], meets: meets.data ?? [], events: events.data ?? [], standards: standards.data ?? [], entries: entries.data ?? [], results };
+  return { athletes: athletes.data ?? [], meets: meets.data ?? [], events: events.data ?? [], standards: standards.data, versions: standards.versions, activeVersion: standards.activeVersion, entries: entries.data ?? [], results };
 } });

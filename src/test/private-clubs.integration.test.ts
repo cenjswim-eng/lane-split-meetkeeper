@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 const url = process.env['SUPABASE_URL'];
 const key = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 const publicKey = process.env['SUPABASE_PUBLISHABLE_KEY'];
-const tables = ['meet_entries','splits','results','events','athletes','meets','teams','groups','time_standards','import_logs','club_members','club_documents','clubs'];
+const tables = ['standard_versions','meet_entries','splits','results','events','athletes','meets','teams','groups','time_standards','import_logs','club_members','club_documents','clubs'];
 
 it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, import identities, files and resets', async () => {
   if (!url || !key || !publicKey) return;
@@ -70,6 +70,18 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     expect((await first.from('events').insert({ meet_id:b.meet,distance:200,stroke:1 })).error).not.toBeNull();
     expect((await first.from('meet_entries').insert({ meet_id:b.meet,event_id:b.event.id,athlete_id:a.athlete.id })).error).not.toBeNull();
     expect((await first.from('meet_entries').insert({ meet_id:a.meet,event_id:b.event.id,athlete_id:a.athlete.id })).error).not.toBeNull();
+    const mark = { name:'FEVEDA test',season_year:2026,age_group:null,age_min:16,age_max:18,gender:'M',distance:100,stroke:1,course:'LCM',qualifying_time_ms:60000 };
+    const v1 = await first.rpc('import_standard_version',{p_document:'FEVEDA first',p_year:2026,p_effective:null,p_standards:[mark],p_warnings:[]});
+    expect(v1.error).toBeNull();
+    const v2 = await first.rpc('import_standard_version',{p_document:'FEVEDA variation',p_year:2026,p_effective:null,p_standards:[{...mark,qualifying_time_ms:59000}],p_warnings:[]});
+    expect(v2.error).toBeNull();
+    const vb = await second.rpc('import_standard_version',{p_document:'Other account',p_year:2026,p_effective:null,p_standards:[mark],p_warnings:[]});
+    expect(vb.error).toBeNull();
+    expect((await first.from('standard_versions').select('id')).data).toHaveLength(2);
+    expect((await first.from('standard_versions').update({standards:[mark]}).eq('id',v2.data)).error).not.toBeNull();
+    expect((await first.rpc('activate_standard_version',{p_id:vb.data})).error).not.toBeNull();
+    expect((await first.rpc('activate_standard_version',{p_id:v1.data})).error).toBeNull();
+    expect((await first.from('standard_versions').select('id').eq('active',true)).data?.[0]?.id).toBe(v1.data);
     expect((await first.from('club_members').insert({ club_id:b.club.id,first_name:'forged' })).error).not.toBeNull();
     expect((await first.storage.from('club-documents').download(`${b.club.id}/privacy-check.pdf`)).error).not.toBeNull();
     const wrongUpload = await first.storage.from('club-documents').upload(`${b.club.id}/forged.pdf`,new TextEncoder().encode('%PDF'),{ contentType: 'application/pdf' });
@@ -77,6 +89,8 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     const reset = await first.rpc('reset_management_data', { p_confirmation:'BORRAR TODO' });
     expect(reset.error).toBeNull();
     expect((await first.from('athletes').select('id')).data).toHaveLength(0);
+    expect((await first.from('standard_versions').select('id')).data).toHaveLength(0);
+    expect((await second.from('standard_versions').select('id')).data).toHaveLength(1);
     expect((await first.from('meet_entries').select('id')).data).toHaveLength(0);
     expect((await second.from('meet_entries').select('seed_time_ms')).data?.[0]?.seed_time_ms).toBe(61000);
     expect((await second.from('athletes').select('id')).data).toHaveLength(1);

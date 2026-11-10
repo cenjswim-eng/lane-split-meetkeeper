@@ -12,6 +12,7 @@ import { rankedAthleteRecords } from "@/lib/athlete-records";
 import { Button } from "@/components/ui/button";
 import { AthleteTrainingZones } from "@/components/athlete-training-zones";
 import { standardApplies } from "@/lib/standard-rules";
+import { loadStandardVersions } from "@/lib/standard-version-data";
 import { HistoryTransfer, TransferLog } from "@/components/history-transfer";
 
 const profileQuery = (id: string) =>
@@ -24,11 +25,11 @@ const profileQuery = (id: string) =>
           .from("results")
           .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, is_dq, round, origin_team, meets(id, name, start_date, location), events(distance, stroke, event_number, is_relay), splits(split_distance, cumulative_time_ms, lap_time_ms)")
           .eq("athlete_id", id),
-        supabase.from("time_standards").select("*"),
+        loadStandardVersions(),
       ]);
       if (a.error) throw a.error;
       if (r.error) throw r.error;
-      return { athlete: a.data, results: rankedAthleteRecords(r.data), total: r.data.length, standards: s.data ?? [] };
+      return { athlete: a.data, results: rankedAthleteRecords(r.data), total: r.data.length, standards: s.data, activeVersion: s.activeVersion };
     },
   });
 
@@ -90,7 +91,7 @@ function Profile() {
   return (
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
-      <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={() => athleteProgressPdf(athlete, results, standards)} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
+      <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={async () => { const current = await loadStandardVersions(); return athleteProgressPdf(athlete, results, current.data, current.activeVersion); }} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>

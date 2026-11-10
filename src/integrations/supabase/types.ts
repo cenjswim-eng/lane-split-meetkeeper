@@ -626,6 +626,42 @@ export type Database = {
           },
         ]
       }
+      standard_versions: {
+        Row: {
+          active: boolean
+          document_name: string
+          effective_from: string | null
+          id: string
+          imported_at: string | null
+          owner_id: string
+          season_year: number | null
+          standards: Json
+          warnings: Json
+        }
+        Insert: {
+          active?: boolean
+          document_name: string
+          effective_from?: string | null
+          id?: string
+          imported_at?: string | null
+          owner_id?: string
+          season_year?: number | null
+          standards: Json
+          warnings?: Json
+        }
+        Update: {
+          active?: boolean
+          document_name?: string
+          effective_from?: string | null
+          id?: string
+          imported_at?: string | null
+          owner_id?: string
+          season_year?: number | null
+          standards?: Json
+          warnings?: Json
+        }
+        Relationships: []
+      }
       swim_categories: {
         Row: {
           age_max: number | null
@@ -751,6 +787,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_standard_version: { Args: { p_id: string }; Returns: undefined }
       copy_athlete_history: {
         Args: { _results: string[]; _target: string }
         Returns: Json
@@ -783,6 +820,16 @@ export type Database = {
       import_club_members: {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
+      }
+      import_standard_version: {
+        Args: {
+          p_document: string
+          p_effective?: string
+          p_standards?: Json
+          p_warnings?: Json
+          p_year?: number
+        }
+        Returns: string
       }
       is_app_owner: { Args: never; Returns: boolean }
       request_app_access: { Args: never; Returns: Json }

@@ -74,6 +74,6 @@ function CategoriesPage() {
       <Button variant="ghost" onClick={() => setRows(toRows(SWIM_CATEGORIES))}><RotateCcw />Restaurar Venezuela</Button>
       <Button onClick={save} disabled={busy}><Save />{busy ? "Guardando…" : "Guardar categorías"}</Button>
     </div>
-    <p className="text-sm text-muted-foreground">Al guardar, las mínimas ya cargadas con el mismo nombre de categoría se actualizan a las nuevas edades.</p>
+    <p className="text-sm text-muted-foreground">Las versiones de documentos oficiales conservan sus categorías y edades originales. Estos cambios no modifican las versiones importadas ni los PDF generados.</p>
   </div>;
 }

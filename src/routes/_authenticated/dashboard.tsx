@@ -11,6 +11,7 @@ import { ShareSummary } from "@/components/share-summary";
 import { MeetExport } from "@/components/meet-export";
 import { exportMeet, exportPdf } from "@/lib/meet-files";
 import { dashboardSummary } from "@/lib/dashboard-summary";
+import { loadStandardVersions } from "@/lib/standard-version-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -20,7 +21,7 @@ const dashQuery = queryOptions({
     const [athletes, meets, standards] = await Promise.all([
       supabase.from("athletes").select("id", { count: "exact", head: true }),
       supabase.from("meets").select("id, name, start_date, end_date, location, course").order("start_date", { ascending: false }),
-      supabase.from("time_standards").select("*"),
+      loadStandardVersions(),
     ]);
     for (const r of [athletes, meets, standards]) if (r.error) throw r.error;
     const results = [];
