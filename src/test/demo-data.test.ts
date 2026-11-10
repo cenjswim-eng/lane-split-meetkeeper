@@ -3,11 +3,13 @@ import { demoAthletes, demoMeets, demoMinimums, demoRanking, demoSummary, demoSw
 
 describe("Public read-only demo", () => {
   it("keeps fictional fixtures immutable instead of persisting edits", () => {
-    expect(() => Reflect.set(demoAthletes[0], "name", "Changed")).not.toThrow();
-    expect(Reflect.set(demoAthletes[0], "name", "Changed")).toBe(false);
-    expect(demoAthletes[0]?.name).toBe("Ana Ríos");
-    expect(Reflect.set(demoAthletes[0]?.times ?? [], "0", 1)).toBe(false);
-    expect(Reflect.set(demoMeets[0], "name", "Changed")).toBe(false);
+    const athlete = demoAthletes[0];
+    const meet = demoMeets[0];
+    if (!athlete || !meet) throw new Error("Missing demo fixtures");
+    expect(Reflect.set(athlete, "name", "Changed")).toBe(false);
+    expect(athlete.name).toBe("Ana Ríos");
+    expect(Reflect.set(athlete.times, "0", 1)).toBe(false);
+    expect(Reflect.set(meet, "name", "Changed")).toBe(false);
     expect(Reflect.set(demoMinimums, "F", 1)).toBe(false);
   });
   it("derives the dashboard totals from the example rows", () => {
