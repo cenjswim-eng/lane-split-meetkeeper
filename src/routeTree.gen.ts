@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
@@ -42,9 +44,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestAccessRoute = RequestAccessRouteImport.update({
   id: '/request-access',
   path: '/request-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
@@ -123,7 +135,9 @@ const LovableEmailTransactionalPreviewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
@@ -142,7 +156,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
@@ -163,7 +179,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/terminos': typeof TerminosRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
@@ -184,7 +202,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/privacidad'
     | '/request-access'
+    | '/terminos'
     | '/access'
     | '/categories'
     | '/club'
@@ -203,7 +223,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/privacidad'
     | '/request-access'
+    | '/terminos'
     | '/access'
     | '/categories'
     | '/club'
@@ -223,7 +245,9 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/privacidad'
     | '/request-access'
+    | '/terminos'
     | '/_authenticated/access'
     | '/_authenticated/categories'
     | '/_authenticated/club'
@@ -244,7 +268,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   RequestAccessRoute: typeof RequestAccessRoute
+  TerminosRoute: typeof TerminosRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -271,11 +297,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/request-access': {
       id: '/request-access'
       path: '/request-access'
       fullPath: '/request-access'
       preLoaderRoute: typeof RequestAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/access': {
@@ -418,7 +458,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PrivacidadRoute: PrivacidadRoute,
   RequestAccessRoute: RequestAccessRoute,
+  TerminosRoute: TerminosRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport

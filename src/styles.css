@@ -131,21 +131,27 @@
 
 /* Shared workspace surfaces, scoped brand accents: private account colors stay private. */
 .landing {
-  --background: var(--workspace-background);
-  --foreground: var(--workspace-foreground);
-  --card: var(--workspace-card);
+  /* Portada: azul marino profundo + turquesa, coordinada con los paneles. */
+  --background: oklch(0.19 0.045 255);
+  --foreground: oklch(0.96 0.01 240);
+  --card: oklch(0.23 0.05 255);
   --card-foreground: var(--foreground);
-  --primary: var(--preset-pool-primary);
-  --primary-foreground: oklch(0.17 0.035 240);
-  --accent: var(--preset-pool-accent);
-  --accent-foreground: oklch(0.2 0.04 60);
-  --muted: var(--workspace-muted);
-  --muted-foreground: var(--workspace-muted-foreground);
-  --border: var(--workspace-border);
+  --primary: oklch(0.78 0.13 195);
+  --primary-foreground: oklch(0.17 0.04 255);
+  --accent: var(--primary);
+  --accent-foreground: var(--primary-foreground);
+  --muted: oklch(0.26 0.045 255);
+  --muted-foreground: oklch(0.72 0.02 240);
+  --border: oklch(0.33 0.04 255);
   --ring: var(--primary);
-  --landing-shadow: var(--shadow-panel);
+  --landing-shadow: 0 18px 50px -18px oklch(0.1 0.03 255 / 0.8);
   background: var(--background);
   color: var(--foreground);
+}
+.landing-reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease-out, transform 600ms ease-out; }
+.landing-reveal-visible { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal { opacity: 1; transform: none; transition: none; }
 }
 .landing h1, .landing h2, .landing h3 {
   font-family: var(--font-sans);
