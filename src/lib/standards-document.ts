@@ -20,7 +20,7 @@ export function parseStandardsDocument(lines: string[], course: string, categori
     const stroke = styles.find(([re]) => re.test(text))?.[1];
     if (!distance || !stroke) continue;
     const times = [...line.matchAll(timePattern)].map(m => m[0].replace(",", "."));
-    if (!times.length) continue;
+    if (!times.length) { warnings.push(`Fila sin tiempo legible: ${line.trim()}`); continue; }
     const labels = columns.length ? columns : category ? [category] : [];
     if (gender === "?" || labels.length !== times.length) {
       warnings.push(`No se asignó automáticamente esta fila: ${line.trim()}. Revisa sexo y columnas.`);
