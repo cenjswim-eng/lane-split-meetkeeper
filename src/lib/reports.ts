@@ -23,7 +23,7 @@ export interface ReportRow {
 }
 
 function header(doc: jsPDF, title: string, subtitle: string) {
-  doc.setProperties({ title, author: "Natacion pro", creator: "Natacion pro" });
+  doc.setProperties({ title, author: "Swim Lane Coach", creator: "Swim Lane Coach" });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(title, 14, 16);
@@ -40,7 +40,7 @@ function brandedOutput(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(90);
-    doc.text("Natacion pro · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6);
+    doc.text("Swim Lane Coach · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6);
   }
   return doc.output("blob");
 }

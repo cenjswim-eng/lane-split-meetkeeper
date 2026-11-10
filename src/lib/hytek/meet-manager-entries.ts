@@ -51,7 +51,7 @@ export function buildMeetManagerEntries(meet: Meet, rows: ExportRow[], teams: { 
     const group = grouped.get(code) ?? []; group.push(row); grouped.set(code, group);
   }
   const lines = [
-    record("A0", [[4, 8, "V3.0"], [12, 2, "01"], [44, 20, "Natacion pro"], [64, 10, "1.0"], [106, 8, date(now.toISOString().slice(0, 10))]]),
+    record("A0", [[4, 8, "V3.0"], [12, 2, "01"], [44, 20, "Swim Lane Coach"], [64, 10, "1.0"], [106, 8, date(now.toISOString().slice(0, 10))]]),
     record("B1", [[12, 30, ascii(meet.name).slice(0, 30)], [86, 20, ascii(meet.location ?? "").slice(0, 20)], [122, 8, date(meet.start_date)], [130, 8, date(meet.end_date ?? meet.start_date)], [150, 1, course]]),
   ];
   for (const [code, group] of grouped) {

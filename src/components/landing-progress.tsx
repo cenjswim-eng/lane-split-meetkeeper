@@ -19,7 +19,7 @@ export function LandingProgress() {
     <figure className="landing-preview landing-enter min-w-0 overflow-hidden rounded-lg border border-border bg-card">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-5 py-4">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <Waves className="size-5 shrink-0 text-primary" aria-hidden="true" /> Natación Pro
+          <Waves className="size-5 shrink-0 text-primary" aria-hidden="true" /> Swim Lane Coach
         </div>
         <span className="text-xs text-muted-foreground">Datos de ejemplo</span>
       </div>

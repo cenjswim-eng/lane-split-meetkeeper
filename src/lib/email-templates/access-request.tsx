@@ -2,7 +2,7 @@ import { Body, Button, Container, Head, Heading, Html, Preview, Text } from '@re
 import type { TemplateEntry } from './registry';
 
 function AccessRequest({ email = 'Usuario', reviewUrl = '' }: { email?: string; reviewUrl?: string }) {
-  return <Html lang="es"><Head /><Preview>Nueva solicitud de acceso a Natacion pro</Preview><Body style={{ backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }}><Container style={{ padding: '28px' }}><Heading>Natacion pro</Heading><Text>{email} solicita acceso al programa.</Text><Text>La cuenta no tiene acceso a los datos. Solo tú puedes aprobarla o rechazarla.</Text><Button href={reviewUrl}>Revisar solicitud</Button><Text>Al aprobar, otorgas acceso administrativo a los datos y herramientas de gestión.</Text></Container></Body></Html>;
+  return <Html lang="es"><Head /><Preview>Nueva solicitud de acceso a Swim Lane Coach</Preview><Body style={{ backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }}><Container style={{ padding: '28px' }}><Heading>Swim Lane Coach</Heading><Text>{email} solicita acceso al programa.</Text><Text>La cuenta no tiene acceso a los datos. Solo tú puedes aprobarla o rechazarla.</Text><Button href={reviewUrl}>Revisar solicitud</Button><Text>Al aprobar, otorgas acceso administrativo a los datos y herramientas de gestión.</Text></Container></Body></Html>;
 }
 
-export const template = { component: AccessRequest, subject: 'Solicitud de acceso — Natacion pro', displayName: 'Solicitud de acceso', previewData: { email: 'nadador@example.com', reviewUrl: 'https://lane-split-meetkeeper.lovable.app/access' } } satisfies TemplateEntry;
+export const template = { component: AccessRequest, subject: 'Solicitud de acceso — Swim Lane Coach', displayName: 'Solicitud de acceso', previewData: { email: 'nadador@example.com', reviewUrl: 'https://lane-split-meetkeeper.lovable.app/access' } } satisfies TemplateEntry;

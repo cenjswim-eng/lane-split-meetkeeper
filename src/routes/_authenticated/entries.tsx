@@ -14,7 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { ShareSummary } from "@/components/share-summary";
 
 export const Route = createFileRoute("/_authenticated/entries")({
- head: () => ({ meta: [{ title: "Inscripciones — Natacion pro" }, { name: "description", content: "Selecciona nadadores y pruebas, consulta mínimas y exporta inscripciones SD3." }, { property: "og:title", content: "Inscripciones — Natacion pro" }, { property: "og:description", content: "Inscripciones privadas del club y exportaciones para Team Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+ head: () => ({ meta: [{ title: "Inscripciones — Swim Lane Coach" }, { name: "description", content: "Selecciona nadadores y pruebas, consulta mínimas y exporta inscripciones SD3." }, { property: "og:title", content: "Inscripciones — Swim Lane Coach" }, { property: "og:description", content: "Inscripciones privadas del club y exportaciones para Team Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
  loader: ({ context }) => context.queryClient.ensureQueryData(coachQuery), component: Entries,
 });
 function Entries() {
@@ -34,7 +34,7 @@ function Entries() {
   } catch(e) { toast.error(e instanceof Error ? e.message : "No se pudieron guardar las inscripciones."); } finally { setBusy(false); }
  }
  async function remove(id: string) { const { error } = await supabase.from("meet_entries").delete().eq("id", id); if(error) toast.error(error.message); else await qc.invalidateQueries({ queryKey: ["coach-data"] }); }
- const text = `Natacion pro\nInscripciones · ${meet?.name ?? ""}\n${meet?.start_date ?? ""} · ${meet?.course ?? ""}\n` + entries.map(e => { const a=data.athletes.find(a=>a.id===e.athlete_id), ev=events.find(ev=>ev.id===e.event_id); return `${a?.first_name ?? ""} ${a?.last_name ?? ""} · ${ev ? eventLabel(ev.distance,ev.stroke) : ""} · ${formatTime(e.seed_time_ms)}`; }).join("\n");
+ const text = `Swim Lane Coach\nInscripciones · ${meet?.name ?? ""}\n${meet?.start_date ?? ""} · ${meet?.course ?? ""}\n` + entries.map(e => { const a=data.athletes.find(a=>a.id===e.athlete_id), ev=events.find(ev=>ev.id===e.event_id); return `${a?.first_name ?? ""} ${a?.last_name ?? ""} · ${ev ? eventLabel(ev.distance,ev.stroke) : ""} · ${formatTime(e.seed_time_ms)}`; }).join("\n");
  return <div className="space-y-6"><h1 className="text-4xl font-bold">Inscripciones</h1><div className="grid gap-3 sm:grid-cols-2"><Select value={meetId} onValueChange={v=>{setMeetId(v);setSelected([]);}}><SelectTrigger aria-label="Competencia"><SelectValue placeholder="Competencia" /></SelectTrigger><SelectContent>{data.meets.map(m=><SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select><Select value={athleteId} onValueChange={v=>{setAthleteId(v);setSelected([]);}}><SelectTrigger aria-label="Atleta"><SelectValue placeholder="Atleta" /></SelectTrigger><SelectContent>{data.athletes.map(a=><SelectItem key={a.id} value={a.id}>{a.first_name} {a.last_name}</SelectItem>)}</SelectContent></Select></div>
  <section className="border-y"><h2 className="py-4 text-2xl font-semibold">Pruebas de la competencia</h2>{events.length ? events.map(ev=>{
  const seed = athlete && meet ? entrySeed(data.results,athlete.id,ev.distance,ev.stroke,meet.course,meet.start_date) : null;

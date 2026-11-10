@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { requestAccess } from '@/lib/access-approval.functions';
 
 export const Route = createFileRoute('/request-access')({
-  head: () => ({ meta: [{ title: 'Solicitud de acceso — Natacion pro' }, { name: 'description', content: 'Solicita autorización del dueño para acceder a Natacion pro.' }, { property: 'og:title', content: 'Solicitud de acceso — Natacion pro' }, { name: 'twitter:title', content: 'Solicitud de acceso — Natacion pro' }, { property: 'og:description', content: 'Acceso privado sujeto a aprobación del dueño.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] }),
+  head: () => ({ meta: [{ title: 'Solicitud de acceso — Swim Lane Coach' }, { name: 'description', content: 'Solicita autorización del dueño para acceder a Swim Lane Coach.' }, { property: 'og:title', content: 'Solicitud de acceso — Swim Lane Coach' }, { name: 'twitter:title', content: 'Solicitud de acceso — Swim Lane Coach' }, { property: 'og:description', content: 'Acceso privado sujeto a aprobación del dueño.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] }),
   component: RequestPage,
 });
 

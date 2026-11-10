@@ -22,7 +22,7 @@ const athletesQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_authenticated/athletes/")({
-  head: () => ({ meta: [{ title: "Atletas — Natacion pro" }, { name: "description", content: "Listado de nadadores importados." }, { property: "og:title", content: "Atletas — Natacion pro" }, { name: "twitter:title", content: "Atletas — Natacion pro" }, { property: "og:description", content: "Listado de nadadores importados." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+  head: () => ({ meta: [{ title: "Atletas — Swim Lane Coach" }, { name: "description", content: "Listado de nadadores importados." }, { property: "og:title", content: "Atletas — Swim Lane Coach" }, { name: "twitter:title", content: "Atletas — Swim Lane Coach" }, { property: "og:description", content: "Listado de nadadores importados." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(athletesQuery),
   component: AthletesPage,
 });

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/profile")({
-  head: () => ({ meta: [{ title: "Mi perfil — Natacion pro" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Natacion pro" }, { name: "twitter:title", content: "Mi perfil — Natacion pro" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Mi perfil — Swim Lane Coach" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Swim Lane Coach" }, { name: "twitter:title", content: "Mi perfil — Swim Lane Coach" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(profileQuery),
   component: ProfilePage,
 });

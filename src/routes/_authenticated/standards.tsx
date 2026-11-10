@@ -16,7 +16,7 @@ import { StandardsCompliance } from "@/components/standards-compliance";
 import { categoryBounds } from "@/lib/standard-rules";
 import { useSwimCategories } from "@/lib/categories";
 
-export const Route = createFileRoute("/_authenticated/standards")({ head:()=>({meta:[{title:"Mínimas — Natacion pro"},{name:"description",content:"Tabla editable de mínimas por categoría, sexo, prueba y piscina."},{property:"og:title",content:"Mínimas — Natacion pro"},{property:"og:description",content:"Mínimas privadas de clasificación del club."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),loader:({context})=>context.queryClient.ensureQueryData(coachQuery),component:Standards });
+export const Route = createFileRoute("/_authenticated/standards")({ head:()=>({meta:[{title:"Mínimas — Swim Lane Coach"},{name:"description",content:"Tabla editable de mínimas por categoría, sexo, prueba y piscina."},{property:"og:title",content:"Mínimas — Swim Lane Coach"},{property:"og:description",content:"Mínimas privadas de clasificación del club."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),loader:({context})=>context.queryClient.ensureQueryData(coachQuery),component:Standards });
 const selectClass="h-10 w-full rounded-md border bg-background px-3 text-sm";
 function Standards(){const {data}=useSuspenseQuery(coachQuery);const qc=useQueryClient();const [open,setOpen]=useState(false);const [edit,setEdit]=useState<Tables<"time_standards">|null>(null);const [busy,setBusy]=useState(false);
  const cats=useSwimCategories();
