@@ -136,7 +136,7 @@ function Index() {
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
             <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5" aria-hidden="true">
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" />
-              <span className="ml-3 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">app.natacionpro — panel del entrenador</span>
+              <span className="ml-3 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">app.Swim Lane Coach — panel del entrenador</span>
             </div>
             <LandingProgress />
           </div>
