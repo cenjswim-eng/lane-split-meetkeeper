@@ -7,7 +7,7 @@ const build = (rows = [row]) => buildMeetManagerEntries(meet, rows, [{ code: "CL
 describe("Meet Manager SDIF v3 registrations", () => {
   it("uses A0 file type 01 and software at official offsets", () => {
     const a = build().split("\r\n")[0] ?? "";
-    expect(a.slice(0, 2)).toBe("A0"); expect(a.slice(3, 11).trim()).toBe("V3.0"); expect(a.slice(11, 13)).toBe("01"); expect(a.slice(43, 63).trim()).toBe("Natacion pro"); expect(a.slice(105, 113)).toBe("11022026");
+    expect(a.slice(0, 2)).toBe("A0"); expect(a.slice(3, 11).trim()).toBe("V3.0"); expect(a.slice(11, 13)).toBe("01"); expect(a.slice(43, 63).trim()).toBe("Swim Lane Coach"); expect(a.slice(105, 113)).toBe("11022026");
   });
   it("writes C1 team identity, mandatory C2 counts and Z0 totals", () => {
     const lines = build([row, { ...row, event: { ...row.event, event_number: "13", distance: 200 } }]).split("\r\n").filter(Boolean);

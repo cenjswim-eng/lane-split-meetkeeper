@@ -18,7 +18,7 @@ const requestsQuery = queryOptions({ queryKey: ['access-requests'], queryFn: asy
 } });
 
 export const Route = createFileRoute('/_authenticated/access')({
-  head: () => ({ meta: [{ title: 'Aprobación de cuentas — Natacion pro' }, { name: 'description', content: 'Control privado de solicitudes de acceso por el dueño.' }, { property: 'og:title', content: 'Aprobación de cuentas — Natacion pro' }, { name: 'twitter:title', content: 'Aprobación de cuentas — Natacion pro' }, { property: 'og:description', content: 'Revisión de solicitudes de acceso al programa.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] }),
+  head: () => ({ meta: [{ title: 'Aprobación de cuentas — Swim Lane Coach' }, { name: 'description', content: 'Control privado de solicitudes de acceso por el dueño.' }, { property: 'og:title', content: 'Aprobación de cuentas — Swim Lane Coach' }, { name: 'twitter:title', content: 'Aprobación de cuentas — Swim Lane Coach' }, { property: 'og:description', content: 'Revisión de solicitudes de acceso al programa.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(requestsQuery),
   component: AccessPage,
 });

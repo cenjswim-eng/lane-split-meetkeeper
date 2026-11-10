@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acceso — Natacion pro" },
-      { name: "description", content: "Acceso de administradores a Natacion pro." },
-      { property: "og:title", content: "Acceso — Natacion pro" }, { name: "twitter:title", content: "Acceso — Natacion pro" },
-      { property: "og:description", content: "Acceso de administradores a Natacion pro." },
+      { title: "Acceso — Swim Lane Coach" },
+      { name: "description", content: "Acceso de administradores a Swim Lane Coach." },
+      { property: "og:title", content: "Acceso — Swim Lane Coach" }, { name: "twitter:title", content: "Acceso — Swim Lane Coach" },
+      { property: "og:description", content: "Acceso de administradores a Swim Lane Coach." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

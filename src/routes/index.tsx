@@ -10,8 +10,8 @@ import { LandingReveal } from "@/components/landing-reveal";
 import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
 import summaryPoster from "@/assets/videos/natacion-pro-resumen-poster.jpg.asset.json";
 
-const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Natación Pro.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
-const homeTitle = "Natación Pro | Software para entrenadores y clubes de natación";
+const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
+const homeTitle = "Swim Lane Coach | Software para entrenadores y clubes de natación";
 const homeDescription = "Gestiona atletas, resultados y marcas mínimas de tu club de natación. Software para entrenadores, compatible con Meet Manager y Team Manager. Consulta planes.";
 
 export const Route = createFileRoute("/")({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
       { title: homeTitle },
       { name: "description", content: homeDescription },
       { property: "og:title", content: homeTitle },
-      { property: "og:site_name", content: "Natación Pro" },
+      { property: "og:site_name", content: "Swim Lane Coach" },
       { name: "twitter:title", content: homeTitle },
       { property: "og:description", content: homeDescription },
       { name: "twitter:description", content: homeDescription },
@@ -118,7 +118,7 @@ function Index() {
 
       <section id="inicio" className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-8 sm:px-10 sm:pt-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-16">
         <div className="landing-enter min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-primary"><span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />Natación Pro · Para entrenadores y clubes</p>
+          <p className="flex items-center gap-2 text-sm font-medium text-primary"><span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />Swim Lane Coach · Para entrenadores y clubes</p>
           <h1 className="mt-5 max-w-xl text-[42px] font-semibold leading-[1.08] sm:text-5xl lg:text-[56px]">Cada parcial de tus nadadores, <span className="text-primary">sin perder ninguno</span></h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
           <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -136,7 +136,7 @@ function Index() {
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
             <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5" aria-hidden="true">
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" />
-              <span className="ml-3 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">app.natacionpro — panel del entrenador</span>
+              <span className="ml-3 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">app.Swim Lane Coach — panel del entrenador</span>
             </div>
             <LandingProgress />
           </div>
@@ -332,8 +332,8 @@ function Index() {
       <LandingReveal>
         <section aria-labelledby="video-heading" className="border-t border-border">
           <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <div className="flex items-center gap-3"><Play className="size-6 text-primary" aria-hidden="true" /><h2 id="video-heading" className="text-2xl font-semibold sm:text-3xl">Natación Pro en 10 segundos</h2></div>
-            <video aria-label="Video resumen de Natación Pro" className="mt-6 aspect-video w-full rounded-lg bg-muted object-contain" controls playsInline preload="none" poster={summaryPoster.url} src={summaryVideo.url}>
+            <div className="flex items-center gap-3"><Play className="size-6 text-primary" aria-hidden="true" /><h2 id="video-heading" className="text-2xl font-semibold sm:text-3xl">Swim Lane Coach en 10 segundos</h2></div>
+            <video aria-label="Video resumen de Swim Lane Coach" className="mt-6 aspect-video w-full rounded-lg bg-muted object-contain" controls playsInline preload="none" poster={summaryPoster.url} src={summaryVideo.url}>
               Tu navegador no puede reproducir este video.
             </video>
             <p className="mt-3 text-sm text-muted-foreground">Atletas y resultados organizados, seguimiento del progreso y comparación con marcas mínimas. Escenas ilustrativas generadas.</p>
@@ -343,7 +343,7 @@ function Index() {
 
       <section className="border-t border-border bg-muted">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center md:py-16">
-          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Prueba Natación Pro con el archivo de tu última competencia</h2>
+          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Prueba Swim Lane Coach con el archivo de tu última competencia</h2>
           <WhatsAppButton label="Solicitar acceso por WhatsApp" className="shrink-0" />
         </div>
       </section>
@@ -357,7 +357,7 @@ function Index() {
             <Link to="/terminos" className="flex min-h-11 items-center hover:text-foreground">Términos</Link>
             <Link to="/privacidad" className="flex min-h-11 items-center hover:text-foreground">Privacidad</Link>
           </nav>
-          <p className="text-xs">© 2026 Natación Pro</p>
+          <p className="text-xs">© 2026 Swim Lane Coach</p>
         </div>
       </footer>
     </main>

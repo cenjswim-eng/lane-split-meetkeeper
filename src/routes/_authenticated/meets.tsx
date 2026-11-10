@@ -15,7 +15,7 @@ const meetsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_authenticated/meets")({
-  head: () => ({ meta: [{ title: "Competencias — Natacion pro" }, { name: "description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:title", content: "Competencias — Natacion pro" }, { name: "twitter:title", content: "Competencias — Natacion pro" }, { property: "og:description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+  head: () => ({ meta: [{ title: "Competencias — Swim Lane Coach" }, { name: "description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:title", content: "Competencias — Swim Lane Coach" }, { name: "twitter:title", content: "Competencias — Swim Lane Coach" }, { property: "og:description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(meetsQuery),
   component: MeetsPage,
 });

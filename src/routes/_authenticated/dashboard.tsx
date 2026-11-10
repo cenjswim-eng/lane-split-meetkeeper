@@ -36,11 +36,11 @@ const dashQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [
-    { title: "Resumen del entrenador — Natacion pro" },
+    { title: "Resumen del entrenador — Swim Lane Coach" },
     { name: "description", content: "Resumen privado del club: atletas, competencias, mejores marcas, mínimas y resultados recientes." },
-    { property: "og:title", content: "Resumen del entrenador — Natacion pro" },
-    { property: "og:description", content: "Competencias, marcas recientes y actividad deportiva del club en Natacion pro." },
-    { name: "twitter:title", content: "Resumen del entrenador — Natacion pro" },
+    { property: "og:title", content: "Resumen del entrenador — Swim Lane Coach" },
+    { property: "og:description", content: "Competencias, marcas recientes y actividad deportiva del club en Swim Lane Coach." },
+    { name: "twitter:title", content: "Resumen del entrenador — Swim Lane Coach" },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
   ] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(dashQuery),
@@ -70,7 +70,7 @@ function Dashboard() {
       ].map(({ label, value, detail, icon: Icon, color }) => <div key={label} className="flex min-w-0 flex-col rounded-lg border bg-card p-4 sm:p-5"><div className="flex items-center justify-between gap-2"><Icon className={`size-5 shrink-0 ${color}`} /><span className="text-[10px] text-muted-foreground">CLUB</span></div><p className={`time mt-4 text-3xl font-semibold ${color}`}>{value}</p><h2 className="mt-1 font-sans text-sm font-medium leading-snug">{label}</h2><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{detail}</p></div>)}
     </div>
     <section aria-label="Accesos rápidos" className="border-y py-4"><div className="grid gap-2 sm:flex sm:flex-wrap">
-      <Button asChild className="h-11"><Link to="/import"><Upload />Importar archivo</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Natacion pro\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
+      <Button asChild className="h-11"><Link to="/import"><Upload />Importar archivo</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Swim Lane Coach\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
     </div></section>
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <section className="min-w-0"><div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"><div className="min-w-0"><h2 className="text-2xl font-semibold">Resultados recientes del club</h2><p className="mt-1 text-xs text-muted-foreground">Nados individuales por mes · últimos 9 meses</p></div><span className="time mt-1 text-lg text-primary">{summary.recent.length}</span></div>
