@@ -55,7 +55,7 @@ export function ImportStandards({ existing }: { existing: Tables<"time_standards
     setBusy(true); setError("");
     try {
       const response = await supabase.rpc("import_standard_version", {
-        p_document: documentName.trim(), p_year: Number(year), p_effective: effective || null,
+        p_document: documentName.trim(), p_year: Number(year), ...(effective ? { p_effective: effective } : {}),
         p_standards: validRows, p_warnings: warnings,
       });
       if (response.error) throw response.error;
