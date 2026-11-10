@@ -110,8 +110,8 @@ function Index() {
             <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#como-funciona">Cómo funciona</a></Button>
             <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#planes">Planes</a></Button>
             <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#preguntas">Preguntas</a></Button>
-            <Button asChild variant="outline" size="sm" className="min-h-10"><Link to="/dashboard"><LogIn aria-hidden="true" />Iniciar sesión</Link></Button>
-            <Button asChild size="sm" className="min-h-10 shadow-none"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer">Solicitar acceso</a></Button>
+            <Button asChild variant="outline" size="sm" className="min-h-10"><Link to="/dashboard" aria-label="Iniciar sesión"><LogIn aria-hidden="true" /><span className="hidden sm:inline">Iniciar sesión</span></Link></Button>
+            <Button asChild size="sm" className="min-h-10 shadow-none"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><span className="hidden sm:inline">Solicitar acceso</span><span className="sm:hidden">Acceso</span></a></Button>
           </nav>
         </div>
       </header>
