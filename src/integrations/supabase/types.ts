@@ -824,10 +824,10 @@ export type Database = {
       import_standard_version: {
         Args: {
           p_document: string
-          p_effective: string
-          p_standards: Json
-          p_warnings: Json
-          p_year: number
+          p_effective?: string
+          p_standards?: Json
+          p_warnings?: Json
+          p_year?: number
         }
         Returns: string
       }

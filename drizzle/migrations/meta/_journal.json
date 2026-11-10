@@ -148,6 +148,13 @@
       "when": 1794318998834,
       "tag": "0020_standard_version_reset_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794319109454,
+      "tag": "0021_optional_standard_version_metadata",
+      "breakpoints": true
     }
   ]
 }
