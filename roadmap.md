@@ -1,4 +1,5 @@
 # Exportación móvil
+- [x] Crear demo pública de solo lectura con datos ficticios; panel, atletas, competencias y reportes verificados sin sesión y sin consultas privadas, a 320 y 430 px.
 - [ ] Verificar recorrido portada → acceso → atletas → perfil → PDF individual y corregir fallos reproducidos; el recorrido privado requiere que el solicitante inicie sesión, pues la recuperación automática no encontró su cuenta.
 - [ ] Crear video explicativo publicable con pantallas reales de la interfaz y consulta de planes por WhatsApp, y sustituir el video ilustrativo de la portada; captura de paneles bloqueada hasta que el solicitante inicie sesión en el preview, porque la recuperación automática de su cuenta no encontró un usuario asociado.
 - [x] Mostrar mejora/empeoramiento frente a la competencia anterior de la misma prueba y piscina, y diferencia exacta con la mínima en ambos PDF individuales; 26 pruebas pasan, PDF generado y presentación revisados, compilación correcta.

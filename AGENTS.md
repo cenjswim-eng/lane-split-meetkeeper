@@ -41,3 +41,4 @@
 - PDF imports use browser-local PDF.js/Tesseract without paid calls; pure result and standards parsers feed review before writes. Link crawling follows portal/index pages; labelled HTML tables use official-time columns and each event page retains its round.
 - Athlete history transfers copy results/splits (never move or edit originals) via admin-checked copy_athlete_history, logged in record_transfers and undoable; fuzzy identity scoring is pure in src/lib/history-match.ts.
 - Age categories: per-account swim_categories (Venezuela fallback) passed to categoryBounds; saving re-links standards by name.
+- Demo: immutable local fixtures only; no DB calls, for privacy.

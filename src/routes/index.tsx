@@ -124,7 +124,7 @@ function Index() {
           <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <WhatsAppButton label="Solicitar acceso por WhatsApp" />
             <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
-              <a href="#como-funciona">Ver cómo funciona</a>
+              <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública</Link>
             </Button>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -317,7 +317,7 @@ function Index() {
                 { q: "¿Mis datos están seguros?", a: "Sí. Cada cuenta es privada: solo tú ves los atletas, resultados y documentos de tu club. Ninguna otra cuenta puede acceder a ellos." },
                 { q: "¿Sirve para clubes pequeños?", a: "Sí. Funciona igual para un entrenador con pocos atletas que para un club con varias categorías y entrenadores." },
                 { q: "¿Qué medios de pago hay?", a: "Los medios de pago se acuerdan directamente por WhatsApp con el dueño, según tu país." },
-                { q: "¿Hay prueba o demo?", a: "Escríbenos por WhatsApp y te contamos las opciones. Una vez activada tu cuenta, puedes probar de inmediato con el archivo de tu última competencia." },
+                { q: "¿Hay prueba o demo?", a: "Sí. Abre «Explorar demo pública» para recorrer el panel, los atletas, las competencias y los reportes sin iniciar sesión. Todos los datos son ficticios y de solo lectura. Para usar los registros de tu club, consulta los planes por WhatsApp y solicita la activación." },
               ].map(({ q, a }, index) => (
                 <AccordionItem key={q} value={`faq-${index}`}>
                   <AccordionTrigger className="min-h-12 text-left text-base">{q}</AccordionTrigger>
