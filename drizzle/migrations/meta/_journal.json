@@ -134,6 +134,13 @@
       "when": 1793733153902,
       "tag": "0018_custom_swim_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794318981938,
+      "tag": "0019_official_standard_versions",
+      "breakpoints": true
     }
   ]
 }
