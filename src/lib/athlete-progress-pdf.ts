@@ -79,7 +79,7 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
         styles: { fontSize: 8, cellPadding: 1 },
         headStyles: { fillColor: print.line },
         columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 28 }, 3: { cellWidth: 28 }, 4: { cellWidth: 30 } },
-        margin: { left: 14, right: 14, bottom: 14 },
+        margin: { left: 14, right: 14, bottom: 25 },
       });
     }
   }

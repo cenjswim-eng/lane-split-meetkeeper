@@ -97,8 +97,10 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const doc = new jsPDF({ orientation: "landscape" });
   const name = `${athlete.first_name} ${athlete.last_name}`;
   const year = new Date().getFullYear();
+  const age = ageAtDec31(athlete.birth_date, year);
+  const category = standards.find(s => age != null && (s.age_min == null || age >= s.age_min) && (s.age_max == null || age <= s.age_max) && s.age_group && (!s.gender || s.gender === athlete.gender))?.age_group ?? ageGroup(age);
   header(doc, "Seguimiento individual — últimos 9 meses", name);
-  autoTable(doc, { startY: 28, head: [["Club", "Nacimiento", "Categoría al 31/12", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", athlete.birth_date ?? "—", `${ageGroup(ageAtDec31(athlete.birth_date, year))} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
+  autoTable(doc, { startY: 28, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
   const best = new Map<string, AthleteReportResult>();
   for (const r of ranked) {
     if (!r.events || r.is_dq || r.final_time_ms == null) continue;
@@ -117,13 +119,13 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     const comparison = comparisons.get(r);
     return [comparison ? `${formatTime(comparison.previous_ms)} (${comparison.previous_date})` : "—", comparisonLabel(comparison)];
   };
-  autoTable(doc, { startY: y() + 10, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 8 } });
+  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 8 } });
   doc.setFontSize(8);
   doc.text("Variación: respecto a la mejor marca de la fecha de competencia anterior, misma prueba y piscina, dentro de los últimos 9 meses.", 14, y() + 5);
   const sorted = ranked;
-  autoTable(doc, { startY: y() + 10, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
+  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
-  if (splits.length) autoTable(doc, { startY: y() + 10, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
+  if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   appendAthleteProgressCharts(doc, name, ranked);
   for (let page = 1; page <= doc.getNumberOfPages(); page++) {
     doc.setPage(page);
