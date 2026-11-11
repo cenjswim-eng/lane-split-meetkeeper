@@ -20,7 +20,7 @@
 - Manual entries live in owner-scoped `meet_entries`, separate from final results, with parent guards and cascading deletion; pure entry seeding/minimum/ranking rules live in `src/lib/entry-rules.ts` and entries-only SD3 never includes final times or splits.
 - Coach reports: client-only dynamic ExcelJS; WhatsApp sharing needs preview + confirmation (private data).
 - AQUA ranking uses pure entry-rules selection of each athlete's best stored score in the nine-month window; UI and exports share coach-reports rows to prevent duplicate-swim inflation.
-- Individual PDFs receive the account's loaded standards; pure athlete-minimum matching uses meet year, Dec-31 age, sex, event and course to report the remaining milliseconds without inventing limits.
+- PDFs fetch active owner-scoped standard_versions snapshots at generation; atomic invoker import/activation RPCs preserve history; matching uses meet-year Dec-31 age, sex, event and course.
 - Training-zone arithmetic lives in pure `src/lib/training-zones.ts`; use eligible individual event/course references and explicitly coach-entered speed ranges, never claim race-only Olbrecht thresholds; calibration is temporary and isolated by reference in the profile tool because no persistence was requested.
 - Hy-Tek file parsing/export lives in `src/lib/hytek/` (HY3 + SDIF) and DB writing in `src/lib/importer.ts`; keep parsers pure so they stay testable without the database.
 - Access Jet 4 imports use a dynamically loaded browser MDB reader in `src/lib/access.ts` and conservative pure schema normalization; preview raw tables, explicit numeric time units and skipped data before writing so unknown schemas are never silently assumed compatible.
