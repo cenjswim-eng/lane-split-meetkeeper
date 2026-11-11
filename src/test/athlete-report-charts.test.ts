@@ -20,9 +20,13 @@ const swim = (
   splits: [],
 });
 
-async function pdfText(file: File) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  return Buffer.from(bytes).toString("latin1");
+function pdfText(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(Buffer.from(reader.result as ArrayBuffer).toString("latin1"));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 const athlete = {
