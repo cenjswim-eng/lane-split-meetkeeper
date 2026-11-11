@@ -7,6 +7,8 @@ import { eventLabel, formatTime } from "./swim";
 // Shared print roles, independent of the on-screen dark theme.
 const print = { ink: "#182E39", muted: "#586873", grid: "#DCE3E7", line: "#0C4A6E", improvement: "#16765C" };
 const dateLabel = (date: string | null | undefined) => date ? date.split("-").reverse().join("/") : "—";
+// Seven labelled swims keep the chart and its swim table inside one landscape A4 page.
+const SWIMS_PER_PAGE = 7;
 
 /** Vector charts stay sharp when printed and need no browser canvas or screenshot. */
 export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: AthleteReportResult[], now = new Date()) {
@@ -23,9 +25,8 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
     const improvement = first - last;
     const change = improvement === 0 ? "Sin cambio" : `${improvement > 0 ? "Mejora" : "Aumento"}: ${formatTime(Math.abs(improvement))} (${(Math.abs(improvement) / first * 100).toFixed(2)}%)`;
 
-    // Eight labelled swims leave room for the competition table on landscape A4.
-    for (let offset = 0; offset < group.records.length; offset += 8) {
-      const records = group.records.slice(offset, offset + 8);
+    for (let offset = 0; offset < group.records.length; offset += SWIMS_PER_PAGE) {
+      const records = group.records.slice(offset, offset + SWIMS_PER_PAGE);
       doc.addPage();
       doc.setTextColor(print.ink);
       doc.setFont("helvetica", "bold");
