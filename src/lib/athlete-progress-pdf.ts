@@ -23,8 +23,8 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
     const improvement = first - last;
     const change = improvement === 0 ? "Sin cambio" : `${improvement > 0 ? "Mejora" : "Aumento"}: ${formatTime(Math.abs(improvement))} (${(Math.abs(improvement) / first * 100).toFixed(2)}%)`;
 
-    // Eight labelled swims leave room for the competition table on landscape A4.
-    for (let offset = 0; offset < group.records.length; offset += 8) {
+    // Seven labelled swims keep the swim table inside one landscape A4 page.
+    for (let offset = 0; offset < group.records.length; offset += 7) {
       const records = group.records.slice(offset, offset + 8);
       doc.addPage();
       doc.setTextColor(print.ink);

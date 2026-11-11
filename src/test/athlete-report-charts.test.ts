@@ -62,8 +62,8 @@ describe("athlete PDF keeps per-event evolution charts", () => {
   it("keeps every swim when a proof needs more than one chart page", async () => {
     const text = await pdfText(athleteProgressPdf(athlete, TEN_SWIMS, [], null));
     // The en dash is stored as a WinAnsi byte, so match it positionally.
-    expect(text).toMatch(/Nados 1.8 de 10/);
-    expect(text).toMatch(/Nados 9.10 de 10/);
+    expect(text).toMatch(/Nados 1.7 de 10/);
+    expect(text).toMatch(/Nados 8.10 de 10/);
     expect(text.match(/Evolución ·/g)).toHaveLength(2);
   });
 
