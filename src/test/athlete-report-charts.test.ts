@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { athleteProgressPdf, type AthleteReportResult } from "@/lib/reports";
 
+// Dates stay inside the rolling nine-month window regardless of the real clock.
 const swim = (
   time: number,
   date: string,
@@ -38,6 +39,11 @@ const athlete = {
   teams: { name: "Club Acua" },
 };
 
+const TEN_SWIMS = [
+  "2026-03-01", "2026-03-20", "2026-04-15", "2026-05-10", "2026-06-05",
+  "2026-07-01", "2026-07-25", "2026-08-20", "2026-09-15", "2026-10-10",
+].map((date, i) => swim(60000 + i * 100, date));
+
 describe("athlete PDF keeps per-event evolution charts", () => {
   it("keeps one chart page for every event and pool", async () => {
     const results = [
@@ -54,10 +60,10 @@ describe("athlete PDF keeps per-event evolution charts", () => {
   });
 
   it("keeps every swim when a proof needs more than one chart page", async () => {
-    const results = Array.from({ length: 10 }, (_, i) => swim(60000 + i * 100, `2026-0${(i % 9) + 1}-10`));
-    const text = await pdfText(athleteProgressPdf(athlete, results, [], null));
-    expect(text).toContain("Nados 1–8 de 10");
-    expect(text).toContain("Nados 9–10 de 10");
+    const text = await pdfText(athleteProgressPdf(athlete, TEN_SWIMS, [], null));
+    // The en dash is stored as a WinAnsi byte, so match it positionally.
+    expect(text).toMatch(/Nados 1.8 de 10/);
+    expect(text).toMatch(/Nados 9.10 de 10/);
     expect(text.match(/Evolución ·/g)).toHaveLength(2);
   });
 
