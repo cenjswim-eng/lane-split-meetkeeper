@@ -28,6 +28,7 @@
 - [x] Preparar correo con notify.swimlanecoach.app y aprobación exclusiva del dueño; solicitud temporal, bloqueo, aprobación y acceso verificados; envío al dueño confirmado y datos temporales eliminados.
 - [x] Añadir tabla individual R1, R2, VO2 Max, anaeróbico 1 y anaeróbico 2, con referencia Jan Olbrecht y rangos temporales calibrados por el entrenador; cálculos, sesión administrativa, validación y pantalla estrecha verificados, sin inventar umbrales desde las marcas.
 - [x] Añadir gráficas cronológicas por prueba y piscina al PDF individual, con competencias identificadas y todos los registros vigentes; exportación autenticada y PDF revisados.
+- [x] Mantener las gráficas de evolución en el PDF individual: prueba de regresión que exige una página de gráfica por prueba y piscina y todos los nados paginados; la tabla de nados ya no se desborda a páginas sueltas (25 nados: 9 páginas → 6). 153 pruebas pasan.
 - [x] Corregir fechas imposibles, lectura de archivos con acentos y pérdida de tiempos al reimportar inscripciones; verificar tiempo final en perfil con importación autenticada y limpiar datos temporales.
 - [x] Añadir borrado total de datos deportivos y del club, exclusivo de administradores y con confirmación explícita; conservar cuentas y permisos. Protecciones probadas; botón verificado sin ejecutar borrado real.
 - [x] Automatizar extracción y guardado de integrantes desde documentos MDB y PDF estructurados, conservando originales y verificando datos; PDF escaneado o sin columnas reconocibles conserva original sin inventar integrantes.
