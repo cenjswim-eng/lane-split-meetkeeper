@@ -35,12 +35,13 @@ export interface ParsedTeam {
   lsc?: string | null;
 }
 export interface ParsedFile {
-  format: "HY3" | "SDIF" | "MDB" | "PDF";
+  format: "HY3" | "SDIF" | "MDB" | "PDF" | "EV3" | "HYV";
   meet: { name: string; location: string | null; startDate: string | null; endDate: string | null; course: string };
   teams: ParsedTeam[];
   athletes: ParsedAthlete[];
   results: ParsedResult[];
   warnings: string[];
+  events?: import("./event-setup").SetupEvent[];
 }
 
 export function mdyToIso(s: string): string | null {
