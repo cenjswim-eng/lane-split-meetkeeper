@@ -11,6 +11,7 @@ export interface ImportSummary {
   athletesMatched: number;
   results: number;
   splits: number;
+  events?: number;
 }
 
 function must<T>(r: { data: T; error: { message: string } | null }): NonNullable<T> {
@@ -27,6 +28,12 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error('Inicia sesión para importar tus registros.');
   const ownerId = auth.user.id;
+  if (p.events) {
+    if (!p.events.length) throw new Error("Selecciona al menos una prueba antes de guardar.");
+    const meetId = must(await supabase.rpc("import_meet_setup", { p_setup: { format: p.format, meet: p.meet, events: p.events } as never, p_file_name: fileName }));
+    onProgress?.(100);
+    return { meetId, meetName: p.meet.name, teams: 0, athletesNew: 0, athletesMatched: 0, results: 0, splits: 0, events: p.events.length };
+  }
   // Teams
   const teamIds = new Map<string, string>();
   if (p.teams.length) {
