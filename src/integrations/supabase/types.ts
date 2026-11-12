@@ -249,6 +249,7 @@ export type Database = {
       }
       events: {
         Row: {
+          course: string | null
           distance: number
           event_number: string | null
           gender: string | null
@@ -258,9 +259,12 @@ export type Database = {
           meet_id: string
           min_age: number | null
           owner_id: string | null
+          qualifying_times_ms: Json | null
+          setup_metadata: Json | null
           stroke: number
         }
         Insert: {
+          course?: string | null
           distance: number
           event_number?: string | null
           gender?: string | null
@@ -270,9 +274,12 @@ export type Database = {
           meet_id: string
           min_age?: number | null
           owner_id?: string | null
+          qualifying_times_ms?: Json | null
+          setup_metadata?: Json | null
           stroke: number
         }
         Update: {
+          course?: string | null
           distance?: number
           event_number?: string | null
           gender?: string | null
@@ -282,6 +289,8 @@ export type Database = {
           meet_id?: string
           min_age?: number | null
           owner_id?: string | null
+          qualifying_times_ms?: Json | null
+          setup_metadata?: Json | null
           stroke?: number
         }
         Relationships: [
@@ -820,6 +829,10 @@ export type Database = {
       import_club_members: {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
+      }
+      import_meet_setup: {
+        Args: { p_file_name: string; p_setup: Json }
+        Returns: string
       }
       import_standard_version: {
         Args: {

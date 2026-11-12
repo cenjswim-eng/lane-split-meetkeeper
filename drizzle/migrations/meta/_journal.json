@@ -155,6 +155,13 @@
       "when": 1794319109454,
       "tag": "0021_optional_standard_version_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794449185830,
+      "tag": "0022_hytek_event_setup",
+      "breakpoints": true
     }
   ]
 }
