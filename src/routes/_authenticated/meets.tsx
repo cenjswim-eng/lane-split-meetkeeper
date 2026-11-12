@@ -25,7 +25,7 @@ function MeetsPage() {
   return (
     <div>
       <h1 className="text-4xl font-bold uppercase">Competencias</h1>
-      <div className="mt-3 flex gap-2"><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
+      <div className="mt-3 flex flex-wrap gap-2"><Button asChild><Link to="/import">Cargar eventos EV3 / HYV</Link></Button><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
       <div className="mt-6 space-y-2">
         {data.length === 0 && <p className="text-muted-foreground">Sin competencias todavía.</p>}
         {data.map((m) => (

@@ -12,9 +12,10 @@ import { readAccessFile, normalizeAccess, type AccessDatabase, type AccessTimeUn
 import { AccessPreview } from "@/components/access-preview";
 import { formatTime, eventLabel } from "@/lib/swim";
 import { ResetData } from "@/components/reset-data";
+import { EventSetupPreview } from "@/components/event-setup-preview";
 
 export const Route = createFileRoute("/_authenticated/import")({
-  head: () => ({ meta: [{ title: "Importar Hy-Tek y Access — Swim Lane Coach" }, { name: "description", content: "Carga archivos HY3, CL2, SD3, ZIP y Microsoft Access Jet 4.0 (.mdb)." }, { property: "og:title", content: "Importar Hy-Tek y Access — Swim Lane Coach" }, { name: "twitter:title", content: "Importar Hy-Tek y Access — Swim Lane Coach" }, { property: "og:description", content: "Importa y revisa archivos de natación, incluyendo bases Access .mdb." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
+  head: () => ({ meta: [{ title: "Importar resultados y eventos Hy-Tek — Swim Lane Coach" }, { name: "description", content: "Revisa eventos EV3/HYV, resultados HY3/CL2/SD3, ZIP y Access antes de guardar tus competencias." }, { property: "og:title", content: "Importar resultados y eventos Hy-Tek — Swim Lane Coach" }, { property: "og:description", content: "Carga y revisa pruebas, edades, piscinas y límites de inscripción de Meet Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ImportPage,
 });
 
@@ -26,12 +27,14 @@ function ImportPage() {
   const [dragging, setDragging] = useState(false);
   const [access, setAccess] = useState<{ db: AccessDatabase; unit: AccessTimeUnit; course: string }[]>([]);
   const [reading, setReading] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
   const accessFiles = access.flatMap(({ db, unit, course }) => normalizeAccess(db, unit, course).filter((parsed) => parsed.athletes.length > 0).map((parsed) => ({ name: db.name, parsed })));
   const pending = [...files, ...accessFiles];
 
   async function onPick(list: FileList | null) {
     if (!list || reading || progress != null) return;
     setReading(true);
+    setErrors([]);
     const databases: typeof access = [];
     const all: { name: string; parsed: ParsedFile }[] = [];
     for (const f of Array.from(list)) {
@@ -44,7 +47,9 @@ function ImportPage() {
         if (!r.length) toast.error(`${f.name}: formato no reconocido`);
         all.push(...r);
       } catch (e) {
-        toast.error(`${f.name}: ${(e as Error).message}`);
+        const message = `${f.name}: ${e instanceof Error ? e.message : "No se pudo leer el archivo. Revisa la exportación."}`;
+        setErrors(prev => [...prev, message]);
+        toast.error(message);
       }
     }
     setFiles(all);
@@ -54,6 +59,7 @@ function ImportPage() {
   }
 
   async function run() {
+    if (pending.some(f => f.parsed.events && (!f.parsed.events.length || !f.parsed.meet.name.trim() || !f.parsed.meet.startDate || !f.parsed.meet.endDate || f.parsed.meet.endDate < f.parsed.meet.startDate))) { toast.error("Revisa el nombre, fechas y selecciona al menos una prueba."); return; }
     const summaries: ImportSummary[] = [];
     setProgress(0);
     try {
@@ -77,7 +83,7 @@ function ImportPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-bold uppercase">Importar</h1>
-        <p className="text-muted-foreground">Resultados e inscripciones: .hy3, .cl2, .sd3, .zip y Access Jet 4.0 (.mdb)</p>
+        <p className="text-muted-foreground">Eventos: .ev3 y .hyv · Resultados e inscripciones: .hy3, .cl2, .sd3 · ZIP y Access (.mdb)</p>
       </div>
 
       <label
@@ -95,12 +101,13 @@ function ImportPage() {
       >
         <span className="font-display text-2xl font-semibold uppercase">{dragging ? "Suelta aquí" : "Arrastra o elige archivos"}</span>
         <span className="mt-1 text-sm text-muted-foreground">Puedes seleccionar varios a la vez</span>
-        <input type="file" aria-label="Elegir archivos para importar" multiple accept=".hy3,.cl2,.sd3,.zip,.mdb" disabled={reading || progress != null} className="hidden" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
+        <input type="file" aria-label="Elegir archivos para importar" multiple accept=".hy3,.cl2,.sd3,.ev3,.hyv,.zip,.mdb" disabled={reading || progress != null} className="hidden" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
       </label>
 
       <ResultsLinkImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
       <PdfResultsImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
       {reading && <p role="status" className="text-muted-foreground">Leyendo archivos…</p>}
+      {errors.length > 0 && <div role="alert" className="space-y-2 rounded-md border border-destructive p-4 text-sm text-destructive">{errors.map((error, i) => <p className="break-words" key={i}>{error}</p>)}</div>}
       {access.map((a, i) => <div key={`${a.db.name}-${i}`} className="min-w-0 space-y-3">
         <AccessPreview db={a.db} unit={a.unit} course={a.course} onUnit={(unit) => setAccess((prev) => prev.map((v, j) => j === i ? { ...v, unit } : v))} onCourse={(course) => setAccess((prev) => prev.map((v, j) => j === i ? { ...v, course } : v))} />
         {!normalizeAccess(a.db, a.unit, a.course).some((p) => p.athletes.length > 0) && <p role="alert" className="text-sm text-destructive">No hay atletas con columnas reconocidas. No se guardará esta base; conserva el original y proporciona un archivo de ejemplo para adaptar sus campos.</p>}
@@ -125,14 +132,15 @@ function ImportPage() {
                   <span>{withTimes} con tiempo</span>
                   <span>{splits} parciales</span>
                 </div>
-                {withTimes === 0 && <p role="alert" className="mt-2 text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán. Si esperabas resultados, carga el archivo CL2/SD3 de la competencia.</p>}
+                {f.parsed.events && <EventSetupPreview parsed={f.parsed} disabled={progress != null} onChange={parsed => setFiles(prev => prev.map((file, i) => i === fileIndex ? { ...file, parsed } : file))} />}
+                {!f.parsed.events && withTimes === 0 && <p role="alert" className="mt-2 text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán. Si esperabas resultados, carga el archivo CL2/SD3 de la competencia.</p>}
                 {f.parsed.warnings.map((warning, i) => <p key={i} className="mt-2 break-words text-xs text-destructive">{warning}</p>)}
                 {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="mt-2 text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
               </div>
             );
           })}
           {progress != null && <Progress value={progress} />}
-          <Button size="lg" onClick={run} disabled={reading || progress != null}>Importar {pending.length} archivo(s)</Button>
+          <Button size="lg" onClick={run} disabled={reading || progress != null || pending.some(f => f.parsed.events?.length === 0)}>Confirmar e importar {pending.length} archivo(s)</Button>
         </div>
       )}
 
@@ -141,8 +149,10 @@ function ImportPage() {
           <div className="font-display text-xl font-semibold uppercase">{s.meetName}</div>
           <p className="time mt-1 text-sm text-muted-foreground">
             {s.athletesNew} atletas nuevos · {s.athletesMatched} ya existentes · {s.results} resultados · {s.splits} parciales
+            {s.events != null && ` · ${s.events} pruebas guardadas`}
           </p>
           <Link to="/athletes" className="mt-2 inline-block text-sm text-primary underline">Ver atletas</Link>
+          {s.events != null && <Link to="/entries" className="ml-4 mt-2 inline-block text-sm text-primary underline">Ver pruebas e inscribir atletas</Link>}
         </div>
       ))}
       <section className="border-t pt-6">
