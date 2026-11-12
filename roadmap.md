@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Cargar EV3/HYV y ZIP de eventos, revisar pruebas y límites antes de guardar por cuenta; validar archivos reales y errores sin afectar resultados ni mínimas oficiales.
 - [x] Versionar mínimas oficiales sin sobrescribir, seleccionar versión activa y citar referencia/criterio de edad en nuevos PDF. Importación local de dos PDF, advertencia de fila ilegible, comparación, reactivación y descarga verificadas con cuenta temporal; 39 pruebas pasan, incluido aislamiento con dos sesiones. Las 148 mínimas anteriores conservadas sin inventar fecha o documento.
 - [x] Crear demo pública de solo lectura con datos ficticios; panel, atletas, competencias y reportes verificados sin sesión y sin consultas privadas, a 320 y 430 px.
 - [ ] Verificar recorrido portada → acceso → atletas → perfil → PDF individual y corregir fallos reproducidos; el recorrido privado requiere que el solicitante inicie sesión, pues la recuperación automática no encontró su cuenta.
