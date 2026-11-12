@@ -21,7 +21,7 @@ export function detectAndParse(name: string, text: string): ParsedFile | null {
   return null;
 }
 
-/** Accepts .hy3, .cl2, .sd3 or .zip containing any of them. */
+/** Accepts result/entry files and EV3/HYV setups, directly or inside ZIPs. */
 export async function readHytekFile(file: File): Promise<{ name: string; parsed: ParsedFile }[]> {
   if (file.size > 25 * 1024 * 1024) throw new Error("El archivo supera 25 MB. Divide la exportación en archivos más pequeños.");
   const out: { name: string; parsed: ParsedFile }[] = [];
@@ -35,8 +35,10 @@ export async function readHytekFile(file: File): Promise<{ name: string; parsed:
       if (/\.hyv$/i.test(entry.name) && entries.some(e => e.name.toLowerCase() === entry.name.replace(/\.hyv$/i, ".ev3").toLowerCase())) continue;
       const chunks: Uint8Array[] = [];
       const bytes = await new Promise<Uint8Array>((resolve, reject) => {
-        const stream = entry.internalStream("uint8array");
-        stream.on("data", chunk => {
+        // JSZip's browser API provides internalStream but omits it from its public typings.
+        type ZipStream = { on: (event: string, callback: (...args: any[]) => void) => ZipStream; pause: () => void; resume: () => void };
+        const stream = (entry as typeof entry & { internalStream: (type: string) => ZipStream }).internalStream("uint8array");
+        stream.on("data", (chunk: Uint8Array) => {
           totalBytes += chunk.length;
           if (totalBytes > 50 * 1024 * 1024) { stream.pause(); reject(new Error("El ZIP descomprimido supera 50 MB.")); return; }
           chunks.push(chunk);
