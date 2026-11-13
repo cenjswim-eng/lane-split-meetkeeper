@@ -43,6 +43,13 @@ it.skipIf(!url || !key || !publicKey)("club access stays private per account and
   expect((await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: club.data.id, p_expected_club: club.data.id })).error).not.toBeNull();
   expect((await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: destination.data.id, p_expected_club: destination.data.id })).error).toBeNull();
   expect((await a.from("athletes").update({ registration_expires_on: "2026-12-30" }).eq("id", athlete.data.id)).error).not.toBeNull();
+  expect((await a.from("clubs").update({ team_code:"jswim" }).eq("id",club.data.id)).error).toBeNull();
+  expect((await a.from("clubs").select("team_code").eq("id",club.data.id).single()).data?.team_code).toBe("JSWIM");
+  expect((await a.from("clubs").update({ team_code:"JSWIM" }).eq("id",destination.data.id)).error).not.toBeNull();
+  expect((await b.from("clubs").update({ team_code:"JSWIM" }).eq("id",other.data.id)).error).toBeNull();
+  expect((await a.from("athletes").update({ federation_id:"ATE010112",is_active:false }).eq("id",athlete.data.id)).error).toBeNull();
+  expect((await a.from("athletes").select("is_active,active_status").eq("id",athlete.data.id).single()).data).toEqual({is_active:false,active_status:false});
+  expect((await a.from("athletes").insert({first_name:"Ana",last_name:"Duplicate",federation_id:"ATE010112"})).error).not.toBeNull();
  } finally {
   for (const id of users) {
    for (const table of ["splits", "results", "meet_entries", "club_meets", "events", "athletes", "meets", "clubs"]) { const r = await admin.from(table).delete().eq("owner_id", id); if (r.error) throw r.error; }
