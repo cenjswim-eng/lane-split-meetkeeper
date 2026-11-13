@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-export function NewAthlete() {
+export function NewAthlete({ clubId }: { clubId?: string }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [team, setTeam] = useState("none");
@@ -28,9 +28,9 @@ export function NewAthlete() {
     if (!first || !last) { toast.error("Indica nombre y apellido."); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.from("athletes").insert({ first_name: first, last_name: last, birth_date: String(form.get("birth") ?? "") || null, gender: gender === "none" ? null : gender, team_id: team === "none" ? null : team });
+      const { error } = await supabase.from("athletes").insert({ first_name: first, last_name: last, birth_date: String(form.get("birth") ?? "") || null, gender: gender === "none" ? null : gender, team_id: team === "none" ? null : team, club_id: clubId ?? null });
       if (error) throw error;
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ["dashboard"] }), queryClient.invalidateQueries({ queryKey: ["athletes"] })]);
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["dashboard"] }), queryClient.invalidateQueries({ queryKey: ["athletes"] }), queryClient.invalidateQueries({ queryKey: ["coach-data"] })]);
       toast.success("Atleta añadido."); setOpen(false); setTeam("none"); setGender("none");
     } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo añadir el atleta."); }
     finally { setBusy(false); }

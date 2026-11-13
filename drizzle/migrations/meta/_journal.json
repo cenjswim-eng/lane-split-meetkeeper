@@ -162,6 +162,13 @@
       "when": 1794449185830,
       "tag": "0022_hytek_event_setup",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794583606374,
+      "tag": "0023_private_club_competition_management",
+      "breakpoints": true
     }
   ]
 }

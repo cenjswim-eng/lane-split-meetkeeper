@@ -19,6 +19,7 @@ import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
+import { Route as AuthenticatedClubsRouteImport } from './routes/_authenticated/clubs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
@@ -78,6 +79,11 @@ const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
 const AuthenticatedClubRoute = AuthenticatedClubRouteImport.update({
   id: '/club',
   path: '/club',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedClubsRoute = AuthenticatedClubsRouteImport.update({
+  id: '/clubs',
+  path: '/clubs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/access': typeof AuthenticatedAccessRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
+  '/clubs': typeof AuthenticatedClubsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entries': typeof AuthenticatedEntriesRoute
   '/import': typeof AuthenticatedImportRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/access': typeof AuthenticatedAccessRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
+  '/clubs': typeof AuthenticatedClubsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entries': typeof AuthenticatedEntriesRoute
   '/import': typeof AuthenticatedImportRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
+  '/_authenticated/clubs': typeof AuthenticatedClubsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entries': typeof AuthenticatedEntriesRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/categories'
     | '/club'
+    | '/clubs'
     | '/dashboard'
     | '/entries'
     | '/import'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/categories'
     | '/club'
+    | '/clubs'
     | '/dashboard'
     | '/entries'
     | '/import'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/access'
     | '/_authenticated/categories'
     | '/_authenticated/club'
+    | '/_authenticated/clubs'
     | '/_authenticated/dashboard'
     | '/_authenticated/entries'
     | '/_authenticated/import'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clubs': {
+      id: '/_authenticated/clubs'
+      path: '/clubs'
+      fullPath: '/clubs'
+      preLoaderRoute: typeof AuthenticatedClubsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -443,6 +462,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
+  AuthenticatedClubsRoute: typeof AuthenticatedClubsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
@@ -459,6 +479,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
+  AuthenticatedClubsRoute: AuthenticatedClubsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
