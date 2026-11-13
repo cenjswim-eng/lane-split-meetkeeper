@@ -931,7 +931,7 @@ export type Database = {
       }
       swim_name_key: { Args: { _t: string }; Returns: string }
       transfer_athlete_club: {
-        Args: { p_athlete: string; p_club: string; p_expected_club: string }
+        Args: { p_athlete: string; p_club: string; p_expected_club?: string }
         Returns: Json
       }
       transfer_athlete_records: {
