@@ -14,8 +14,9 @@ export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "p
     const athlete = data.athletes.find(a => a.id === e.athlete_id);
     const event = data.events.find(ev => ev.id === e.event_id && ev.meet_id === meetId);
     if (!athlete || !event) throw new Error("Una inscripción no tiene atleta o prueba disponible. Revisa las inscripciones antes de exportar.");
-    if (athlete.teams) teams.set(athlete.teams.code, athlete.teams.name);
-    return [{ athlete: { ...athlete, team_code: athlete.teams?.code ?? null }, event, seed_time_ms: e.seed_time_ms, final_time_ms: null, is_dq: false, place: null, aqua_points: null, course: meet.course, round: "F", splits: [] }];
+    const code = athlete.clubs?.is_unattached ? "UN" : athlete.clubs?.team_code ?? athlete.teams?.code ?? null;
+    if (code) teams.set(code, athlete.clubs?.full_name ?? athlete.teams?.name ?? code);
+    return [{ athlete: { ...athlete, team_code: code }, event, seed_time_ms: e.seed_time_ms, final_time_ms: null, is_dq: false, place: null, aqua_points: null, course: meet.course, round: "F", splits: [] }];
   });
   if (!rows.length) throw new Error("No hay inscripciones guardadas para esta competencia.");
   if (kind === "sd3") return new File([buildMeetManagerEntries(meet, rows, [...teams].map(([code, name]) => ({ code, name })))], exportFilename(meet.name, "_inscripciones.sd3"), { type: "application/octet-stream" });

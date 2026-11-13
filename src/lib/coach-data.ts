@@ -4,7 +4,7 @@ import { loadStandardVersions } from "./standard-version-data";
 
 export const coachQuery = queryOptions({ queryKey: ["coach-data"], queryFn: async () => {
   const [athletes, meets, events, standards, entries] = await Promise.all([
-    supabase.from("athletes").select("*, teams(code, name)").order("last_name"),
+    supabase.from("athletes").select("*, teams(code, name), clubs(team_code, full_name, is_unattached)").order("last_name"),
     supabase.from("meets").select("*").order("start_date", { ascending: false }),
     supabase.from("events").select("*").eq("is_relay", false).order("distance"),
     loadStandardVersions(),
