@@ -169,6 +169,20 @@
       "when": 1794583606374,
       "tag": "0023_private_club_competition_management",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794588943068,
+      "tag": "0024_annual_athlete_club_transfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794589028105,
+      "tag": "0025_allow_unassigned_athlete_transfer",
+      "breakpoints": true
     }
   ]
 }

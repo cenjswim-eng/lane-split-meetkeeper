@@ -72,6 +72,7 @@ export type Database = {
           id: string
           last_name: string
           owner_id: string | null
+          registration_expires_on: string | null
           team_id: string | null
           tm_athlete_id: string | null
         }
@@ -87,6 +88,7 @@ export type Database = {
           id?: string
           last_name: string
           owner_id?: string | null
+          registration_expires_on?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
         }
@@ -102,6 +104,7 @@ export type Database = {
           id?: string
           last_name?: string
           owner_id?: string | null
+          registration_expires_on?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
         }
@@ -927,6 +930,10 @@ export type Database = {
         Returns: undefined
       }
       swim_name_key: { Args: { _t: string }; Returns: string }
+      transfer_athlete_club: {
+        Args: { p_athlete: string; p_club: string; p_expected_club?: string }
+        Returns: Json
+      }
       transfer_athlete_records: {
         Args: { _club?: string; _name?: string; _target: string }
         Returns: Json

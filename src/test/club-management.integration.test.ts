@@ -28,9 +28,24 @@ it.skipIf(!url || !key || !publicKey)("club access stays private per account and
   expect((await a.from("meet_entries").insert(row)).error).toBeNull();
   expect((await a.from("club_meets").delete().eq("club_id", club.data.id)).error).not.toBeNull();
   expect((await b.from("meet_entries").select("id").eq("athlete_id", athlete.data.id)).data).toEqual([]);
+  const destination = await a.from("clubs").insert({ name: "Club destino A" }).select().single(); if (destination.error) throw destination.error;
+  const result = await a.from("results").insert({ athlete_id: athlete.data.id, meet_id: meet.data.id, event_id: event.data.id, final_time_ms: 62340, course: "LCM" }).select().single(); if (result.error) throw result.error;
+  const split = await a.from("splits").insert({ result_id: result.data.id, split_distance: 50, cumulative_time_ms: 30000 }).select().single(); if (split.error) throw split.error;
+  expect((await b.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: other.data.id, p_expected_club: club.data.id })).error).not.toBeNull();
+  expect((await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: other.data.id, p_expected_club: club.data.id })).error).not.toBeNull();
+  const transfer = await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: destination.data.id, p_expected_club: club.data.id }); expect(transfer.error).toBeNull();
+  const moved = await a.from("athletes").select("*").eq("id", athlete.data.id).single();
+  expect(moved.data).toMatchObject({ id: athlete.data.id, first_name: "Ana", last_name: "Test", club_id: destination.data.id, registration_expires_on: `${new Date().getUTCFullYear()}-12-31` });
+  expect((await a.from("results").select("id,final_time_ms").eq("athlete_id", athlete.data.id)).data).toEqual([{ id: result.data.id, final_time_ms: 62340 }]);
+  expect((await a.from("splits").select("id,cumulative_time_ms").eq("result_id", result.data.id)).data).toEqual([{ id: split.data.id, cumulative_time_ms: 30000 }]);
+  expect((await a.from("meet_entries").select("id").eq("athlete_id", athlete.data.id)).data).toHaveLength(1);
+  expect((await a.from("club_meets").select("id").eq("club_id", destination.data.id).eq("meet_id", meet.data.id)).data).toHaveLength(1);
+  expect((await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: club.data.id, p_expected_club: club.data.id })).error).not.toBeNull();
+  expect((await a.rpc("transfer_athlete_club", { p_athlete: athlete.data.id, p_club: destination.data.id, p_expected_club: destination.data.id })).error).toBeNull();
+  expect((await a.from("athletes").update({ registration_expires_on: "2026-12-30" }).eq("id", athlete.data.id)).error).not.toBeNull();
  } finally {
   for (const id of users) {
-   for (const table of ["meet_entries", "club_meets", "events", "athletes", "meets", "clubs"]) { const r = await admin.from(table).delete().eq("owner_id", id); if (r.error) throw r.error; }
+   for (const table of ["splits", "results", "meet_entries", "club_meets", "events", "athletes", "meets", "clubs"]) { const r = await admin.from(table).delete().eq("owner_id", id); if (r.error) throw r.error; }
    await admin.auth.admin.deleteUser(id);
   }
  }
