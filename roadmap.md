@@ -1,5 +1,6 @@
 # Exportación móvil
-- [ ] Cargar EV3/HYV y ZIP de eventos, revisar pruebas y límites antes de guardar por cuenta; validar archivos reales y errores sin afectar resultados ni mínimas oficiales.
+- [x] Añadir EV3/HYV y ZIP con tabla de revisión, fechas editables, filtro y exclusión; 204 pruebas leídas en cada archivo real de referencia, móvil sin desbordamiento y 23 pruebas pasan. Guardado atómico por cuenta separado de resultados y mínimas nacionales.
+- [ ] Verificar confirmación y relectura EV3/HYV desde la cuenta del solicitante y probar COPA SOMOS TENAZ 2026; requiere iniciar sesión en la vista previa y proporcionar el archivo original (no adjunto).
 - [x] Versionar mínimas oficiales sin sobrescribir, seleccionar versión activa y citar referencia/criterio de edad en nuevos PDF. Importación local de dos PDF, advertencia de fila ilegible, comparación, reactivación y descarga verificadas con cuenta temporal; 39 pruebas pasan, incluido aislamiento con dos sesiones. Las 148 mínimas anteriores conservadas sin inventar fecha o documento.
 - [x] Crear demo pública de solo lectura con datos ficticios; panel, atletas, competencias y reportes verificados sin sesión y sin consultas privadas, a 320 y 430 px.
 - [ ] Verificar recorrido portada → acceso → atletas → perfil → PDF individual y corregir fallos reproducidos; el recorrido privado requiere que el solicitante inicie sesión, pues la recuperación automática no encontró su cuenta.
