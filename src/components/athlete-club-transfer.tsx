@@ -23,7 +23,7 @@ export function AthleteClubTransfer({ club, clubs, data }: { club: { id: string;
     if (!athlete) return;
     setBusy(true);
     try {
-      const { error } = await supabase.rpc("transfer_athlete_club", { p_athlete: athlete.id, p_club: club.id, p_expected_club: athlete.club_id });
+      const { error } = await supabase.rpc("transfer_athlete_club", { p_athlete: athlete.id, p_club: club.id, ...(athlete.club_id ? { p_expected_club: athlete.club_id } : {}) });
       if (error) throw new Error(error.message);
       await Promise.all(["coach-data", "athletes", "club-management", "dashboard"].map(key => qc.invalidateQueries({ queryKey: [key] })));
       toast.success(selected ? "Ficha renovada. Historial conservado." : "Ficha trasladada. Historial conservado.");
