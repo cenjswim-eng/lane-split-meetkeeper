@@ -1,6 +1,6 @@
 import { type ExportRow } from "@/lib/hytek/sdif";
 import { buildMeetManagerEntries } from "@/lib/hytek/meet-manager-entries";
-import { coachQuery } from "@/lib/coach-data";
+import type { coachQuery } from "@/lib/coach-data";
 import { exportFilename } from "@/lib/file-delivery";
 import { entriesPdf, type ReportRow } from "@/lib/reports";
 import { eventLabel, ageAtDec31 } from "@/lib/swim";
@@ -13,7 +13,7 @@ export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "p
   const rows: ExportRow[] = data.entries.filter(e => e.meet_id === meetId).flatMap(e => {
     const athlete = data.athletes.find(a => a.id === e.athlete_id);
     const event = data.events.find(ev => ev.id === e.event_id && ev.meet_id === meetId);
-    if (!athlete || !event) return [];
+    if (!athlete || !event) throw new Error("Una inscripción no tiene atleta o prueba disponible. Revisa las inscripciones antes de exportar.");
     if (athlete.teams) teams.set(athlete.teams.code, athlete.teams.name);
     return [{ athlete: { ...athlete, team_code: athlete.teams?.code ?? null }, event, seed_time_ms: e.seed_time_ms, final_time_ms: null, is_dq: false, place: null, aqua_points: null, course: meet.course, round: "F", splits: [] }];
   });
