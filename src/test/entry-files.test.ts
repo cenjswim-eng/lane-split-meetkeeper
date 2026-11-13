@@ -21,6 +21,34 @@ function read(file: File): Promise<string> {
 }
 
 describe("saved registrations export", () => {
+  it("includes every saved registration for the selected meet", async () => {
+    const saved = { ...data, events: [...data.events, { ...data.events[0], id: "event-2", event_number: "15", distance: 200, stroke: 4 }], entries: [...data.entries, { ...data.entries[0], id: "entry-2", event_id: "event-2" }] } as CoachData;
+    const records = (await read(prepareEntries(saved, "meet", "sd3"))).split("\r\n").filter(r => r.startsWith("D0"));
+    expect(records).toHaveLength(2);
+    expect(records.map(r => r.slice(72, 76).trim())).toEqual(["12", "15"]);
+  });
+  it("includes the saved event number in D0 columns 73–76", async () => {
+    const record = (await read(prepareEntries(data, "meet", "sd3"))).split("\r\n").find(r => r.startsWith("D0"));
+    expect(record?.slice(72, 76)).toBe("  12");
+  });
+  it("includes the saved stroke in D0 column 72", async () => {
+    const saved = { ...data, events: [{ ...data.events[0], stroke: 4 }] } as CoachData;
+    const record = (await read(prepareEntries(saved, "meet", "sd3"))).split("\r\n").find(r => r.startsWith("D0"));
+    expect(record?.slice(71, 72)).toBe("4");
+  });
+  it("includes the saved distance in D0 columns 68–71", async () => {
+    const record = (await read(prepareEntries(data, "meet", "sd3"))).split("\r\n").find(r => r.startsWith("D0"));
+    expect(record?.slice(67, 71)).toBe(" 100");
+  });
+  it("includes the event age category, not the swimmer's age, in D0 columns 77–80", async () => {
+    const record = (await read(prepareEntries(data, "meet", "sd3"))).split("\r\n").find(r => r.startsWith("D0"));
+    expect(record?.slice(76, 80)).toBe("1415");
+  });
+  it("preserves open-ended event age categories in SDIF", async () => {
+    const saved = { ...data, events: [{ ...data.events[0], min_age: 19, max_age: null }] } as CoachData;
+    const record = (await read(prepareEntries(saved, "meet", "sd3"))).split("\r\n").find(r => r.startsWith("D0"));
+    expect(record?.slice(76, 80)).toBe("19OV");
+  });
   it("exports only saved entries for the selected meet as SDIF v3 registrations", async () => {
     const file = prepareEntries(data, "meet", "sd3");
     expect(file.name).toBe("COPA_SOMOS_TENAZ_2026_inscripciones.sd3");

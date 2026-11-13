@@ -1,4 +1,5 @@
 # Exportación móvil
+- [x] Verificar número de evento (columnas 73–76), estilo (72), distancia (68–71) y categoría de edad (77–80) en SD3 de inscripciones guardadas; 13 pruebas pasan, incluidas varias inscripciones y categoría abierta 19+. Descarga con la cuenta del solicitante pendiente en la tarea siguiente.
 - [x] Revisar exportación de inscripciones guardadas a SD3/ZIP Meet Manager: 18 pruebas pasan; formato SDIF v3, tiempos de inscripción sin finales ni parciales, rechazo de filas incompletas y actualización del archivo al cambiar competencia o inscripciones; compilación correcta.
 - [ ] Comprobar descarga de inscripciones con la cuenta del solicitante (recuperación de sesión sin cuenta asociada) y aceptación del archivo en Meet Manager; requiere iniciar sesión en la vista previa y probar en el programa externo.
 - [x] Añadir EV3/HYV y ZIP con tabla de revisión, fechas editables, filtro y exclusión; 204 pruebas leídas en cada archivo real de referencia, móvil sin desbordamiento y 23 pruebas pasan. Guardado atómico por cuenta separado de resultados y mínimas nacionales.
