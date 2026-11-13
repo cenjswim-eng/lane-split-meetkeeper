@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Revisar exportación de inscripciones guardadas a SD3/ZIP Meet Manager, sin finales ni omisiones; comprobar descarga con la cuenta del solicitante (recuperación de sesión sin cuenta asociada) y aceptación en el programa externo.
 - [x] Añadir EV3/HYV y ZIP con tabla de revisión, fechas editables, filtro y exclusión; 204 pruebas leídas en cada archivo real de referencia, móvil sin desbordamiento y 23 pruebas pasan. Guardado atómico por cuenta separado de resultados y mínimas nacionales.
 - [ ] Verificar confirmación y relectura EV3/HYV desde la cuenta del solicitante y probar COPA SOMOS TENAZ 2026; requiere iniciar sesión en la vista previa y proporcionar el archivo original (no adjunto).
 - [x] Versionar mínimas oficiales sin sobrescribir, seleccionar versión activa y citar referencia/criterio de edad en nuevos PDF. Importación local de dos PDF, advertencia de fila ilegible, comparación, reactivación y descarga verificadas con cuenta temporal; 39 pruebas pasan, incluido aislamiento con dos sesiones. Las 148 mínimas anteriores conservadas sin inventar fecha o documento.
