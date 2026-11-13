@@ -8,7 +8,8 @@ const items = [
   { to: "/dashboard", label: "Panel", icon: LayoutDashboard },
   { to: "/athletes", label: "Atletas", icon: Users },
   { to: "/meets", label: "Competencias", icon: CalendarDays },
-  { to: "/club", label: "Mi club", icon: Building2 },
+  { to: "/clubs", label: "Clubes", icon: Building2 },
+  { to: "/club", label: "Registro del club", icon: FileText },
   { to: "/import", label: "Importar", icon: Upload },
   { to: "/entries", label: "Inscripciones", icon: ClipboardList },
   { to: "/standards", label: "Mínimas", icon: Medal },
@@ -20,7 +21,7 @@ const items = [
 ] as const;
 
 const groups = [
-  { label: "Mi club", paths: ["/dashboard", "/athletes", "/club"] },
+  { label: "Mi club", paths: ["/dashboard", "/clubs", "/athletes", "/club"] },
   { label: "Competición", paths: ["/meets", "/entries", "/relays", "/import"] },
   { label: "Rendimiento", paths: ["/reports", "/standards", "/categories"] },
   { label: "Mi cuenta", paths: ["/profile", "/access"] },

@@ -6,11 +6,11 @@ import { entriesPdf, type ReportRow } from "@/lib/reports";
 import { eventLabel, ageAtDec31 } from "@/lib/swim";
 
 type CoachData = Awaited<ReturnType<typeof coachQuery.queryFn & {}>>;
-export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "pdf") {
+export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "pdf", clubId?: string) {
   const meet = data.meets.find(m => m.id === meetId);
   if (!meet) throw new Error("Selecciona una competencia.");
   const teams = new Map<string, string>();
-  const rows: ExportRow[] = data.entries.filter(e => e.meet_id === meetId).flatMap(e => {
+  const rows: ExportRow[] = data.entries.filter(e => e.meet_id === meetId && (!clubId || data.athletes.some(a => a.id === e.athlete_id && a.club_id === clubId))).flatMap(e => {
     const athlete = data.athletes.find(a => a.id === e.athlete_id);
     const event = data.events.find(ev => ev.id === e.event_id && ev.meet_id === meetId);
     if (!athlete || !event) throw new Error("Una inscripción no tiene atleta o prueba disponible. Revisa las inscripciones antes de exportar.");
