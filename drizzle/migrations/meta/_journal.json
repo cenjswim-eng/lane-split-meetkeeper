@@ -183,6 +183,13 @@
       "when": 1794589028105,
       "tag": "0025_allow_unassigned_athlete_transfer",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794589341683,
+      "tag": "0026_club_roster_details",
+      "breakpoints": true
     }
   ]
 }
