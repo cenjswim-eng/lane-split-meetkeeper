@@ -49,6 +49,7 @@ export function validateCategories(list: { name: string; age_min: number | null;
 }
 
 export const SWIM_CATEGORIES: readonly SwimCategory[] = [
+  { name: "Pre-Infantil", label: "Pre-Infantil (hasta 9 años)", age_min: 0, age_max: 9 },
   { name: "Infantil A", label: "Infantil A (10-11 años)", age_min: 10, age_max: 11 },
   { name: "Infantil B", label: "Infantil B (12-13 años)", age_min: 12, age_max: 13 },
   { name: "Juvenil A", label: "Juvenil A (14-15 años)", age_min: 14, age_max: 15 },

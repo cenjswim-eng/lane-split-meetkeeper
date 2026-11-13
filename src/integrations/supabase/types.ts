@@ -70,8 +70,12 @@ export type Database = {
           gender: string | null
           group_id: string | null
           id: string
+          is_active: boolean
           last_name: string
+          middle_initial: string | null
           owner_id: string | null
+          para_classification: string | null
+          preferred_name: string | null
           registration_expires_on: string | null
           team_id: string | null
           tm_athlete_id: string | null
@@ -86,8 +90,12 @@ export type Database = {
           gender?: string | null
           group_id?: string | null
           id?: string
+          is_active?: boolean
           last_name: string
+          middle_initial?: string | null
           owner_id?: string | null
+          para_classification?: string | null
+          preferred_name?: string | null
           registration_expires_on?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
@@ -102,8 +110,12 @@ export type Database = {
           gender?: string | null
           group_id?: string | null
           id?: string
+          is_active?: boolean
           last_name?: string
+          middle_initial?: string | null
           owner_id?: string | null
+          para_classification?: string | null
+          preferred_name?: string | null
           registration_expires_on?: string | null
           team_id?: string | null
           tm_athlete_id?: string | null
@@ -274,25 +286,55 @@ export type Database = {
       }
       clubs: {
         Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          country_code: string
           created_at: string
+          full_name: string | null
+          head_coach: string | null
           id: string
+          is_unattached: boolean
           logo_path: string | null
           name: string
           owner_id: string | null
+          region_lsc: string | null
+          short_name: string | null
+          team_code: string | null
+          team_color: string | null
         }
         Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string
           created_at?: string
+          full_name?: string | null
+          head_coach?: string | null
           id?: string
+          is_unattached?: boolean
           logo_path?: string | null
           name: string
           owner_id?: string | null
+          region_lsc?: string | null
+          short_name?: string | null
+          team_code?: string | null
+          team_color?: string | null
         }
         Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string
           created_at?: string
+          full_name?: string | null
+          head_coach?: string | null
           id?: string
+          is_unattached?: boolean
           logo_path?: string | null
           name?: string
           owner_id?: string | null
+          region_lsc?: string | null
+          short_name?: string | null
+          team_code?: string | null
+          team_color?: string | null
         }
         Relationships: []
       }

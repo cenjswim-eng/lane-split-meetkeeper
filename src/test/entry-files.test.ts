@@ -21,6 +21,11 @@ function read(file: File): Promise<string> {
 }
 
 describe("saved registrations export", () => {
+  it("uses the current club code rather than the historical imported team", async () => {
+    const saved = { ...data, athletes: [{ ...data.athletes[0], clubs: { team_code: "JSWIM", full_name: "Centro JSWIM", is_unattached: false } }] } as CoachData;
+    const records = (await read(prepareEntries(saved,"meet","sd3"))).split("\r\n");
+    expect(records.find(r=>r.startsWith("C1"))?.slice(11,17).trim()).toBe("JSWIM");
+  });
   it("exports only registrations belonging to the requested club", async () => {
     const clubData = { ...data, athletes: [{ ...data.athletes[0], club_id: "club-a" }, { ...data.athletes[0], id: "b", first_name: "Beatriz", club_id: "club-b" }], entries: [{ ...data.entries[0] }, { ...data.entries[0], id: "b-entry", athlete_id: "b" }] } as CoachData;
     const records = (await read(prepareEntries(clubData, "meet", "sd3", "club-a"))).split("\r\n").filter(r => r.startsWith("D0"));
