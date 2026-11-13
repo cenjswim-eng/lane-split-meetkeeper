@@ -63,6 +63,7 @@ export type Database = {
         Row: {
           active_status: boolean
           birth_date: string | null
+          club_id: string | null
           created_at: string
           federation_id: string | null
           first_name: string
@@ -77,6 +78,7 @@ export type Database = {
         Insert: {
           active_status?: boolean
           birth_date?: string | null
+          club_id?: string | null
           created_at?: string
           federation_id?: string | null
           first_name: string
@@ -91,6 +93,7 @@ export type Database = {
         Update: {
           active_status?: boolean
           birth_date?: string | null
+          club_id?: string | null
           created_at?: string
           federation_id?: string | null
           first_name?: string
@@ -103,6 +106,13 @@ export type Database = {
           tm_athlete_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "athletes_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "athletes_group_id_fkey"
             columns: ["group_id"]
@@ -153,6 +163,42 @@ export type Database = {
             columns: ["club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_meets: {
+        Row: {
+          club_id: string
+          id: string
+          meet_id: string
+          owner_id: string
+        }
+        Insert: {
+          club_id: string
+          id?: string
+          meet_id: string
+          owner_id?: string
+        }
+        Update: {
+          club_id?: string
+          id?: string
+          meet_id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_meets_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_meets_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
             referencedColumns: ["id"]
           },
         ]
