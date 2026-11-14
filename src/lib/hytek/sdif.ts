@@ -1,4 +1,4 @@
-import { parseTime, sdifTime } from "../swim";
+import { parseTime, parseSwimTime, sdifTime } from "../swim";
 import { col, courseFromCode, mdyToIso, type ParsedFile, type ParsedResult } from "./types";
 
 /** Parser for SDIF v3 files (.SD3 / .CL2), the USA Swimming standard exported by Meet Manager. */
@@ -10,14 +10,17 @@ export function parseSdif(text: string): ParsedFile {
     athletes: [],
     results: [],
     warnings: [],
+    warningDetails: [],
   };
   let teamCode: string | null = null;
   const seen = new Set<string>();
   let last: ParsedResult[] = [];
 
-  for (const raw of text.split(/\r?\n/)) {
+  for (const [index, raw] of text.split(/\r\n|\n|\r/).entries()) {
+    if (!raw.trim()) continue;
     const line = raw.padEnd(160, " ");
     const type = line.slice(0, 2);
+    const warn = (message: string) => { out.warnings.push(`Línea ${index + 1} (${type}): ${message}`); out.warningDetails?.push({ lineNumber: index + 1, lineCode: type, message, rawLine: raw }); };
     if (type === "B1") {
       out.meet.name = col(line, 12, 41) || out.meet.name;
       out.meet.location = [col(line, 86, 105), col(line, 106, 107)].filter(Boolean).join(", ") || null;
@@ -25,8 +28,11 @@ export function parseSdif(text: string): ParsedFile {
       out.meet.endDate = mdyToIso(col(line, 130, 137));
       out.meet.course = courseFromCode(col(line, 150, 150), "LCM");
     } else if (type === "C1") {
-      teamCode = col(line, 18, 23) || col(line, 12, 17);
-      out.teams.push({ code: teamCode, name: col(line, 24, 53) || teamCode, lsc: col(line, 16, 17) || null });
+      last = [];
+      // Legacy CL2 places team code at 18; standard SDIF at 12. Detect the empty reserved field.
+      const standard = Boolean(col(line, 12, 17));
+      teamCode = standard ? col(line, 12, 17) : col(line, 18, 23);
+      out.teams.push({ code: teamCode, name: standard ? col(line, 18, 47) : col(line, 24, 53) || teamCode, lsc: null });
     } else if (type === "D0") {
       const fullName = col(line, 12, 39);
       const [lastName = "", firstRest = ""] = fullName.split(",").map((s) => s.trim());
@@ -34,6 +40,9 @@ export function parseSdif(text: string): ParsedFile {
       const uss = col(line, 40, 51) || null;
       const birth = mdyToIso(col(line, 56, 63));
       const gender = col(line, 66, 66).toUpperCase() || null;
+      last = [];
+      if (!firstName || !lastName || !["M", "F", "X"].includes(gender ?? "") || !Number.isInteger(Number(col(line, 68, 71))) || Number(col(line, 68, 71)) <= 0 || ![1,2,3,4,5,6,7].includes(Number(col(line, 72, 72)))) { warn("Atleta o prueba con campos no reconocidos; se omite este registro."); continue; }
+      if (col(line,56,63) && !birth) warn("Fecha de nacimiento inválida; requiere revisión.");
       const key = uss ? `SDIF:${uss}` : `SDIF:${lastName}|${firstName}|${birth ?? ""}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -56,13 +65,15 @@ export function parseSdif(text: string): ParsedFile {
       last = [];
       const prelim = col(line, 98, 105);
       const finals = col(line, 116, 123);
+      const seedCourse = courseFromCode(col(line,97,97),out.meet.course);
+      const statusOf = (value: string): NonNullable<ParsedResult["status"]> => { const t = parseSwimTime(value); if(t.status === "INVALID") { warn("Tiempo inválido; no reemplazará marcas existentes."); return "NT"; } if (["DQ","NS","SCR","DNF"].includes(t.status)) warn(`Estado ${t.status}: ${firstName} ${lastName}.`); return t.status; };
       if (prelim) {
-        const r: ParsedResult = { ...base, finalMs: parseTime(prelim), course: courseFromCode(col(line, 106, 106), out.meet.course), place: Number(col(line, 133, 135)) || null, isDq: /DQ/i.test(prelim), round: "P", splits: [] };
+        const r: ParsedResult = { ...base, finalMs: parseTime(prelim), status: statusOf(prelim), course: courseFromCode(col(line, 106, 106), seedCourse), place: Number(col(line, 133, 135)) || null, isDq: /DQ/i.test(prelim), round: "P", splits: [] };
         out.results.push(r);
         last.push(r);
       }
       if (finals || !prelim) {
-        const r: ParsedResult = { ...base, finalMs: parseTime(finals), course: courseFromCode(col(line, 124, 124), out.meet.course), place: Number(col(line, 136, 138)) || null, isDq: /DQ/i.test(finals), round: "F", splits: [] };
+        const r: ParsedResult = { ...base, finalMs: parseTime(finals), status: statusOf(finals), course: courseFromCode(col(line, 124, 124), seedCourse), place: Number(col(line, 136, 138)) || null, isDq: /DQ/i.test(finals), round: "F", splits: [] };
         out.results.push(r);
         last.push(r);
       }
@@ -72,15 +83,19 @@ export function parseSdif(text: string): ParsedFile {
       const seq = Number(col(line, 56, 56)) || 1;
       const round = col(line, 144, 144).toUpperCase() === "P" ? "P" : "F";
       const target = last.find((r) => r.round === round) ?? last[last.length - 1];
-      if (!target) continue;
+      if (!target) { warn("Parciels sans résultat individuel précédent; registre ignoré."); continue; }
       let acc = target.splits.at(-1)?.cumulative_ms ?? 0;
       for (let i = 0; i < 10; i++) {
         const ms = parseTime(line.slice(63 + i * 8, 71 + i * 8));
         if (!ms) continue;
         const n = (seq - 1) * 10 + i + 1;
         acc = isCumulative ? ms : acc + ms;
+        if (n * splitDist > target.distance || target.splits.some(s=>s.distance === n*splitDist) || acc <= (target.splits.at(-1)?.cumulative_ms ?? 0)) { warn("Parcial incompatible o no creciente; se omite."); continue; }
         target.splits.push({ distance: n * splitDist, cumulative_ms: acc });
       }
+    } else if (!["A0","A1","C2","D3","Z0"].includes(type)) {
+      last = [];
+      warn("Registro no compatible con pruebas individuales; se omite.");
     }
   }
   return out;

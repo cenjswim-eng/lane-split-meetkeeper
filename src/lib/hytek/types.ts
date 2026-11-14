@@ -22,6 +22,7 @@ export interface ParsedResult {
   course: string | null;
   place: number | null;
   isDq: boolean;
+  status?: "OK" | "DQ" | "NS" | "SCR" | "DNF" | "NT";
   round: "P" | "F" | "S";
   splits: ParsedSplit[];
 }
