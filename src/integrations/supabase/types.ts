@@ -73,6 +73,7 @@ export type Database = {
           is_active: boolean
           last_name: string
           middle_initial: string | null
+          normalized_slug: string | null
           owner_id: string | null
           para_classification: string | null
           preferred_name: string | null
@@ -93,6 +94,7 @@ export type Database = {
           is_active?: boolean
           last_name: string
           middle_initial?: string | null
+          normalized_slug?: string | null
           owner_id?: string | null
           para_classification?: string | null
           preferred_name?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           is_active?: boolean
           last_name?: string
           middle_initial?: string | null
+          normalized_slug?: string | null
           owner_id?: string | null
           para_classification?: string | null
           preferred_name?: string | null
@@ -500,10 +503,12 @@ export type Database = {
           course: string
           created_at: string
           end_date: string | null
+          file_hash: string | null
           id: string
           location: string | null
           name: string
           owner_id: string | null
+          source_format: string | null
           start_date: string | null
         }
         Insert: {
@@ -511,10 +516,12 @@ export type Database = {
           course?: string
           created_at?: string
           end_date?: string | null
+          file_hash?: string | null
           id?: string
           location?: string | null
           name: string
           owner_id?: string | null
+          source_format?: string | null
           start_date?: string | null
         }
         Update: {
@@ -522,10 +529,12 @@ export type Database = {
           course?: string
           created_at?: string
           end_date?: string | null
+          file_hash?: string | null
           id?: string
           location?: string | null
           name?: string
           owner_id?: string | null
+          source_format?: string | null
           start_date?: string | null
         }
         Relationships: []
@@ -609,6 +618,7 @@ export type Database = {
           round: string | null
           seed_time_ms: number | null
           source_result_id: string | null
+          status: string
           stroke_rate: number | null
           transfer_id: string | null
           video_url: string | null
@@ -629,6 +639,7 @@ export type Database = {
           round?: string | null
           seed_time_ms?: number | null
           source_result_id?: string | null
+          status?: string
           stroke_rate?: number | null
           transfer_id?: string | null
           video_url?: string | null
@@ -649,6 +660,7 @@ export type Database = {
           round?: string | null
           seed_time_ms?: number | null
           source_result_id?: string | null
+          status?: string
           stroke_rate?: number | null
           transfer_id?: string | null
           video_url?: string | null
@@ -921,6 +933,7 @@ export type Database = {
         Args: { p_club_id: string; p_document_id: string; p_members: Json }
         Returns: number
       }
+      import_meet_payload: { Args: { p_payload: Json }; Returns: Json }
       import_meet_setup: {
         Args: { p_file_name: string; p_setup: Json }
         Returns: string
@@ -972,6 +985,10 @@ export type Database = {
         Returns: undefined
       }
       swim_name_key: { Args: { _t: string }; Returns: string }
+      swimmer_slug: {
+        Args: { p_birth: string; p_first: string; p_last: string }
+        Returns: string
+      }
       transfer_athlete_club: {
         Args: { p_athlete: string; p_club: string; p_expected_club?: string }
         Returns: Json

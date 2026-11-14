@@ -197,6 +197,13 @@
       "when": 1794589505885,
       "tag": "0027_guard_roster_identity_collisions",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794621724389,
+      "tag": "0028_atomic_swim_payload",
+      "breakpoints": true
     }
   ]
 }
