@@ -10,17 +10,34 @@ export const STROKES: Record<number, string> = {
 
 export type Course = "LCM" | "SCM" | "SCY";
 
-/** Parse "1:02.34", "62.34", "2:01:02.34" into ms. Returns null for NT/DQ/NS/SCR or invalid. */
+export interface ParsedTime {
+  timeMs: number | null;
+  course: "L" | "S" | "Y" | null;
+  status: "OK" | "DQ" | "NS" | "SCR" | "DNF" | "NT" | "INVALID";
+  raw: string;
+}
+
+/** Strict decimal arithmetic; a disqualified swim never becomes a valid race time. */
+export function parseSwimTime(rawField: string): ParsedTime {
+  const cleaned = rawField.trim().toUpperCase();
+  const course = cleaned.match(/([LSY])$/)?.[1] as ParsedTime["course"] | undefined;
+  const base = { timeMs: null, course: course ?? null, raw: rawField };
+  const status = cleaned.match(/(?:^|\s)(DQ|NS|SCR|DNF|NT)(?:$|\s)/)?.[1];
+  if (status) return { ...base, status: status as ParsedTime["status"] };
+  if (!cleaned) return { ...base, status: "NT" };
+  const value = cleaned.replace(/[LSY]$/, "").trim();
+  if (!/^\d+(?::\d{1,2}){0,2}(?:[.,]\d{1,3})?$/.test(value)) return { ...base, status: "INVALID" };
+  const [whole = "", fraction = ""] = value.replace(",", ".").split(".");
+  const parts = whole.split(":").map(Number);
+  if (parts.some((n, i) => !Number.isSafeInteger(n) || (i > 0 && n >= 60))) return { ...base, status: "INVALID" };
+  const timeMs = parts.reduce((total, n) => total * 60 + n, 0) * 1000 + Number(fraction.padEnd(3, "0"));
+  if (!Number.isSafeInteger(timeMs) || timeMs <= 0 || timeMs > 2147483647) return { ...base, status: "INVALID" };
+  return { ...base, timeMs, status: "OK" };
+}
+
+/** Parse swimming times into integer milliseconds; non-finishes/invalid values return null. */
 export function parseTime(raw: string | null | undefined): number | null {
-  if (!raw) return null;
-  const s = raw.trim().replace(/[A-Za-z]+$/, "");
-  if (!s || !/\d/.test(s)) return null;
-  const parts = s.split(":").map((p) => Number(p));
-  if (parts.some((n) => Number.isNaN(n))) return null;
-  let secs = 0;
-  for (const p of parts) secs = secs * 60 + p;
-  if (secs <= 0) return null;
-  return Math.round(secs * 1000);
+  return parseSwimTime(raw ?? "").timeMs;
 }
 
 export function formatTime(ms: number | null | undefined): string {
