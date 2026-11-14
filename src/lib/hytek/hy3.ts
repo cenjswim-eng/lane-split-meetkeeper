@@ -108,6 +108,7 @@ export function parseHy3(text: string): ParsedFile {
           course: courseFromCode(col(line, 51, 51), out.meet.course),
           place: null,
           isDq: false,
+          status: "NT",
           round: "F",
           splits: [],
         };
@@ -132,6 +133,8 @@ export function parseHy3(text: string): ParsedFile {
         target.course = courseFromCode(col(line, 12, 12), target.course ?? out.meet.course);
         target.isDq = code === "Q" || code.includes("DQ") || final.status === "DQ";
         if (target.isDq) target.finalMs = null;
+        target.status = target.isDq ? "DQ" : ["NS", "SCR", "DNF"].includes(final.status) ? final.status as "NS" | "SCR" | "DNF" : code === "S" || code === "NS" ? "NS" : final.timeMs == null ? "NT" : "OK";
+        if (["DQ", "NS", "SCR", "DNF"].includes(target.status)) warn(`Estado ${target.status}: ${out.athletes.find(a => a.key === target.athleteKey)?.firstName ?? "Atleta"}, prueba ${target.eventNumber ?? target.distance}.`);
         const place = Number(col(line, 30, 33));
         target.place = place > 0 ? place : null;
         current = target;
