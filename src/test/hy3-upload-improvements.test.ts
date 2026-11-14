@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { File as NodeFile } from "node:buffer";
 import { readSwimFileText, readHytekFile } from "@/lib/hytek";
 import { parseHy3 } from "@/lib/hytek/hy3";
 import { parseSwimTime } from "@/lib/swim";
@@ -11,16 +12,18 @@ function record(type: string, fields: [number, string][] = []) {
 const swimmer = (id = "1", first = "Ana") => record("D1", [[3, "F"], [4, id.padStart(5)], [9, "Muñoz"], [29, first], [89, "03042012"]]);
 const event = (course = "L", stroke = "A") => record("E1", [[14, "F"], [16, "   100"], [22, stroke], [23, " 14"], [26, " 15"], [39, "  12"], [43, " 1:02.34"], [51, course]]);
 const result = (time = "   61.23", round = "F", code = "") => record("E2", [[3, round], [4, time], [12, "L"], [13, code], [30, "   2"]]);
+// JSDOM's File does not implement arrayBuffer; native Node File matches the browser API.
+const file = (data: string | Uint8Array, name: string) => new NodeFile([data], name) as unknown as File;
 
 describe("uploaded swimming time specification", () => {
   it("reads UTF-8 names without corrupting fixed columns", async () => {
     const text = swimmer();
-    expect(await readSwimFileText(new File([text], "utf8.hy3"))).toBe(text);
+    expect(await readSwimFileText(file(text, "utf8.hy3"))).toBe(text);
   });
   it("falls back to Windows-1252 for legacy names", async () => {
     const text = swimmer();
     const bytes = Uint8Array.from([...text].map(c => c.charCodeAt(0)));
-    expect(await readSwimFileText(new File([bytes], "ansi.hy3"))).toBe(text);
+    expect(await readSwimFileText(file(bytes, "ansi.hy3"))).toBe(text);
   });
   it("parses precise milliseconds and the short-pool suffix", () => {
     expect(parseSwimTime("1:02.345S")).toMatchObject({ timeMs: 62345, course: "S", status: "OK" });
@@ -76,7 +79,7 @@ describe("safe HY3 record contexts", () => {
     expect(p.results[0]?.splits).toEqual([25, 50, 75, 100].map((distance, i) => ({ distance, cumulative_ms: (i + 1) * 15000 })));
   });
   it("processes the actual upload entry point with event identity and category intact", async () => {
-    const files = await readHytekFile(new File([swimmer(), event(), result()].join("\r\n").split("___"), "test.hy3"));
+    const files = await readHytekFile(file([swimmer(), event(), result()].join("\r\n"), "test.hy3"));
     expect(files[0]?.parsed.results[0]).toMatchObject({ eventNumber: "12", distance: 100, stroke: 1, minAge: 14, maxAge: 15, seedMs: 62340, finalMs: 61230 });
   });
 });
