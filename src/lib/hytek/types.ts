@@ -3,6 +3,12 @@ export interface ParsedSplit {
   distance: number;
   cumulative_ms: number;
 }
+export interface ParseWarning {
+  lineNumber: number;
+  lineCode: string;
+  message: string;
+  rawLine: string;
+}
 export interface ParsedResult {
   athleteKey: string;
   eventNumber: string | null;
@@ -41,6 +47,7 @@ export interface ParsedFile {
   athletes: ParsedAthlete[];
   results: ParsedResult[];
   warnings: string[];
+  warningDetails?: ParseWarning[];
   events?: import("./event-setup").SetupEvent[];
 }
 

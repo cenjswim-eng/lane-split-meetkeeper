@@ -12,6 +12,10 @@ export function decodeHytek(bytes: Uint8Array): string {
   catch { return new TextDecoder("windows-1252").decode(bytes); }
 }
 
+export async function readSwimFileText(file: File): Promise<string> {
+  return decodeHytek(new Uint8Array(await file.arrayBuffer()));
+}
+
 export function detectAndParse(name: string, text: string): ParsedFile | null {
   const lower = name.toLowerCase();
   if (/\.(ev3|hyv)$/.test(lower)) return parseEventSetup(name, text);
@@ -53,7 +57,7 @@ export async function readHytekFile(file: File): Promise<{ name: string; parsed:
       if (parsed) out.push({ name: entry.name, parsed });
     }
   } else {
-    const text = decodeHytek(new Uint8Array(await file.arrayBuffer()));
+    const text = await readSwimFileText(file);
     const parsed = detectAndParse(file.name, text);
     if (parsed) out.push({ name: file.name, parsed });
   }
