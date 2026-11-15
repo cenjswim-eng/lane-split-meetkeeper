@@ -16,6 +16,7 @@ import { QuickAthleteEntry } from "@/components/quick-athlete-entry";
 import { ClubRosterTable } from "@/components/club-roster-table";
 import { AthleteClubTransfer } from "@/components/athlete-club-transfer";
 import { categoriesQuery } from "@/lib/categories";
+import { ClubMerge } from '@/components/team-manager-tools';
 
 export const Route = createFileRoute("/_authenticated/clubs")({
  head: () => ({ meta: [{ title: "Clubes — Swim Lane Coach" }, { name: "description", content: "Gestión privada de atletas, competencias e inscripciones por club." }, { property: "og:title", content: "Clubes — Swim Lane Coach" }, { property: "og:description", content: "Organiza tus clubes sin compartir registros entre cuentas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -41,6 +42,7 @@ function Clubs() {
   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{management.clubs.filter(c=>`${c.name} ${c.team_code??""}`.toLowerCase().includes(clubSearch.toLowerCase())).map(c=>{const athletes=data.athletes.filter(a=>a.club_id===c.id);return <Button key={c.id} variant="outline" onClick={()=>setClubId(c.id)} className={`h-auto min-w-0 justify-start whitespace-normal p-4 text-left ${c.id===club?.id?"border-primary bg-muted":""}`}><div className="w-full min-w-0 space-y-2"><div className="flex items-center gap-2"><span className="rounded border px-2 py-1 font-mono text-primary">{c.team_code??"—"}</span><span className="min-w-0 break-words font-semibold">{c.full_name??c.name}</span></div><p className="text-xs text-muted-foreground">{c.region_lsc||"Región sin registrar"} · {c.head_coach||"Entrenador sin registrar"}</p><p className="text-xs">Total {athletes.length} · M {athletes.filter(a=>a.gender==="M").length} · F {athletes.filter(a=>a.gender==="F").length}</p></div></Button>})}</div>
   {club ? <>
    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="flex min-w-0 items-center gap-2 break-words text-2xl font-semibold"><Building2 className="shrink-0 text-primary" />{club.name}</h2><div className="flex flex-wrap gap-2"><ClubEditor key={club.id} club={club}/><Button asChild variant="outline"><Link to="/club" search={{ club: club.id }}>Integrantes y documentos<ArrowRight /></Link></Button></div></div>
+   <ClubMerge club={club} clubs={management.clubs}/>
    <div className="grid grid-cols-3 gap-3 border-b pb-5">{[{ label: "Atletas", value: scoped.athletes.length }, { label: "Competencias", value: scoped.meets.length }, { label: "Inscripciones", value: scoped.entries.length }].map(({ label, value }) => <div key={label}><p className="time text-3xl font-semibold text-primary">{value}</p><p className="break-words text-xs text-muted-foreground sm:text-sm">{label}</p></div>)}</div>
    <Tabs defaultValue="athletes" key={club.id}>
     <TabsList className="grid h-auto w-full grid-cols-3 sm:max-w-lg"><TabsTrigger value="athletes">Atletas</TabsTrigger><TabsTrigger value="meets">Competencias</TabsTrigger><TabsTrigger value="entries">Inscripciones</TabsTrigger></TabsList>

@@ -1,0 +1,25 @@
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Merge, Save } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+export function ClubMerge({club,clubs}:{club:Tables<'clubs'>;clubs:Tables<'clubs'>[]}) {
+ const [open,setOpen]=useState(false),[target,setTarget]=useState(''),[busy,setBusy]=useState(false); const qc=useQueryClient();
+ async function merge(){setBusy(true);try{const r=await supabase.rpc('merge_clubs',{p_source:club.id,p_target:target});if(r.error)throw r.error;await Promise.all(['club-management','club-register','coach-data','athletes','team-relays'].map(k=>qc.invalidateQueries({queryKey:[k]})));setOpen(false);toast.success('Clubes fusionados sin cambiar tiempos ni parciales.');}catch(e){toast.error(e instanceof Error?e.message:(e as {message?:string}).message??'No se pudo fusionar.');}finally{setBusy(false);}}
+ return <Dialog open={open} onOpenChange={setOpen}><Button variant="outline" onClick={()=>setOpen(true)} disabled={clubs.length<2}><Merge/>Fusionar clubes</Button><DialogContent><DialogHeader><DialogTitle>Fusionar {club.name}</DialogTitle><DialogDescription>Los atletas, inscripciones e integrantes pasarán al club de destino; se eliminará el club de origen. Los resultados y parciales se conservan. Si hay documentos privados o relevos duplicados, la operación se detiene para revisarlos.</DialogDescription></DialogHeader><Label htmlFor="merge-target">Club de destino</Label><select id="merge-target" className="h-10 w-full rounded-md border bg-background px-3" value={target} onChange={e=>setTarget(e.target.value)}><option value="">Seleccionar club</option>{clubs.filter(c=>c.id!==club.id).map(c=><option key={c.id} value={c.id}>{c.team_code} · {c.name}</option>)}</select><Button disabled={!target||busy} onClick={merge}><Merge/>{busy?'Fusionando…':'Confirmar fusión permanente'}</Button></DialogContent></Dialog>;
+}
+
+export function TournamentSetup({meet}:{meet:Tables<'meets'>}) {
+ const [open,setOpen]=useState(false),[busy,setBusy]=useState(false);const qc=useQueryClient();
+ const fields=[['facility_name','Sede'],['city','Ciudad'],['age_up_date','Fecha de corte (informativa)'],['lanes_count','Carriles'],['max_ind_entries','Máximo individual por torneo'],['max_ind_per_session','Máximo individual por sesión'],['max_relay_entries','Máximo de relevos por atleta'],['max_total_entries','Máximo total por atleta'],['athlete_surcharge','Recargo por atleta'],['ind_entry_fee','Cuota individual'],['relay_entry_fee','Cuota por relevo']] as const;
+ const [values,setValues]=useState<Record<string,string>>({});
+ function show(){setValues(Object.fromEntries(fields.map(([key])=>[key,String(meet[key]??'')])));setOpen(true);}
+ async function save(){setBusy(true);try{const payload=Object.fromEntries(fields.map(([key])=>[key,['facility_name','city','age_up_date'].includes(key)?values[key]||null:values[key]?Number(values[key]):['athlete_surcharge','ind_entry_fee','relay_entry_fee'].includes(key)?0:null]));const r=await supabase.from('meets').update(payload).eq('id',meet.id);if(r.error)throw r.error;await qc.invalidateQueries({queryKey:['coach-data']});setOpen(false);toast.success('Configuración guardada.');}catch(e){toast.error((e as {message?:string}).message??'No se pudo guardar.');}finally{setBusy(false);}}
+ return <Dialog open={open} onOpenChange={setOpen}><Button variant="outline" onClick={show}>Configurar torneo</Button><DialogContent className="max-h-[85dvh] overflow-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{meet.name}</DialogTitle><DialogDescription>La elegibilidad sigue usando la edad al 31 de diciembre. Las cuotas se muestran en la unidad monetaria del torneo, sin cobro automático.</DialogDescription></DialogHeader><form onSubmit={e=>{e.preventDefault();void save();}} className="grid gap-4 sm:grid-cols-2">{fields.map(([key,label])=><div key={key}><Label htmlFor={`setup-${key}`}>{label}</Label><Input id={`setup-${key}`} type={key==='age_up_date'?'date':['facility_name','city'].includes(key)?'text':'number'} min={key.includes('fee')||key==='athlete_surcharge'?0:1} step={key.includes('fee')||key==='athlete_surcharge'?'0.01':1} value={values[key]??''} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))}/></div>)}<Button type="submit" disabled={busy} className="sm:col-span-2"><Save/>Guardar configuración</Button></form></DialogContent></Dialog>;
+}

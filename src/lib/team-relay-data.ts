@@ -1,0 +1,3 @@
+import { queryOptions } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+export const teamRelayQuery=queryOptions({queryKey:['team-relays'],queryFn:async()=>{const [events,entries]=await Promise.all([supabase.from('events').select('*').eq('is_relay',true),supabase.from('relay_entries').select('*')]);if(events.error)throw events.error;if(entries.error)throw entries.error;return {events:events.data,entries:entries.data};}});
