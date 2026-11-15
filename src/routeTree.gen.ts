@@ -27,6 +27,7 @@ import { Route as AuthenticatedMeetsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRelaysRouteImport } from './routes/_authenticated/relays'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedRunRouteImport } from './routes/_authenticated/run'
 import { Route as AuthenticatedSeedingRouteImport } from './routes/_authenticated/seeding'
 import { Route as AuthenticatedStandardsRouteImport } from './routes/_authenticated/standards'
 import { Route as AuthenticatedAthletesIndexRouteImport } from './routes/_authenticated/athletes.index'
@@ -122,6 +123,11 @@ const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRunRoute = AuthenticatedRunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSeedingRoute = AuthenticatedSeedingRouteImport.update({
   id: '/seeding',
   path: '/seeding',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/relays': typeof AuthenticatedRelaysRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/relays': typeof AuthenticatedRelaysRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/relays': typeof AuthenticatedRelaysRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/run': typeof AuthenticatedRunRoute
   '/_authenticated/seeding': typeof AuthenticatedSeedingRoute
   '/_authenticated/standards': typeof AuthenticatedStandardsRoute
   '/_authenticated/athletes/$id': typeof AuthenticatedAthletesIdRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/relays'
     | '/reports'
+    | '/run'
     | '/seeding'
     | '/standards'
     | '/athletes/$id'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/relays'
     | '/reports'
+    | '/run'
     | '/seeding'
     | '/standards'
     | '/athletes/$id'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/relays'
     | '/_authenticated/reports'
+    | '/_authenticated/run'
     | '/_authenticated/seeding'
     | '/_authenticated/standards'
     | '/_authenticated/athletes/$id'
@@ -439,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/run': {
+      id: '/_authenticated/run'
+      path: '/run'
+      fullPath: '/run'
+      preLoaderRoute: typeof AuthenticatedRunRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/seeding': {
       id: '/_authenticated/seeding'
       path: '/seeding'
@@ -489,6 +508,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRelaysRoute: typeof AuthenticatedRelaysRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedRunRoute: typeof AuthenticatedRunRoute
   AuthenticatedSeedingRoute: typeof AuthenticatedSeedingRoute
   AuthenticatedStandardsRoute: typeof AuthenticatedStandardsRoute
   AuthenticatedAthletesIdRoute: typeof AuthenticatedAthletesIdRoute
@@ -507,6 +527,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRelaysRoute: AuthenticatedRelaysRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedRunRoute: AuthenticatedRunRoute,
   AuthenticatedSeedingRoute: AuthenticatedSeedingRoute,
   AuthenticatedStandardsRoute: AuthenticatedStandardsRoute,
   AuthenticatedAthletesIdRoute: AuthenticatedAthletesIdRoute,

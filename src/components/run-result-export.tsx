@@ -1,0 +1,8 @@
+import {useState} from 'react';
+import {Download,Share2,FileDown} from 'lucide-react';
+import {Button} from './ui/button';
+import {Dialog,DialogContent,DialogHeader,DialogTitle} from './ui/dialog';
+import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from './ui/select';
+import {toast} from 'sonner';
+import {canShareFile,downloadFile,shareFile} from '@/lib/file-delivery';
+export function RunResultExport({prepare}:{prepare:(kind:'sd3'|'hy3')=>Promise<File>}){const [open,setOpen]=useState(false),[kind,setKind]=useState<'sd3'|'hy3'>('sd3'),[file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false);return <Dialog open={open} onOpenChange={v=>{setOpen(v);setFile(null);}}><Button variant="outline" onClick={()=>setOpen(true)}><FileDown/>Exportar resultados</Button><DialogContent aria-describedby={undefined}><DialogHeader><DialogTitle>Resultados · Team Manager</DialogTitle></DialogHeader><Select value={kind} onValueChange={v=>{setKind(v as 'sd3'|'hy3');setFile(null);}}><SelectTrigger aria-label="Formato resultados"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="sd3">SD3 · Resultados</SelectItem><SelectItem value="hy3">HY3 · Resultados</SelectItem></SelectContent></Select>{file?<><p className="break-all text-sm">{file.name}</p>{canShareFile(file)&&<Button onClick={()=>void shareFile(file).catch(e=>toast.error(e.message))}><Share2/>Compartir</Button>}<Button onClick={()=>downloadFile(file)}><Download/>Descargar</Button></>:<Button disabled={busy} onClick={async()=>{setBusy(true);try{setFile(await prepare(kind));}catch(e){toast.error(e instanceof Error?e.message:'No se pudo exportar');}finally{setBusy(false);}}}><FileDown/>{busy?'Preparando…':'Preparar archivo'}</Button>}</DialogContent></Dialog>;}

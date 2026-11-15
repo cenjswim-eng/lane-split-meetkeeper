@@ -737,11 +737,14 @@ export type Database = {
           finals_time_ms: number | null
           heat: number | null
           id: string
+          is_exhibition: boolean
           lane: number | null
           meet_id: string
           owner_id: string
+          place: number | null
           points_scored: number | null
           relay_letter: string
+          run_splits: Json
           seed_course: string | null
           seed_time_ms: number | null
           seeding_time_ms: number | null
@@ -761,11 +764,14 @@ export type Database = {
           finals_time_ms?: number | null
           heat?: number | null
           id?: string
+          is_exhibition?: boolean
           lane?: number | null
           meet_id: string
           owner_id?: string
+          place?: number | null
           points_scored?: number | null
           relay_letter: string
+          run_splits?: Json
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
@@ -785,11 +791,14 @@ export type Database = {
           finals_time_ms?: number | null
           heat?: number | null
           id?: string
+          is_exhibition?: boolean
           lane?: number | null
           meet_id?: string
           owner_id?: string
+          place?: number | null
           points_scored?: number | null
           relay_letter?: string
+          run_splits?: Json
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
@@ -878,6 +887,7 @@ export type Database = {
           heat: number | null
           id: string
           is_dq: boolean
+          is_exhibition: boolean
           lane: number | null
           meet_id: string
           origin_team: string | null
@@ -885,6 +895,10 @@ export type Database = {
           place: number | null
           points_scored: number | null
           round: string | null
+          run_entry_id: string | null
+          scoring_category: string | null
+          scoring_club_id: string | null
+          scoring_unattached: boolean
           seed_time_ms: number | null
           source_result_id: string | null
           status: string
@@ -904,6 +918,7 @@ export type Database = {
           heat?: number | null
           id?: string
           is_dq?: boolean
+          is_exhibition?: boolean
           lane?: number | null
           meet_id: string
           origin_team?: string | null
@@ -911,6 +926,10 @@ export type Database = {
           place?: number | null
           points_scored?: number | null
           round?: string | null
+          run_entry_id?: string | null
+          scoring_category?: string | null
+          scoring_club_id?: string | null
+          scoring_unattached?: boolean
           seed_time_ms?: number | null
           source_result_id?: string | null
           status?: string
@@ -930,6 +949,7 @@ export type Database = {
           heat?: number | null
           id?: string
           is_dq?: boolean
+          is_exhibition?: boolean
           lane?: number | null
           meet_id?: string
           origin_team?: string | null
@@ -937,6 +957,10 @@ export type Database = {
           place?: number | null
           points_scored?: number | null
           round?: string | null
+          run_entry_id?: string | null
+          scoring_category?: string | null
+          scoring_club_id?: string | null
+          scoring_unattached?: boolean
           seed_time_ms?: number | null
           source_result_id?: string | null
           status?: string
@@ -964,6 +988,20 @@ export type Database = {
             columns: ["meet_id"]
             isOneToOne: false
             referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_run_entry_id_fkey"
+            columns: ["run_entry_id"]
+            isOneToOne: false
+            referencedRelation: "meet_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_scoring_club_id_fkey"
+            columns: ["scoring_club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
           {
@@ -1179,6 +1217,10 @@ export type Database = {
     }
     Functions: {
       activate_standard_version: { Args: { p_id: string }; Returns: undefined }
+      configure_run_points: {
+        Args: { p_individual: Json; p_meet: string; p_relay: Json }
+        Returns: undefined
+      }
       copy_athlete_history: {
         Args: { _results: string[]; _target: string }
         Returns: Json
@@ -1232,6 +1274,10 @@ export type Database = {
         Args: { p_source: string; p_target: string }
         Returns: Json
       }
+      recalculate_run_event: {
+        Args: { p_event: string; p_round: string }
+        Returns: undefined
+      }
       reopen_meet_seeding: {
         Args: { p_meet: string; p_revision: number; p_session: number }
         Returns: undefined
@@ -1278,6 +1324,16 @@ export type Database = {
           p_revision: number
           p_rows: Json
           p_session: number
+        }
+        Returns: number
+      }
+      save_run_heat: {
+        Args: {
+          p_event: string
+          p_heat: number
+          p_meet: string
+          p_round: string
+          p_rows: Json
         }
         Returns: number
       }

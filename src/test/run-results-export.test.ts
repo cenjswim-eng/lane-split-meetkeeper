@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest';
+import {buildRunHy3} from '@/lib/hytek/run-results-export';
+import {parseHy3} from '@/lib/hytek/hy3';
+import {calculateHy3Checksum} from '@/lib/swim-io/exporters';
+it('exports finals and splits with HY3 130 character records and valid checksum',()=>{const text=new TextDecoder('windows-1252').decode(buildRunHy3({name:'Copa',location:null,start_date:'2026-11-15',end_date:null,course:'LCM'},[{athlete:{first_name:'Ana',last_name:'Test',birth_date:'2012-01-01',gender:'F',federation_id:'ANA120101',team_code:'CLUB'},event:{event_number:'1',distance:100,stroke:1,gender:'F',min_age:14,max_age:15},seed_time_ms:61450,final_time_ms:60000,is_dq:false,place:1,aqua_points:null,course:'LCM',round:'F',splits:[{split_distance:50,cumulative_time_ms:30000}]}],[{code:'CLUB',name:'Club'}]));for(const line of text.trimEnd().split('\r\n')){expect(line.length).toBe(130);expect(line.slice(128)).toBe(calculateHy3Checksum(line.slice(0,128)));}const result=parseHy3(text).results[0];expect(result).toMatchObject({finalMs:60000,seedMs:61450,place:1});expect(result?.splits).toEqual([{distance:50,cumulative_ms:30000}]);});
