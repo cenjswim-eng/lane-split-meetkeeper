@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Integrar adjunto de interoperabilidad en los parsers puros existentes: fachada modular, EV3 exportable, relevos y centro de revisión; SD3 conserva 160 caracteres más CRLF (162 bytes por registro), sin prometer aceptación externa no probada.
 - [ ] Incorporar nuevo adjunto Modo Team Manager: edición Hy-Tek, fusión segura de clubes, plantilla y mejores tiempos, límites por sesión, relevos A/B y cuotas; resolver diferencias con las reglas vigentes de ID, edad y nueve meses antes de aplicarlas.
 - [ ] Ampliar la gestión Hy-Tek solicitada en el adjunto: configuración de torneos, sesiones, inscripciones y relevos, sin duplicar tablas actuales; presentar plan de adaptación antes de cambios estructurales.
 - [x] Corregir «column reference a is ambiguous» en importación Meet Manager y ZIP; corrección activa en la base compartida, 20 pruebas pasan (guardado real, reimportación, tiempos preservados y aislamiento). Subida ZIP, confirmación y relectura en pantalla verificadas con cuenta temporal; datos de prueba eliminados. Archivo original del usuario no adjunto.
