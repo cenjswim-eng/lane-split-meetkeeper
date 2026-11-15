@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { prepareImportPayload } from "./swim-io/staging";
 import type { ParsedFile } from "./hytek";
+import type { Json } from '@/integrations/supabase/types';
 
 export interface ImportSummary {
   meetId: string;
@@ -17,10 +18,6 @@ function must<T>(r: { data: T; error: { message: string } | null }): NonNullable
   if (r.error) throw new Error(r.error.message);
   return r.data as NonNullable<T>;
 }
-function maybe<T>(r: { data: T; error: { message: string } | null }): T {
-  if (r.error) throw new Error(r.error.message);
-  return r.data;
-}
 
 /** Writes a parsed Hy-Tek file into the database, de-duplicating athletes, teams, meets and events. */
 export async function importParsed(fileName: string, p: ParsedFile, onProgress?: (pct: number) => void, options?: { hash?: string; clubId?: string; teamCode?: string; links?: Record<string,string> }): Promise<ImportSummary> {
@@ -34,7 +31,7 @@ export async function importParsed(fileName: string, p: ParsedFile, onProgress?:
   }
   onProgress?.(15);
   const payload = prepareImportPayload(p, fileName, options?.hash, options?.clubId, options?.teamCode, options?.links);
-  const response = must(await supabase.rpc("import_meet_payload", { p_payload: payload }));
+  const response = must(await supabase.rpc("import_meet_payload", { p_payload: JSON.parse(JSON.stringify(payload)) as Json }));
   onProgress?.(100);
   return response as unknown as ImportSummary;
 }

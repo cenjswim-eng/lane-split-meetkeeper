@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { canShareFile, downloadFile, shareFile, zipExport } from "@/lib/file-delivery";
 
-export type ExportKind = "sd3" | "results" | "entries";
+export type ExportKind = "sd3" | "hy3" | "results" | "entries";
 
 export function MeetExport({ name, prepare, entriesOnly = false }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +54,7 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
           <SelectTrigger aria-label="Formato de exportación"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="sd3">{entriesOnly ? "SD3 · Inscripciones Meet Manager" : "SD3 · Compatible con Hy-Tek"}</SelectItem>
+            {entriesOnly && <SelectItem value="hy3">HY3 · Inscripciones Hy-Tek</SelectItem>}
             {!entriesOnly && <SelectItem value="results">PDF · Marcas</SelectItem>}
             <SelectItem value="entries">PDF · Inscripción</SelectItem>
           </SelectContent>
