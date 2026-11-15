@@ -3,6 +3,17 @@ const state = vi.hoisted(() => ({ results: new Map<string, unknown>(), meets: ne
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
   auth: { getUser: async () => ({ data: { user: { id: 'owner-1' } }, error: null }) },
   rpc: vi.fn(async (_name, args) => {
+    if (_name === 'import_meet_payload') {
+      const p = args.p_payload;
+      const key = JSON.stringify(p.meet);
+      state.meets.set(key, 'meet-1');
+      for (const r of p.results) {
+        const identity = `${r.athleteKey}|${r.eventNumber}|${r.distance}|${r.stroke}|${r.course}|${r.round}`;
+        const previous = state.results.get(identity) as Record<string, unknown> | undefined;
+        state.results.set(identity, { ...previous, seed_time_ms: r.seedMs ?? previous?.['seed_time_ms'] ?? null, final_time_ms: r.finalMs ?? previous?.['final_time_ms'] ?? null });
+      }
+      return { data: { meetId: 'meet-1', meetName: p.meet.name, teams: p.teams.length, athletesNew: 0, athletesMatched: p.athletes.length, results: p.results.length, splits: 0 }, error: null };
+    }
     if (args.p_kind === "event") return { data: "event-1", error: null };
     const key = JSON.stringify(args.p_data);
     state.meets.set(key, "meet-1"); return { data: state.meets.get(key), error: null };
