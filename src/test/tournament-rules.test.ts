@@ -1,0 +1,9 @@
+import { it, expect } from 'vitest';
+import { ageOnCutoff, millisecondsToCentiseconds, centisecondsToMilliseconds, entryTimeMs, entryTimeText, tournamentEligible, entryLimitWarnings, entryFees, relayTeamsAB } from '@/lib/tournament-rules';
+it('converts MM:SS.cc and NT to integer milliseconds',()=>{expect(entryTimeMs('1:02.34')).toBe(62340);expect(entryTimeMs('NT')).toBeNull();expect(entryTimeText(null)).toBe('NT');expect(()=>entryTimeMs('DQ')).toThrow();});
+it('converts centiseconds explicitly and rounds milliseconds',()=>{expect(millisecondsToCentiseconds(62346)).toBe(6235);expect(centisecondsToMilliseconds(6234)).toBe(62340);expect(()=>centisecondsToMilliseconds(1.5)).toThrow();});
+it('computes cutoff age at birthday without timezone dependence',()=>{expect(ageOnCutoff('2012-11-20','2026-11-19')).toBe(13);expect(ageOnCutoff('2012-11-20','2026-11-20')).toBe(14);expect(()=>ageOnCutoff('2012-02-30','2026-11-20')).toThrow();});
+it('keeps entry eligibility on December 31',()=>{expect(tournamentEligible({birth_date:'2012-12-31',gender:'F'},{gender:'F',min_age:14,max_age:15},2026)).toBe(true);expect(tournamentEligible({birth_date:'2012-12-31',gender:'M'},{gender:'F',min_age:14,max_age:15},2026)).toBe(false);});
+it('checks tournament and session limits separately',()=>{expect(entryLimitWarnings(3,2,0,{max_ind_entries:3,max_ind_per_session:1,max_total_entries:3})).toEqual(['Límite individual por sesión excedido']);});
+it('calculates athlete surcharge plus individual and relay fees',()=>{expect(entryFees(6,18,2,{athlete_surcharge:2.5,ind_entry_fee:1.25,relay_entry_fee:5})).toBe(47.5);});
+it('builds fastest A and B freestyle quartets without repeating swimmers',()=>{const teams=relayTeamsAB(Array.from({length:8},(_,i)=>({id:String(i),name:String(i),best:{1:50000+i*1000}})),false);expect(teams.map(t=>t.totalMs)).toEqual([206000,222000]);expect(new Set(teams.flatMap(t=>t.legs.map(l=>l.athleteId))).size).toBe(8);});

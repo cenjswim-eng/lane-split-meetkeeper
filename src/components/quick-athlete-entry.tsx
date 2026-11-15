@@ -20,10 +20,10 @@ export function QuickAthleteEntry({clubId,clubs,athlete}:{clubId?:string;clubs:T
  const empty=(club:string):AthleteFormValues=>({last_name:"",first_name:"",middle_initial:"",preferred_name:"",gender:"M",birth_date:"",federation_id:"",para_classification:"",is_active:true,club_id:club});
  const form=useForm<AthleteFormValues>({resolver:zodResolver(athleteSchema),defaultValues:empty(clubId??"")}); const values=form.watch();
  function show(){form.reset(athlete?{...empty(athlete.club_id??""),last_name:athlete.last_name,first_name:athlete.first_name,middle_initial:athlete.middle_initial??"",preferred_name:athlete.preferred_name??"",gender:athlete.gender==="F"?"F":"M",birth_date:athlete.birth_date??"",federation_id:athlete.federation_id??"",para_classification:athlete.para_classification??"",is_active:athlete.is_active}:empty(clubId??""));setOpen(true);}
- function generate(){try{form.setValue("federation_id",generateFederationId(values.first_name,values.last_name,values.birth_date),{shouldDirty:true});}catch(e){toast.error(e instanceof Error?e.message:"Completa los datos.");}}
+ function generate(){if(values.federation_id.trim()){toast.info('Conservamos el ID existente.');return;}try{form.setValue("federation_id",generateFederationId(values.first_name,values.last_name,values.birth_date,values.gender),{shouldDirty:true});}catch(e){toast.error(e instanceof Error?e.message:"Completa los datos.");}}
  async function save(v:AthleteFormValues,next:boolean){
   try {
-   const id=v.federation_id.trim()||generateFederationId(v.first_name,v.last_name,v.birth_date);
+   const id=v.federation_id.trim()||generateFederationId(v.first_name,v.last_name,v.birth_date,v.gender);
    const existing=await supabase.from("athletes").select("id").eq("federation_id",id); if(existing.error)throw new Error(existing.error.message);
    if(existing.data.some(a=>a.id!==athlete?.id))throw new Error("Ese ID ya pertenece a otro atleta. Indica un ID diferente o revisa su ficha.");
    const payload={...v,federation_id:id,club_id:v.club_id||null,active_status:v.is_active};
