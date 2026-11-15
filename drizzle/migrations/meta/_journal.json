@@ -204,6 +204,13 @@
       "when": 1794621724389,
       "tag": "0028_atomic_swim_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794779421310,
+      "tag": "0029_fix_swim_import_json_aliases",
+      "breakpoints": true
     }
   ]
 }
