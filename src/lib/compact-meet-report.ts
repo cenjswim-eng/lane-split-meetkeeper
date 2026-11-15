@@ -51,7 +51,7 @@ export function compactReportRows(results: CompactResult[], athletes: CompactAth
     const best = (list: CompactResult[]) => list.reduce<number | null>((min,h) => h.final_time_ms == null ? min : min == null ? h.final_time_ms : Math.min(min,h.final_time_ms), null);
     const previousPbMs = best(previous), pbMs = best(history), officialMs = valid(r) ? r.final_time_ms : null;
     const pbDiffMs = officialMs != null && previousPbMs != null ? timeDiffMs(officialMs,previousPbMs) : null;
-    const standardResult = { ...r, meets: { start_date: date } };
+    const standardResult = { ...r, meets: { id:r.meet_id,name:r.meets?.name ?? "",start_date: date } };
     let targetMs = mode === "pb" ? previousPbMs : mode === "national" ? athleteMinimum(athlete,standardResult,standards)?.limit_ms ?? null : mode === "tournament" ? tournamentTarget(byEvent.get(r.event_id ?? ""),standardResult,athlete) : null;
     if (edits[r.id]?.targetMs !== undefined) targetMs = edits[r.id]?.targetMs ?? null;
     return [{id:r.id,athleteId:athlete.id,athlete:`${athlete.last_name}, ${athlete.first_name}`,event:`${r.events.distance}m ${STROKES[r.events.stroke] ?? r.events.stroke}`,meet:r.meets?.name ?? "Sin competencia",date,dateEstimated:!edits[r.id]?.date,course:r.course,officialMs,status:r.is_dq?"DQ":r.status || "NT",pbMs,previousPbMs,pbDiffMs,targetMs,targetDiffMs:officialMs != null && targetMs != null ? timeDiffMs(officialMs,targetMs):null,newPb:pbDiffMs != null && pbDiffMs < 0} satisfies CompactRow];
