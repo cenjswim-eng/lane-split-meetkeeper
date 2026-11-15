@@ -33,7 +33,7 @@ export function tournamentTarget(event: CompactEvent | undefined, result: Compac
   if ((event.min_age != null || event.max_age != null) && (age == null || !Number.isFinite(age) || (event.min_age != null && age < event.min_age) || (event.max_age != null && age > event.max_age))) return null;
   const values = event.qualifying_times_ms;
   if (!values || typeof values !== "object" || Array.isArray(values)) return null;
-  const key = result.course === "LCM" ? "L" : result.course === "SCM" ? "S" : result.course === "SCY" ? "Y" : "";
+  const key = result.course ?? "";
   const value = (values as Record<string, unknown>)[key];
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
 }
