@@ -1,0 +1,6 @@
+CREATE FUNCTION public.sync_tournament_setup() RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=public AS $$ DECLARE s text; f text; BEGIN IF NEW.setup_metadata IS NOT NULL THEN s:=NEW.setup_metadata#>>'{session,id}'; IF s ~ '^[0-9]+$' AND s::integer>0 THEN NEW.session_number:=s::integer; END IF; f:=NEW.setup_metadata->>'entryFee'; IF f ~ '^[0-9]+(\.[0-9]+)?$' THEN NEW.event_fee:=f::numeric; END IF; END IF; RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.sync_tournament_setup() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER sync_tournament_setup BEFORE INSERT OR UPDATE OF setup_metadata ON public.events FOR EACH ROW EXECUTE FUNCTION public.sync_tournament_setup();
+CREATE FUNCTION public.validate_club_hytek_name() RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=public AS $$ BEGIN IF (TG_OP='INSERT' AND NEW.team_code IS NOT NULL) OR (TG_OP='UPDATE' AND NEW.full_name IS DISTINCT FROM OLD.full_name) THEN IF length(NEW.full_name)>30 THEN RAISE EXCEPTION 'El nombre completo admite hasta 30 caracteres Hy-Tek'; END IF; END IF; RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.validate_club_hytek_name() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER validate_club_hytek_name BEFORE INSERT OR UPDATE ON public.clubs FOR EACH ROW EXECUTE FUNCTION public.validate_club_hytek_name();

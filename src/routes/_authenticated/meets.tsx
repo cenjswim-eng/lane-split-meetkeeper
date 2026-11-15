@@ -7,6 +7,7 @@ import { exportMeet, exportPdf } from "@/lib/meet-files";
 import { SwimFileImporterModal } from '@/components/imports/SwimFileImporterModal';
 import { coachQuery } from '@/lib/coach-data';
 import { clubManagementQuery } from '@/lib/club-management-data';
+import { HytekFileCenter } from '@/components/hytek-file-center';
 
 const meetsQuery = queryOptions({
   queryKey: ["meets"],
@@ -30,6 +31,7 @@ function MeetsPage() {
       <h1 className="text-4xl font-bold uppercase">Competencias</h1>
       <div className="mt-3 flex flex-wrap gap-2"><SwimFileImporterModal/><Button asChild variant="outline"><Link to="/import">Cargar eventos EV3 / HYV</Link></Button><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
       <div className="mt-6 space-y-2">
+        <HytekFileCenter meets={data}/>
         {data.length === 0 && <p className="text-muted-foreground">Sin competencias todavía.</p>}
         {data.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">

@@ -1,10 +1,10 @@
 import { expect, it } from "vitest";
 import { formatTeamCode, generateFederationId, rosterCategory, clubSchema, athleteSchema } from "@/lib/roster-rules";
 it("club codes are uppercase, space-free and at most five characters",()=>{expect(formatTeamCode("j swim xx")).toBe("JSWIM");});
-it("club codes require 2–5 characters",()=>{const base={team_code:"J",full_name:"Club",short_name:"Club",region_lsc:"",country_code:"VEN",head_coach:"",contact_email:"",contact_phone:"",team_color:"#3cc8e0",is_unattached:false};expect(clubSchema.safeParse(base).success).toBe(false);expect(clubSchema.safeParse({...base,team_code:"JSWIM"}).success).toBe(true);});
-it("full names have a forty-character limit",()=>{expect(clubSchema.shape.full_name.safeParse("x".repeat(41)).success).toBe(false);expect(clubSchema.shape.full_name.safeParse("x".repeat(40)).success).toBe(true);});
+it("club codes require 2–5 characters",()=>{const base={team_code:"J",full_name:"Club",short_name:"Club",region_lsc:"",country_code:"VEN",head_coach:"",contact_email:"",contact_phone:"",team_color:"#3cc8e0",is_unattached:false,team_type:'AGE_GROUP',division:'',region:''};expect(clubSchema.safeParse(base).success).toBe(false);expect(clubSchema.safeParse({...base,team_code:"JSWIM"}).success).toBe(true);});
+it("full names have a thirty-character limit",()=>{expect(clubSchema.shape.full_name.safeParse("x".repeat(31)).success).toBe(false);expect(clubSchema.shape.full_name.safeParse("x".repeat(30)).success).toBe(true);});
 it("short names have a sixteen-character limit",()=>{expect(clubSchema.shape.short_name.safeParse("x".repeat(17)).success).toBe(false);});
-it("IDs contain initials and DDMMYY without extra digits",()=>{expect(generateFederationId("Ána","Pérez","2012-04-20")).toBe("APE200412");});
+it("IDs contain initials, DDMMYY and gender without extra digits",()=>{expect(generateFederationId("Ána","Pérez","2012-04-20",'F')).toBe("APE200412F");expect(generateFederationId("Ána","Pérez","2012-04-20",'M')).toBe("APE200412M");});
 it("nine-year-olds are Pre-Infantil, ten-year-olds Infantil A",()=>{expect(rosterCategory("2017-12-31",2026)).toBe("Pre-Infantil");expect(rosterCategory("2016-12-31",2026)).toBe("Infantil A");});
 it("competitive categories use Dec 31 even before the birthday",()=>{expect(rosterCategory("2012-12-31",2026)).toBe("Juvenil A");});
 it("custom account categories remain authoritative",()=>{expect(rosterCategory("2017-12-31",2026,[{name:"Escuela",label:"Escuela",age_min:8,age_max:10}])).toBe("Escuela");});

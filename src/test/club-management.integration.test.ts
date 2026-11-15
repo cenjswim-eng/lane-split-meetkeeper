@@ -17,7 +17,7 @@ it.skipIf(!url || !key || !publicKey)("club access stays private per account and
   const other = await b.from("clubs").insert({ name: "Club privado B" }).select().single(); if (other.error) throw other.error;
   expect((await b.from("clubs").select("id").eq("id", club.data.id)).data).toEqual([]);
   expect((await a.from("athletes").insert({ first_name: "Ajeno", last_name: "Test", club_id: other.data.id })).error).not.toBeNull();
-  const athlete = await a.from("athletes").insert({ first_name: "Ana", last_name: "Test", club_id: club.data.id }).select().single(); if (athlete.error) throw athlete.error;
+  const athlete = await a.from("athletes").insert({ first_name: "Ana", last_name: "Test", birth_date:'2012-01-01',gender:'F',club_id: club.data.id }).select().single(); if (athlete.error) throw athlete.error;
   const meet = await a.from("meets").insert({ name: "Copa club", course: "LCM" }).select().single(); if (meet.error) throw meet.error;
   const event = await a.from("events").insert({ meet_id: meet.data.id, distance: 100, stroke: 1 }).select().single(); if (event.error) throw event.error;
   const row = { athlete_id: athlete.data.id, meet_id: meet.data.id, event_id: event.data.id };

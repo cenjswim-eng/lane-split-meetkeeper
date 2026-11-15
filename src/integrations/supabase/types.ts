@@ -71,6 +71,8 @@ export type Database = {
           group_id: string | null
           id: string
           is_active: boolean
+          is_federated: boolean
+          is_unattached: boolean
           last_name: string
           middle_initial: string | null
           normalized_slug: string | null
@@ -92,6 +94,8 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_active?: boolean
+          is_federated?: boolean
+          is_unattached?: boolean
           last_name: string
           middle_initial?: string | null
           normalized_slug?: string | null
@@ -113,6 +117,8 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_active?: boolean
+          is_federated?: boolean
+          is_unattached?: boolean
           last_name?: string
           middle_initial?: string | null
           normalized_slug?: string | null
@@ -293,6 +299,7 @@ export type Database = {
           contact_phone: string | null
           country_code: string
           created_at: string
+          division: string | null
           full_name: string | null
           head_coach: string | null
           id: string
@@ -300,16 +307,19 @@ export type Database = {
           logo_path: string | null
           name: string
           owner_id: string | null
+          region: string | null
           region_lsc: string | null
           short_name: string | null
           team_code: string | null
           team_color: string | null
+          team_type: string
         }
         Insert: {
           contact_email?: string | null
           contact_phone?: string | null
           country_code?: string
           created_at?: string
+          division?: string | null
           full_name?: string | null
           head_coach?: string | null
           id?: string
@@ -317,16 +327,19 @@ export type Database = {
           logo_path?: string | null
           name: string
           owner_id?: string | null
+          region?: string | null
           region_lsc?: string | null
           short_name?: string | null
           team_code?: string | null
           team_color?: string | null
+          team_type?: string
         }
         Update: {
           contact_email?: string | null
           contact_phone?: string | null
           country_code?: string
           created_at?: string
+          division?: string | null
           full_name?: string | null
           head_coach?: string | null
           id?: string
@@ -334,10 +347,12 @@ export type Database = {
           logo_path?: string | null
           name?: string
           owner_id?: string | null
+          region?: string | null
           region_lsc?: string | null
           short_name?: string | null
           team_code?: string | null
           team_color?: string | null
+          team_type?: string
         }
         Relationships: []
       }
@@ -345,6 +360,7 @@ export type Database = {
         Row: {
           course: string | null
           distance: number
+          event_fee: number | null
           event_number: string | null
           gender: string | null
           id: string
@@ -354,12 +370,15 @@ export type Database = {
           min_age: number | null
           owner_id: string | null
           qualifying_times_ms: Json | null
+          round_type: string
+          session_number: number
           setup_metadata: Json | null
           stroke: number
         }
         Insert: {
           course?: string | null
           distance: number
+          event_fee?: number | null
           event_number?: string | null
           gender?: string | null
           id?: string
@@ -369,12 +388,15 @@ export type Database = {
           min_age?: number | null
           owner_id?: string | null
           qualifying_times_ms?: Json | null
+          round_type?: string
+          session_number?: number
           setup_metadata?: Json | null
           stroke: number
         }
         Update: {
           course?: string | null
           distance?: number
+          event_fee?: number | null
           event_number?: string | null
           gender?: string | null
           id?: string
@@ -384,6 +406,8 @@ export type Database = {
           min_age?: number | null
           owner_id?: string | null
           qualifying_times_ms?: Json | null
+          round_type?: string
+          session_number?: number
           setup_metadata?: Json | null
           stroke?: number
         }
@@ -450,28 +474,43 @@ export type Database = {
           athlete_id: string
           created_at: string
           event_id: string
+          heat: number | null
           id: string
+          is_exhibition: boolean
+          lane: number | null
           meet_id: string
           owner_id: string
+          seed_course: string | null
           seed_time_ms: number | null
+          status: string
         }
         Insert: {
           athlete_id: string
           created_at?: string
           event_id: string
+          heat?: number | null
           id?: string
+          is_exhibition?: boolean
+          lane?: number | null
           meet_id: string
           owner_id?: string
+          seed_course?: string | null
           seed_time_ms?: number | null
+          status?: string
         }
         Update: {
           athlete_id?: string
           created_at?: string
           event_id?: string
+          heat?: number | null
           id?: string
+          is_exhibition?: boolean
+          lane?: number | null
           meet_id?: string
           owner_id?: string
+          seed_course?: string | null
           seed_time_ms?: number | null
+          status?: string
         }
         Relationships: [
           {
@@ -499,41 +538,77 @@ export type Database = {
       }
       meets: {
         Row: {
+          age_up_date: string | null
           altitude: number | null
+          athlete_surcharge: number
+          city: string | null
           course: string
           created_at: string
           end_date: string | null
+          facility_name: string | null
           file_hash: string | null
           id: string
+          ind_entry_fee: number
+          lanes_count: number | null
           location: string | null
+          max_ind_entries: number | null
+          max_ind_per_session: number | null
+          max_relay_entries: number | null
+          max_total_entries: number | null
           name: string
           owner_id: string | null
+          relay_entry_fee: number
+          scoring_system: Json
           source_format: string | null
           start_date: string | null
         }
         Insert: {
+          age_up_date?: string | null
           altitude?: number | null
+          athlete_surcharge?: number
+          city?: string | null
           course?: string
           created_at?: string
           end_date?: string | null
+          facility_name?: string | null
           file_hash?: string | null
           id?: string
+          ind_entry_fee?: number
+          lanes_count?: number | null
           location?: string | null
+          max_ind_entries?: number | null
+          max_ind_per_session?: number | null
+          max_relay_entries?: number | null
+          max_total_entries?: number | null
           name: string
           owner_id?: string | null
+          relay_entry_fee?: number
+          scoring_system?: Json
           source_format?: string | null
           start_date?: string | null
         }
         Update: {
+          age_up_date?: string | null
           altitude?: number | null
+          athlete_surcharge?: number
+          city?: string | null
           course?: string
           created_at?: string
           end_date?: string | null
+          facility_name?: string | null
           file_hash?: string | null
           id?: string
+          ind_entry_fee?: number
+          lanes_count?: number | null
           location?: string | null
+          max_ind_entries?: number | null
+          max_ind_per_session?: number | null
+          max_relay_entries?: number | null
+          max_total_entries?: number | null
           name?: string
           owner_id?: string | null
+          relay_entry_fee?: number
+          scoring_system?: Json
           source_format?: string | null
           start_date?: string | null
         }
@@ -601,20 +676,161 @@ export type Database = {
           },
         ]
       }
+      relay_entries: {
+        Row: {
+          alt_1_id: string | null
+          alt_2_id: string | null
+          club_id: string
+          created_at: string
+          dq_code: string | null
+          event_id: string
+          finals_time_ms: number | null
+          heat: number | null
+          id: string
+          lane: number | null
+          meet_id: string
+          owner_id: string
+          points_scored: number | null
+          relay_letter: string
+          seed_course: string | null
+          seed_time_ms: number | null
+          status: string
+          swimmer_1_id: string
+          swimmer_2_id: string
+          swimmer_3_id: string
+          swimmer_4_id: string
+        }
+        Insert: {
+          alt_1_id?: string | null
+          alt_2_id?: string | null
+          club_id: string
+          created_at?: string
+          dq_code?: string | null
+          event_id: string
+          finals_time_ms?: number | null
+          heat?: number | null
+          id?: string
+          lane?: number | null
+          meet_id: string
+          owner_id?: string
+          points_scored?: number | null
+          relay_letter: string
+          seed_course?: string | null
+          seed_time_ms?: number | null
+          status?: string
+          swimmer_1_id: string
+          swimmer_2_id: string
+          swimmer_3_id: string
+          swimmer_4_id: string
+        }
+        Update: {
+          alt_1_id?: string | null
+          alt_2_id?: string | null
+          club_id?: string
+          created_at?: string
+          dq_code?: string | null
+          event_id?: string
+          finals_time_ms?: number | null
+          heat?: number | null
+          id?: string
+          lane?: number | null
+          meet_id?: string
+          owner_id?: string
+          points_scored?: number | null
+          relay_letter?: string
+          seed_course?: string | null
+          seed_time_ms?: number | null
+          status?: string
+          swimmer_1_id?: string
+          swimmer_2_id?: string
+          swimmer_3_id?: string
+          swimmer_4_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relay_entries_alt_1_id_fkey"
+            columns: ["alt_1_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_alt_2_id_fkey"
+            columns: ["alt_2_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_swimmer_1_id_fkey"
+            columns: ["swimmer_1_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_swimmer_2_id_fkey"
+            columns: ["swimmer_2_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_swimmer_3_id_fkey"
+            columns: ["swimmer_3_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relay_entries_swimmer_4_id_fkey"
+            columns: ["swimmer_4_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       results: {
         Row: {
           aqua_points: number | null
           athlete_id: string
           course: string | null
           created_at: string
+          dq_code: string | null
+          dq_description: string | null
           event_id: string | null
           final_time_ms: number | null
+          heat: number | null
           id: string
           is_dq: boolean
+          lane: number | null
           meet_id: string
           origin_team: string | null
           owner_id: string | null
           place: number | null
+          points_scored: number | null
           round: string | null
           seed_time_ms: number | null
           source_result_id: string | null
@@ -628,14 +844,19 @@ export type Database = {
           athlete_id: string
           course?: string | null
           created_at?: string
+          dq_code?: string | null
+          dq_description?: string | null
           event_id?: string | null
           final_time_ms?: number | null
+          heat?: number | null
           id?: string
           is_dq?: boolean
+          lane?: number | null
           meet_id: string
           origin_team?: string | null
           owner_id?: string | null
           place?: number | null
+          points_scored?: number | null
           round?: string | null
           seed_time_ms?: number | null
           source_result_id?: string | null
@@ -649,14 +870,19 @@ export type Database = {
           athlete_id?: string
           course?: string | null
           created_at?: string
+          dq_code?: string | null
+          dq_description?: string | null
           event_id?: string | null
           final_time_ms?: number | null
+          heat?: number | null
           id?: string
           is_dq?: boolean
+          lane?: number | null
           meet_id?: string
           origin_team?: string | null
           owner_id?: string | null
           place?: number | null
+          points_scored?: number | null
           round?: string | null
           seed_time_ms?: number | null
           source_result_id?: string | null
@@ -949,6 +1175,10 @@ export type Database = {
         Returns: string
       }
       is_app_owner: { Args: never; Returns: boolean }
+      merge_clubs: {
+        Args: { p_source: string; p_target: string }
+        Returns: Json
+      }
       request_app_access: { Args: never; Returns: Json }
       reset_management_data: {
         Args: { p_confirmation: string }
