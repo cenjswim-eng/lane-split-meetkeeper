@@ -37,7 +37,7 @@ function MeetsPage() {
               <div className="font-display text-xl font-semibold uppercase">{m.name}</div>
               <div className="time text-xs text-muted-foreground">{m.start_date ?? "—"} · {m.location ?? "—"} · {m.course} · {m.results?.[0]?.count ?? 0} resultados</div>
             </div>
-            <MeetExport name={m.name} prepare={(kind) => kind === "sd3" ? exportMeet(m) : exportPdf(m, kind)} />
+            <MeetExport name={m.name} prepare={(kind) => kind === "sd3" ? exportMeet(m) : exportPdf(m, kind === 'results' ? 'results' : 'entries')} />
           </div>
         ))}
       </div>

@@ -27,7 +27,7 @@ export function SwimFileImporterModal() {
  const results=file?.parsed.results.filter(r=>athletes.some(a=>a.key===r.athleteKey))??[];
  const mutation=useMutation({mutationFn:async()=>{
   if(!file) throw new Error('Selecciona un archivo.');
-  return importParsed(file.name,file.parsed,setProgress,{hash:file.hash,clubId:clubId==='none'?undefined:clubId,teamCode,links:resolved});
+  return importParsed(file.name,file.parsed,setProgress,{hash:file.hash,...(clubId==='none'?{}:{clubId}),teamCode,links:resolved});
  },onSuccess:async summary=>{setStep(3);setProgress(100);toast.success(`${summary.results} marcas y ${summary.splits} parciales guardados.`);await Promise.all(['meets','athletes','results','coach-data','club-management','dashboard','import-logs'].map(k=>qc.invalidateQueries({queryKey:[k]})));},onError:e=>{setError(e.message);setStep(2);}});
  async function pick(f?:File){if(!f||reading||mutation.isPending)return;setReading(true);setError('');try{setFile(await parseSwimFile(f));setLinks({});setTeam('all');setStep(2);}catch(e){setError(e instanceof Error?e.message:'No se pudo leer el archivo.');}finally{setReading(false);}}
  function update(field:'name'|'startDate'|'course',value:string){setFile(f=>f?{...f,parsed:{...f.parsed,meet:{...f.parsed.meet,[field]:value}}}:f);}

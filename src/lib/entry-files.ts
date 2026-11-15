@@ -24,8 +24,10 @@ export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "h
   if (kind === 'hy3') {
     // Each team has its own C1 block; never relabel athletes from another club.
     const codes = [...new Set(rows.map(r => r.athlete.team_code ?? 'UN'))];
-    const parts = codes.map(code => exportToHy3(meet, { code, name: teams.get(code) ?? 'Unattached' }, rows.filter(r => (r.athlete.team_code ?? 'UN') === code)));
-    return new File(parts, exportFilename(meet.name, '_inscripciones.hy3'), { type: 'application/octet-stream' });
+    const clubs = codes.map(code => ({ code, name: teams.get(code) ?? 'Unattached' }));
+    const first = clubs[0];
+    if (!first) throw new Error('No hay clubes para exportar.');
+    return new File([exportToHy3(meet, first, rows.map(r=>({...r,athlete:{...r.athlete,team_code:r.athlete.team_code ?? 'UN'}})), clubs)], exportFilename(meet.name, '_inscripciones.hy3'), { type: 'application/octet-stream' });
   }
   const report: ReportRow[] = rows.map(r => ({ athlete: `${r.athlete.last_name}, ${r.athlete.first_name}`, club: teams.get(r.athlete.team_code ?? "") ?? "Sin equipo", age: ageAtDec31(r.athlete.birth_date, Number(meet.start_date?.slice(0, 4) ?? new Date().getFullYear())), gender: r.athlete.gender, event: eventLabel(r.event.distance, r.event.stroke), seedMs: r.seed_time_ms, finalMs: null, isDq: false, place: null, points: null }));
   return entriesPdf(meet.name, `${meet.start_date ?? ""} · ${meet.course}`, report);
