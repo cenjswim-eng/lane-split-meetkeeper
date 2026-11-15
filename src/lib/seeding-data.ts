@@ -18,7 +18,7 @@ export interface OrganizerEntry extends SeedEntry { kind:'individual'|'relay'; e
 export function organizerEntries(data:SeedingData,meetId:string,session:number):OrganizerEntry[]{
  const meet=data.meets.find(m=>m.id===meetId);if(!meet)return [];
  const events=data.events.filter(e=>e.meet_id===meetId&&e.session_number===session);const year=Number(meet.start_date?.slice(0,4)??new Date().getFullYear());
- return events.flatMap(event=>{
+ return events.flatMap<OrganizerEntry>(event=>{
  const common={eventId:event.id,course:event.course??meet.course};
  if(event.is_relay)return data.relays.filter(e=>e.event_id===event.id).map(e=>{const club=data.clubs.find(c=>c.id===e.club_id);return {...common,id:`relay:${e.id}`,kind:'relay' as const,name:`${club?.full_name??club?.name??'Club'} ${e.relay_letter}`,club:club?.short_name??club?.team_code??'—',age:null,seedTimeMs:e.seed_time_ms,course:e.seed_course??common.course,status:e.status,savedHeat:e.heat,savedLane:e.lane,savedTimeMs:e.seeding_time_ms};});
  return data.entries.filter(e=>e.event_id===event.id).map(e=>{const a=data.athletes.find(a=>a.id===e.athlete_id);const club=data.clubs.find(c=>c.id===a?.club_id);const team=data.teams.find(t=>t.id===a?.team_id);return {...common,id:`individual:${e.id}`,kind:'individual' as const,name:a?`${a.last_name}, ${a.first_name}`:'Atleta no disponible',club:club?.short_name??club?.team_code??team?.code??'—',age:ageAtDec31(a?.birth_date??null,year),seedTimeMs:e.seed_time_ms,course:e.seed_course??common.course,status:e.status,savedHeat:e.heat,savedLane:e.lane,savedTimeMs:e.seeding_time_ms};});
