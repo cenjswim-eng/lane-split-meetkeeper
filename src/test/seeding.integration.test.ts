@@ -7,7 +7,7 @@ it.skipIf(!url||!key||!pub)('saves all entries atomically, preserves times, isol
  const check=<T>(r:{data:T;error:unknown}):NonNullable<T>=>{if(r.error)throw r.error;if(r.data==null)throw new Error('Missing response');return r.data;};
  let mid:string|undefined;
  try{
- for(let i=0;i<2;i++){const email=`seed-${crypto.randomUUID()}@example.com`,password=`${crypto.randomUUID()}Aa1!`;const u=check(await admin.auth.admin.createUser({email,password,email_confirm:true})).user;if(!u)throw new Error('Missing user');ids.push(u.id);check(await admin.from('user_roles').insert({user_id:u.id,role:'admin'}));const c=createClient(url,pub,{auth:{persistSession:false}});check(await c.auth.signInWithPassword({email,password}));clients.push(c);}
+ for(let i=0;i<2;i++){const email=`seed-${crypto.randomUUID()}@example.com`,password=`${crypto.randomUUID()}Aa1!`;const u=check(await admin.auth.admin.createUser({email,password,email_confirm:true})).user;if(!u)throw new Error('Missing user');ids.push(u.id);expect((await admin.from('user_roles').insert({user_id:u.id,role:'admin'})).error).toBeNull();const c=createClient(url,pub,{auth:{persistSession:false}});check(await c.auth.signInWithPassword({email,password}));clients.push(c);}
  const [a,b]=clients;if(!a||!b)throw new Error('Missing clients');
  const meet=check(await a.from('meets').insert({name:'Seeding integration',course:'LCM',start_date:'2026-11-15'}).select().single());mid=meet.id;
  const ev=check(await a.from('events').insert({meet_id:mid,event_number:'1',distance:100,stroke:1,session_number:1}).select().single());
