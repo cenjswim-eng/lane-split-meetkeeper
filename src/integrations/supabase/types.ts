@@ -482,6 +482,7 @@ export type Database = {
           owner_id: string
           seed_course: string | null
           seed_time_ms: number | null
+          seeding_time_ms: number | null
           status: string
         }
         Insert: {
@@ -496,6 +497,7 @@ export type Database = {
           owner_id?: string
           seed_course?: string | null
           seed_time_ms?: number | null
+          seeding_time_ms?: number | null
           status?: string
         }
         Update: {
@@ -510,6 +512,7 @@ export type Database = {
           owner_id?: string
           seed_course?: string | null
           seed_time_ms?: number | null
+          seeding_time_ms?: number | null
           status?: string
         }
         Relationships: [
@@ -529,6 +532,53 @@ export type Database = {
           },
           {
             foreignKeyName: "meet_entries_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meet_seeding_sessions: {
+        Row: {
+          closed: boolean
+          conversion_enabled: boolean
+          conversion_factor: number
+          id: string
+          lanes: number
+          meet_id: string
+          mode: string
+          owner_id: string
+          revision: number
+          session_number: number
+        }
+        Insert: {
+          closed?: boolean
+          conversion_enabled?: boolean
+          conversion_factor?: number
+          id?: string
+          lanes?: number
+          meet_id: string
+          mode?: string
+          owner_id?: string
+          revision?: number
+          session_number: number
+        }
+        Update: {
+          closed?: boolean
+          conversion_enabled?: boolean
+          conversion_factor?: number
+          id?: string
+          lanes?: number
+          meet_id?: string
+          mode?: string
+          owner_id?: string
+          revision?: number
+          session_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_seeding_sessions_meet_id_fkey"
             columns: ["meet_id"]
             isOneToOne: false
             referencedRelation: "meets"
@@ -694,6 +744,7 @@ export type Database = {
           relay_letter: string
           seed_course: string | null
           seed_time_ms: number | null
+          seeding_time_ms: number | null
           status: string
           swimmer_1_id: string
           swimmer_2_id: string
@@ -717,6 +768,7 @@ export type Database = {
           relay_letter: string
           seed_course?: string | null
           seed_time_ms?: number | null
+          seeding_time_ms?: number | null
           status?: string
           swimmer_1_id: string
           swimmer_2_id: string
@@ -740,6 +792,7 @@ export type Database = {
           relay_letter?: string
           seed_course?: string | null
           seed_time_ms?: number | null
+          seeding_time_ms?: number | null
           status?: string
           swimmer_1_id?: string
           swimmer_2_id?: string
@@ -1179,6 +1232,10 @@ export type Database = {
         Args: { p_source: string; p_target: string }
         Returns: Json
       }
+      reopen_meet_seeding: {
+        Args: { p_meet: string; p_revision: number; p_session: number }
+        Returns: undefined
+      }
       request_app_access: { Args: never; Returns: Json }
       reset_management_data: {
         Args: { p_confirmation: string }
@@ -1209,6 +1266,20 @@ export type Database = {
           p_start_date: string
         }
         Returns: string
+      }
+      save_meet_seeding: {
+        Args: {
+          p_close?: boolean
+          p_conversion: boolean
+          p_factor: number
+          p_lanes: number
+          p_meet: string
+          p_mode: string
+          p_revision: number
+          p_rows: Json
+          p_session: number
+        }
+        Returns: number
       }
       set_app_access_suspended: {
         Args: { p_id: string; p_suspend: boolean }
