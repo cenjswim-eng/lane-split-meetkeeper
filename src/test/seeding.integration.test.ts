@@ -4,7 +4,7 @@ const url=process.env['SUPABASE_URL'],key=process.env['SUPABASE_SERVICE_ROLE_KEY
 it.skipIf(!url||!key||!pub)('saves all entries atomically, preserves times, isolates two accounts, and locks closed sessions',async()=>{
  if(!url||!key||!pub)return;
  const admin=createClient(url,key,{auth:{persistSession:false}}),ids:string[]=[],clients=[];
- const check=<T>(r:{data:T;error:unknown})=>{if(r.error)throw r.error;return r.data;};
+ const check=<T>(r:{data:T;error:unknown}):NonNullable<T>=>{if(r.error)throw r.error;if(r.data==null)throw new Error('Missing response');return r.data;};
  let mid:string|undefined;
  try{
  for(let i=0;i<2;i++){const email=`seed-${crypto.randomUUID()}@example.com`,password=`${crypto.randomUUID()}Aa1!`;const u=check(await admin.auth.admin.createUser({email,password,email_confirm:true})).user;if(!u)throw new Error('Missing user');ids.push(u.id);check(await admin.from('user_roles').insert({user_id:u.id,role:'admin'}));const c=createClient(url,pub,{auth:{persistSession:false}});check(await c.auth.signInWithPassword({email,password}));clients.push(c);}
@@ -20,13 +20,13 @@ it.skipIf(!url||!key||!pub)('saves all entries atomically, preserves times, isol
  expect(check(await b.from('meet_seeding_sessions').select('*').eq('meet_id',mid))).toEqual([]);
  expect((await b.rpc('save_meet_seeding',{...args,p_revision:1})).error).not.toBeNull();
  expect((await a.rpc('save_meet_seeding',args)).error).not.toBeNull();
- const duplicate=rows.map((r,i)=>i===1?{...r,lane:rows[0].lane,heat:rows[0].heat}:r);
+ const duplicate=rows.map((r,i)=>i===1?{...r,lane:rows[0]?.lane,heat:rows[0]?.heat}:r);
  expect((await a.rpc('save_meet_seeding',{...args,p_revision:1,p_rows:duplicate})).error).not.toBeNull();
  expect(check(await a.from('meet_seeding_sessions').select('revision').eq('meet_id',mid).single()).revision).toBe(1);
  check(await a.rpc('save_meet_seeding',{...args,p_revision:1,p_close:true}));
  expect((await a.from('meet_entries').update({lane:8}).eq('id',entries[0].id)).error).not.toBeNull();
  expect((await a.rpc('save_meet_seeding',{...args,p_revision:2})).error).not.toBeNull();
- check(await a.rpc('reopen_meet_seeding',{p_meet:mid,p_session:1,p_revision:2}));
+ expect((await a.rpc('reopen_meet_seeding',{p_meet:mid,p_session:1,p_revision:2})).error).toBeNull();
  check(await a.rpc('save_meet_seeding',{...args,p_revision:3,p_rows:rows.map((r,i)=>i===0?{...r,status:'SCR',heat:null,lane:null}:r)}));
  expect(check(await a.from('meet_entries').select('status,heat,lane,seed_time_ms').eq('id',entries[0].id).single())).toMatchObject({status:'SCR',heat:null,lane:null,seed_time_ms:entries[0].seed_time_ms});
  }finally{
