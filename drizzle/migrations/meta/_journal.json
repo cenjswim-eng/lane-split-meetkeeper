@@ -218,6 +218,13 @@
       "when": 1794780381806,
       "tag": "0030_team_manager_tournament_extensions",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794780410815,
+      "tag": "0031_relay_deferred_club_consistency",
+      "breakpoints": true
     }
   ]
 }
