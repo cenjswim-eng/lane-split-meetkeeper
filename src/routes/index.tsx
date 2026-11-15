@@ -105,7 +105,7 @@ function Index() {
     <main className="landing min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:px-10">
-          <a href="#inicio" className="flex items-center gap-2"><Waves className="size-7 text-primary" aria-hidden="true" /><span className="text-xl font-semibold">Natación <span className="text-primary">Pro</span></span></a>
+          <a href="#inicio" className="flex min-w-0 items-center gap-2"><Waves className="size-6 shrink-0 text-primary" aria-hidden="true" /><span className="text-base font-semibold leading-tight sm:text-xl">Swim Lane <span className="text-primary">Coach</span></span></a>
           <nav aria-label="Navegación de inicio" className="flex items-center gap-1 sm:gap-2">
             <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#funciones">Funciones</a></Button>
             <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#como-funciona">Cómo funciona</a></Button>
@@ -351,7 +351,7 @@ function Index() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground sm:px-10">
-          <div className="flex items-center gap-2"><Waves className="size-5 text-primary" aria-hidden="true" /><span className="font-semibold text-foreground">Natación <span className="text-primary">Pro</span></span></div>
+          <div className="flex items-center gap-2"><Waves className="size-5 text-primary" aria-hidden="true" /><span className="font-semibold text-foreground">Swim Lane <span className="text-primary">Coach</span></span></div>
           <p className="text-xs">Compatible con Meet Manager y Team Manager</p>
           <nav aria-label="Enlaces de pie de página" className="flex flex-wrap items-center gap-4">
             <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center gap-1.5 hover:text-foreground"><MessageCircle className="size-4" aria-hidden="true" />WhatsApp</a>
