@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Incorporar nuevo adjunto Modo Team Manager: edición Hy-Tek, fusión segura de clubes, plantilla y mejores tiempos, límites por sesión, relevos A/B y cuotas; resolver diferencias con las reglas vigentes de ID, edad y nueve meses antes de aplicarlas.
 - [ ] Ampliar la gestión Hy-Tek solicitada en el adjunto: configuración de torneos, sesiones, inscripciones y relevos, sin duplicar tablas actuales; presentar plan de adaptación antes de cambios estructurales.
 - [x] Corregir «column reference a is ambiguous» en importación Meet Manager y ZIP; corrección activa en la base compartida, 20 pruebas pasan (guardado real, reimportación, tiempos preservados y aislamiento). Subida ZIP, confirmación y relectura en pantalla verificadas con cuenta temporal; datos de prueba eliminados. Archivo original del usuario no adjunto.
 - [x] Rediseñar solo la portada pública con fotografía de natación, estadísticas ficticias identificadas (1 club, 6 atletas, 3 competencias, 18 resultados) y gráfica interactiva; computadora y móvil sin desbordamiento ni errores. Demo, video y consultas de planes conservados; paneles privados sin cambios.
