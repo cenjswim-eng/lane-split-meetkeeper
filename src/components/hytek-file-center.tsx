@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { importParsed } from '@/lib/importer';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tables } from '@/integrations/supabase/types';
-import { MeetExport } from '@/components/meet-export';
+import { EventFileDownload } from '@/components/event-file-download';
 export function HytekFileCenter({meets}:{meets:Tables<'meets'>[]}) {
  const [files,setFiles]=useState<Awaited<ReturnType<typeof inspectHytekFile>>|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);const qc=useQueryClient();
  async function pick(f?:File){if(!f)return;setBusy(true);setError('');try{setFiles(await inspectHytekFile(f));}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
