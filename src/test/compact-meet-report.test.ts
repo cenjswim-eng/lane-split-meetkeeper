@@ -6,7 +6,7 @@ const result=(id:string,date:string,time:number|null,course="LCM",status="OK"):C
 const history=[result("prior","2023-10-10",65000),result("race","2026-11-01",64150),result("future","2026-11-02",63000),result("short","2026-10-01",60000,"SCM")];
 describe("Precise time differences",()=>{
  it("subtracts 850 milliseconds without floating point errors",()=>expect(timeDiffMs(64150,65000)).toBe(-850));
- it("formats the requested negative and positive examples",()=>{expect(formatTimeDiff(-850)).toBe("-00.85");expect(formatTimeDiff(420)).toBe("+00.42");expect(formatTimeDiff(-60640)).toBe("-01:00.64");expect(compactTime(64150)).toBe("01:04.15");});
+ it("formats the requested negative and positive examples",()=>{expect(formatTimeDiff(-850)).toBe("-0.85");expect(formatTimeDiff(420)).toBe("+0.42");expect(formatTimeDiff(-60640)).toBe("-01:00.64");expect(compactTime(64150)).toBe("01:04.15");});
  it("rejects fractional milliseconds",()=>expect(()=>timeDiffMs(1.5,1)).toThrow());
 });
 describe("Executive report rules",()=>{

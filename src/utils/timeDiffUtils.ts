@@ -10,7 +10,7 @@ export function formatTimeDiff(ms: number): string {
   const minutes = Math.floor(cs / 6000);
   const seconds = Math.floor(cs % 6000 / 100);
   const fraction = String(cs % 100).padStart(2, "0");
-  return `${ms < 0 ? "-" : "+"}${minutes ? `${String(minutes).padStart(2, "0")}:` : ""}${String(seconds).padStart(2, "0")}.${fraction}`;
+  return `${ms < 0 ? "-" : "+"}${minutes ? `${String(minutes).padStart(2, "0")}:` : ""}${minutes ? String(seconds).padStart(2, "0") : seconds}.${fraction}`;
 }
 
 export function compactTime(ms: number | null): string {
