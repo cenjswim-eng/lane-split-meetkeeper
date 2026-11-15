@@ -232,6 +232,13 @@
       "when": 1794780789346,
       "tag": "0032_setup_sessions_and_entry_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794781273413,
+      "tag": "0033_meet_seeding_sessions",
+      "breakpoints": true
     }
   ]
 }
