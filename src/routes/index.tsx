@@ -5,8 +5,9 @@ import {
   ArrowRight, ChartNoAxesCombined, FileDown, FileUp, Waves, MessageCircle, LogIn, Play,
   UserRound, CreditCard, ShieldCheck, Table2, Target, Medal, FileSpreadsheet, LayoutDashboard,
 } from "lucide-react";
-import { LandingProgress } from "@/components/landing-progress";
+import { LandingStatistics } from "@/components/landing-statistics";
 import { LandingReveal } from "@/components/landing-reveal";
+import swimmingTraining from "@/assets/swimming-training.jpg";
 import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
 import summaryPoster from "@/assets/videos/natacion-pro-resumen-poster.jpg.asset.json";
 
@@ -116,32 +117,32 @@ function Index() {
         </div>
       </header>
 
-      <section id="inicio" className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-8 sm:px-10 sm:pt-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-16">
-        <div className="landing-enter min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-primary"><span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />Swim Lane Coach · Para entrenadores y clubes</p>
-          <h1 className="mt-5 max-w-xl text-[42px] font-semibold leading-[1.08] sm:text-5xl lg:text-[56px]">Cada parcial de tus nadadores, <span className="text-primary">sin perder ninguno</span></h1>
-          <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
+      <section id="inicio" className="landing-hero relative isolate overflow-hidden">
+        <img src={swimmingTraining} alt="Nadadores entrenando estilo libre en carriles de una piscina" width={1920} height={1024} fetchPriority="high" className="landing-hero-photo absolute inset-0 -z-20 h-full w-full object-cover" />
+        <div className="landing-hero-shade absolute inset-0 -z-10" aria-hidden="true" />
+        <div className="landing-enter mx-auto max-w-6xl px-6 py-12 sm:px-10 sm:py-16 lg:py-20">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary">Para entrenadores y clubes de natación</p>
+          <h1 className="mt-4 max-w-2xl text-[42px] font-semibold leading-[1.08] sm:text-6xl lg:text-7xl">Swim Lane Coach</h1>
+          <p className="mt-4 max-w-md text-2xl font-medium leading-tight sm:text-3xl">Cada parcial de tus nadadores,<br /><span className="text-primary">sin perder ninguno.</span></p>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
           <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <WhatsAppButton label="Solicitar acceso por WhatsApp" />
             <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
               <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública</Link>
             </Button>
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-foreground/80">
             <span className="mr-1">Compatible con</span>
             {["HY3", "CL2", "SD3", "ZIP", "MDB"].map((format) => <span key={format} className="rounded border border-border px-2 py-1 font-medium">{format}</span>)}
           </div>
         </div>
-        <div className="landing-enter landing-preview min-w-0">
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
-            <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5" aria-hidden="true">
-              <span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" />
-              <span className="ml-3 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">app.Swim Lane Coach — panel del entrenador</span>
-            </div>
-            <LandingProgress />
-          </div>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-foreground/20 px-6 py-4 text-xs text-foreground/80 sm:px-10">
+          <span className="flex items-center gap-2"><ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />Los registros de tu club son privados</span>
+          <a href="#estadisticas" className="flex min-h-10 items-center gap-2 font-medium">Ver estadísticas<ArrowRight className="size-4 rotate-90" aria-hidden="true" /></a>
         </div>
       </section>
+
+      <LandingStatistics />
 
       <LandingReveal>
         <section className="border-y border-border bg-card/40">
