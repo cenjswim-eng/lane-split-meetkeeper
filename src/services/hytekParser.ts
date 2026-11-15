@@ -3,12 +3,18 @@ import { parseEventSetup } from '@/lib/hytek/event-setup';
 import { exportToHy3, exportToSd3, calculateHy3Checksum, encodeWindows1252 } from '@/lib/swim-io/exporters';
 import { decodeSwimBytes } from '@/lib/swim-io/encodingAndTime';
 import { formatTime } from '@/lib/swim';
+import { parse as parseSpecialized } from 'swimparse';
 import type { Tables } from '@/integrations/supabase/types';
 export { exportToHy3, exportToSd3, calculateHy3Checksum };
 export async function inspectHytekFile(file:File) {
  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))].map(b=>b.toString(16).padStart(2,'0')).join('');
  const files=await readHytekFile(file);
  return {hash,files:files.map(f=>({...f,clubs:f.parsed.teams.length,athletes:f.parsed.athletes.length,individual:f.parsed.results.filter(r=>r.stroke<=5).length,events:f.parsed.events?.length??0}))};
+}
+/** Preview-only relay extraction: identities must be reconciled before any write. */
+export function inspectRelayRecords(text:string,filename:string) {
+ const parsed=parseSpecialized(text,{filename});
+ return parsed.events.filter(e=>e.type==='relay').flatMap(e=>e.results.filter(r=>r.kind==='relay').map(r=>({event:e.number,letter:r.relayLetter??'',swimmers:r.legs??[],finalMs:r.finalTime?Math.round(r.finalTime.seconds*1000):null})));
 }
 /** EV3 writer validated by the same independent setup parser used for imported files. */
 export function exportEventsEv3(meet:Tables<'meets'>,events:Tables<'events'>[]) {
