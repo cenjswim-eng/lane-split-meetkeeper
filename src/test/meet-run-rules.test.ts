@@ -1,0 +1,11 @@
+import {it,expect} from 'vitest';
+import { quickTimeMs,rankRunMarks,personalBestDelta,type RunMark } from '@/lib/meet-run-rules';
+const row=(id:string,timeMs:number):RunMark=>({id,eventId:'e',gender:'F',category:'14–15',timeMs,status:'OK',unattached:false,club:'A',name:id});
+it('formats 12543 as 1:25.43',()=>expect(quickTimeMs('12543')).toBe(85430));
+it('rejects invalid seconds',()=>expect(()=>quickTimeMs('19943')).toThrow());
+it('splits tied point slots equally and skips the next place',()=>{const r=rankRunMarks([row('a',60000),row('b',60000),row('c',61000)],[9,7,6]);expect(r.map(x=>[x.place,x.points])).toEqual([[1,8],[1,8],[3,6]]);});
+it('excludes DQ NS EXH from places and points',()=>{for(const status of ['DQ','NS','EXH'] as const){const r=rankRunMarks([{...row('a',60000),status},row('b',61000)],[9,7]);expect(r[0]).toMatchObject({place:null,points:0});expect(r[1]).toMatchObject({place:1,points:9});}});
+it('unattached never consumes team point slots',()=>expect(rankRunMarks([{...row('a',60000),unattached:true},row('b',61000)],[9,7]).map(x=>x.points)).toEqual([0,9]));
+it('separates gender and category',()=>expect(rankRunMarks([row('a',60000),{...row('b',61000),gender:'M'},{...row('c',62000),category:'12–13'}],[9]).map(x=>x.place)).toEqual([1,1,1]));
+it('preliminaries do not award championship points',()=>expect(rankRunMarks([{...row('a',60000),round:'P'}],[9])[0]?.points).toBe(0));
+it('shows exact 1.45 second improvement',()=>expect(personalBestDelta(60000,61450)).toBe('-1.45s (PB)'));
