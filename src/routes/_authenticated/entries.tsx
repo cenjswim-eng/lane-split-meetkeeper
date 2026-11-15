@@ -18,6 +18,7 @@ import { TeamRelayBuilder } from '@/components/team-relay-builder';
 import { teamRelayQuery } from '@/lib/team-relay-data';
 import { tournamentEligible, entryLimitWarnings, entryFees } from '@/lib/tournament-rules';
 import { scopeClubData } from "@/lib/club-management";
+import { MeetEntriesExporter } from '@/components/exports/MeetEntriesExporter';
 
 export const Route = createFileRoute("/_authenticated/entries")({
  validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined }),
@@ -43,7 +44,7 @@ function Entries() {
  const relayCount=relays.entries.filter(r=>r.meet_id===meetId&&r.status!=='SCR'&&[r.swimmer_1_id,r.swimmer_2_id,r.swimmer_3_id,r.swimmer_4_id].includes(athleteId)).length;
  const warnings=meet?[...new Set(events.flatMap(ev=>entryLimitWarnings(athleteEntries.length+pending.length,athleteEntries.filter(e=>data.events.find(v=>v.id===e.event_id)?.session_number===ev.session_number).length+pending.filter(id=>events.find(v=>v.id===id)?.session_number===ev.session_number).length,relayCount,meet)))]:[];
  const feeRelays=relays.entries.filter(r=>r.meet_id===meetId&&r.status!=='SCR'&&(!search.club||r.club_id===search.club));
- const feeAthletes=new Set([...activeEntries.map(e=>e.athlete_id),...feeRelays.flatMap(r=>[r.swimmer_1_id,r.swimmer_2_id,r.swimmer_3_id,r.swimmer_4_id])]);
+ const feeAthletes=new Set([...activeEntries.map(e=>e.athlete_id),...(pending.length?[athleteId]:[]),...feeRelays.flatMap(r=>[r.swimmer_1_id,r.swimmer_2_id,r.swimmer_3_id,r.swimmer_4_id])]);
  async function save() {
   if (!meet || !athlete || !selected.length || warnings.length) return;
   setBusy(true);
@@ -57,6 +58,7 @@ function Entries() {
  const text = `Swim Lane Coach\nInscripciones · ${meet?.name ?? ""}\n${meet?.start_date ?? ""} · ${meet?.course ?? ""}\n` + entries.map(e => { const a=data.athletes.find(a=>a.id===e.athlete_id), ev=events.find(ev=>ev.id===e.event_id); return `${a?.first_name ?? ""} ${a?.last_name ?? ""} · ${ev ? eventLabel(ev.distance,ev.stroke) : ""} · ${formatTime(e.seed_time_ms)}`; }).join("\n");
  return <div className="space-y-6"><h1 className="text-4xl font-bold">Inscripciones</h1><Select value={search.club ?? "all"} onValueChange={v => { setSelected([]); setMeetId(""); setAthleteId(""); void navigate({ search: { club: v === "all" ? undefined : v } }); }}><SelectTrigger aria-label="Club de inscripciones" className="w-full sm:w-80"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos mis clubes</SelectItem>{management.clubs.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><div className="grid gap-3 sm:grid-cols-2"><Select value={meetId} onValueChange={v=>{setMeetId(v);setSelected([]);}}><SelectTrigger aria-label="Competencia"><SelectValue placeholder="Competencia" /></SelectTrigger><SelectContent>{data.meets.map(m=><SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select><Select value={athleteId} onValueChange={v=>{setAthleteId(v);setSelected([]);}}><SelectTrigger aria-label="Atleta"><SelectValue placeholder="Atleta" /></SelectTrigger><SelectContent>{data.athletes.map(a=><SelectItem key={a.id} value={a.id}>{a.first_name} {a.last_name}</SelectItem>)}</SelectContent></Select></div>
  {meet&&<div className="flex flex-wrap items-center gap-3"><TournamentSetup key={meet.id} meet={meet}/><span className="text-sm text-muted-foreground">Edad al 31/12 · {athleteEntries.length+pending.length} pruebas del atleta</span></div>}
+ <MeetEntriesExporter meetId={meetId}/>
  {warnings.map(w=><p key={w} role="alert" className="text-sm text-destructive">{w}</p>)}
  <section className="border-y"><h2 className="py-4 text-2xl font-semibold">Pruebas de la competencia</h2>{events.length ? events.map(ev=>{
  const seed = athlete && meet ? entrySeed(data.results,athlete.id,ev.distance,ev.stroke,meet.course,meet.start_date) : null;
