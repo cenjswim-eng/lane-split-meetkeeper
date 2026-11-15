@@ -10,7 +10,7 @@ export function calculateHy3Checksum(line128: string) {
  bytes.forEach((b,i)=>{sum += b * (i%2 === 0 ? 1 : 2);});
  return String((Math.floor(sum/21)+205)%100).padStart(2,'0').split('').reverse().join('');
 }
-export function encodeWindows1252(text: string): Uint8Array {
+export function encodeWindows1252(text: string): Uint8Array<ArrayBuffer> {
  const decoder = new TextDecoder('windows-1252'), map = new Map<string,number>();
  for(let i=0;i<256;i++) map.set(decoder.decode(new Uint8Array([i])),i);
  return Uint8Array.from([...text].map(c=>{const b=map.get(c);if(b==null) throw new Error(`Carácter no compatible con HY-TEK: ${c}`);return b;}));

@@ -4,6 +4,9 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MeetExport } from "@/components/meet-export";
 import { exportMeet, exportPdf } from "@/lib/meet-files";
+import { SwimFileImporterModal } from '@/components/imports/SwimFileImporterModal';
+import { coachQuery } from '@/lib/coach-data';
+import { clubManagementQuery } from '@/lib/club-management-data';
 
 const meetsQuery = queryOptions({
   queryKey: ["meets"],
@@ -16,7 +19,7 @@ const meetsQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/meets")({
   head: () => ({ meta: [{ title: "Competencias — Swim Lane Coach" }, { name: "description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:title", content: "Competencias — Swim Lane Coach" }, { name: "twitter:title", content: "Competencias — Swim Lane Coach" }, { property: "og:description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(meetsQuery),
+  loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(meetsQuery), context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery)]); },
   component: MeetsPage,
 });
 
@@ -25,7 +28,7 @@ function MeetsPage() {
   return (
     <div>
       <h1 className="text-4xl font-bold uppercase">Competencias</h1>
-      <div className="mt-3 flex flex-wrap gap-2"><Button asChild><Link to="/import">Cargar eventos EV3 / HYV</Link></Button><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
+      <div className="mt-3 flex flex-wrap gap-2"><SwimFileImporterModal/><Button asChild variant="outline"><Link to="/import">Cargar eventos EV3 / HYV</Link></Button><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
       <div className="mt-6 space-y-2">
         {data.length === 0 && <p className="text-muted-foreground">Sin competencias todavía.</p>}
         {data.map((m) => (

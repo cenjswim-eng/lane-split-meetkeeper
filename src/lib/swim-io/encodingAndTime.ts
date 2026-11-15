@@ -17,7 +17,7 @@ export async function readSwimFile(file: File) {
  if (file.size > 25 * 1024 * 1024) throw new Error('El archivo supera 25 MB.');
  const buffer = await file.arrayBuffer();
  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', buffer))].map(b=>b.toString(16).padStart(2,'0')).join('');
- let bytes = new Uint8Array(buffer), name = file.name;
+ let bytes: Uint8Array = new Uint8Array(buffer), name = file.name;
  if (/\.zip$/i.test(name)) {
   // Inspect ZIP central directory sizes before allocating inflated data.
   const view = new DataView(buffer); let total = 0, count = 0;
