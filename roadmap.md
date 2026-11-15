@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Corregir «column reference a is ambiguous» en importación Meet Manager y ZIP; verificar guardado y reimportación sin modificar registros existentes.
 - [ ] Rediseñar solo la portada pública con una composición más dinámica y gráfica, conservando marca, demo, video y consultas de planes.
 - [ ] Integrar swim-io, revisión y reconciliación HY3/SD3/CL2/ZIP, RPC atómico privado import_meet_payload, matriz de inscripciones guardadas y exportación SD3/HY3; verificar privacidad, reimportación y flujo en móvil.
 - [x] Integrar los adjuntos HY3: decodificación UTF-8/Windows-1252, tiempos enteros y estados, avisos por línea y contexto seguro; conservar tablas privadas y reimportación sin duplicados. 210 pruebas pasan, incluida privacidad entre cuentas; vista previa con sesión activa y archivo ficticio verificada en computadora y celular sin errores. No se guardaron datos ficticios ni se ejecutó el SQL adjunto que duplicaba tablas y carecía de permisos.
