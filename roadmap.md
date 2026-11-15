@@ -1,4 +1,5 @@
 # Exportación móvil
+- [ ] Ampliar la gestión Hy-Tek solicitada en el adjunto: configuración de torneos, sesiones, inscripciones y relevos, sin duplicar tablas actuales; presentar plan de adaptación antes de cambios estructurales.
 - [x] Corregir «column reference a is ambiguous» en importación Meet Manager y ZIP; corrección activa en la base compartida, 20 pruebas pasan (guardado real, reimportación, tiempos preservados y aislamiento). Subida ZIP, confirmación y relectura en pantalla verificadas con cuenta temporal; datos de prueba eliminados. Archivo original del usuario no adjunto.
 - [ ] Rediseñar solo la portada pública con fotografía de natación, estadísticas ficticias de clubes y atletas identificadas, y gráfica interactiva; conservar demo, video y consultas de planes sin alterar paneles privados.
 - [ ] Integrar swim-io, revisión y reconciliación HY3/SD3/CL2/ZIP, RPC atómico privado import_meet_payload, matriz de inscripciones guardadas y exportación SD3/HY3; verificar privacidad, reimportación y flujo en móvil.
