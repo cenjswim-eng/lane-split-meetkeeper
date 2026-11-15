@@ -741,8 +741,10 @@ export type Database = {
           lane: number | null
           meet_id: string
           owner_id: string
+          place: number | null
           points_scored: number | null
           relay_letter: string
+          run_splits: Json
           seed_course: string | null
           seed_time_ms: number | null
           seeding_time_ms: number | null
@@ -766,8 +768,10 @@ export type Database = {
           lane?: number | null
           meet_id: string
           owner_id?: string
+          place?: number | null
           points_scored?: number | null
           relay_letter: string
+          run_splits?: Json
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
@@ -791,8 +795,10 @@ export type Database = {
           lane?: number | null
           meet_id?: string
           owner_id?: string
+          place?: number | null
           points_scored?: number | null
           relay_letter?: string
+          run_splits?: Json
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
@@ -1211,6 +1217,10 @@ export type Database = {
     }
     Functions: {
       activate_standard_version: { Args: { p_id: string }; Returns: undefined }
+      configure_run_points: {
+        Args: { p_individual: Json; p_meet: string; p_relay: Json }
+        Returns: undefined
+      }
       copy_athlete_history: {
         Args: { _results: string[]; _target: string }
         Returns: Json
