@@ -158,6 +158,24 @@
   letter-spacing: 0;
 }
 .landing-preview { box-shadow: var(--landing-shadow); }
+.landing {
+  --landing-photo-shade: linear-gradient(90deg, oklch(0.16 0.025 230 / 0.96) 0%, oklch(0.16 0.025 230 / 0.86) 32%, oklch(0.16 0.025 230 / 0.28) 67%, oklch(0.16 0.025 230 / 0.08) 100%);
+  --landing-mobile-shade: linear-gradient(180deg, oklch(0.16 0.025 230 / 0.45), oklch(0.16 0.025 230 / 0.91) 45%, oklch(0.16 0.025 230 / 0.97));
+}
+.landing .landing-hero-shade { background: var(--landing-photo-shade); }
+.landing .landing-hero-photo { animation: landing-photo 1200ms ease-out both; object-position: 65% center; }
+.landing .landing-stat { transition: transform 200ms ease; }
+.landing .landing-stat:hover { transform: translateY(-3px); }
+@keyframes landing-photo { from { transform: scale(1.035); } to { transform: scale(1); } }
+@media (max-width: 639px) {
+  .landing .landing-hero-shade { background: var(--landing-mobile-shade); }
+  .landing .landing-hero-photo { object-position: 72% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .landing-hero-photo { animation: none; }
+  .landing .landing-stat { transition: none; }
+  .landing .landing-stat:hover { transform: none; }
+}
 .landing { scroll-behavior: smooth; }
 .landing [id] { scroll-margin-top: 24px; }
 .landing-enter { animation: landing-enter 650ms ease-out both; }
