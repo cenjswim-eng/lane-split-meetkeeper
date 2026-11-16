@@ -24,7 +24,7 @@ import { assistantDraftQuery } from '@/lib/entry-assistant-data';
 import { AssistantMeetCreate } from '@/components/assistant-meet-create';
 
 export const Route = createFileRoute("/_authenticated/entries")({
- validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined }),
+ validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined; athlete?:string|undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined,athlete:typeof s['athlete']==='string'?s['athlete']:undefined }),
  head: () => ({ meta: [{ title: "Inscripciones — Swim Lane Coach" }, { name: "description", content: "Selecciona nadadores y pruebas, consulta mínimas y exporta inscripciones SD3 para Meet Manager." }, { property: "og:title", content: "Inscripciones — Swim Lane Coach" }, { property: "og:description", content: "Inscripciones privadas del club y exportaciones para Meet Manager y Team Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
  loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery),context.queryClient.ensureQueryData(teamRelayQuery),context.queryClient.ensureQueryData(assistantDraftQuery)]); }, component: Entries,
 });
@@ -35,7 +35,7 @@ function Entries() {
  const search = Route.useSearch(); const navigate = Route.useNavigate();
  const data = search.club ? scopeClubData(all, search.club, management.links) : all;
  const [chosenMeet, setMeetId] = useState(search.meet ?? "");
- const [chosenAthlete, setAthleteId] = useState("");
+ const [chosenAthlete, setAthleteId] = useState(search.athlete??"");
  const meetId = data.meets.some(m => m.id === chosenMeet) ? chosenMeet : data.meets[0]?.id ?? "";
  const athleteId = data.athletes.some(a => a.id === chosenAthlete) ? chosenAthlete : data.athletes[0]?.id ?? "";
  const [selected, setSelected] = useState<string[]>([]); const [busy, setBusy] = useState(false);

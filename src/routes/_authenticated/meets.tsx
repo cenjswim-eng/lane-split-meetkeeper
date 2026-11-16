@@ -8,6 +8,7 @@ import { SwimFileImporterModal } from '@/components/imports/SwimFileImporterModa
 import { coachQuery } from '@/lib/coach-data';
 import { clubManagementQuery } from '@/lib/club-management-data';
 import { HytekFileCenter } from '@/components/hytek-file-center';
+import { matchesMeet,useWorkspaceFilters } from '@/lib/workspace-filters';
 
 const meetsQuery = queryOptions({
   queryKey: ["meets"],
@@ -19,20 +20,22 @@ const meetsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_authenticated/meets")({
+  validateSearch:(s:Record<string,unknown>):{meet?:string|undefined}=>({meet:typeof s['meet']==='string'?s['meet']:undefined}),
   head: () => ({ meta: [{ title: "Competencias — Swim Lane Coach" }, { name: "description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:title", content: "Competencias — Swim Lane Coach" }, { name: "twitter:title", content: "Competencias — Swim Lane Coach" }, { property: "og:description", content: "Competencias, exportación SD3 y reportes PDF para compartir." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(meetsQuery), context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery)]); },
   component: MeetsPage,
 });
 
 function MeetsPage() {
-  const { data } = useSuspenseQuery(meetsQuery);
+  const { data:all } = useSuspenseQuery(meetsQuery);const {filters}=useWorkspaceFilters();const search=Route.useSearch();const data=all.filter(m=>matchesMeet(m,filters)&&(!search.meet||m.id===search.meet));
   return (
     <div>
       <h1 className="text-4xl font-bold uppercase">Competencias</h1>
       <div className="mt-3 flex flex-wrap gap-2"><SwimFileImporterModal/><Button asChild variant="outline"><Link to="/run">Torneo en vivo</Link></Button><Button asChild variant="outline"><Link to="/seeding">Organizar torneo</Link></Button><Button asChild variant="outline"><Link to="/import">Cargar eventos EV3 / HYV</Link></Button><Button asChild variant="outline"><Link to="/entries">Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/reports">Reportes</Link></Button></div>
       <div className="mt-6 space-y-2">
         <HytekFileCenter meets={data}/>
-        {data.length === 0 && <p className="text-muted-foreground">Sin competencias todavía.</p>}
+        {search.meet&&<Button asChild variant="outline"><Link to="/meets" search={{}}>Todas las competencias</Link></Button>}
+        {data.length === 0 && <div className="space-y-3 border-y py-6"><p className="text-muted-foreground">Aún no hay competencias para esta selección.</p><Button asChild><Link to="/import">Importar competencia</Link></Button></div>}
         {data.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
             <div className="min-w-0 flex-1 basis-48 break-words">
@@ -40,6 +43,7 @@ function MeetsPage() {
               <div className="time text-xs text-muted-foreground">{m.start_date ?? "—"} · {m.location ?? "—"} · {m.course} · {m.results?.[0]?.count ?? 0} resultados</div>
             </div>
             <MeetExport name={m.name} prepare={(kind) => kind === "sd3" ? exportMeet(m) : exportPdf(m, kind === 'results' ? 'results' : 'entries')} />
+            <Button asChild variant="outline"><Link to="/entries" search={{meet:m.id}}>Inscripciones y asistente SD3</Link></Button><Button asChild variant="outline"><Link to="/reports">Resultados y parciales</Link></Button>
           </div>
         ))}
       </div>

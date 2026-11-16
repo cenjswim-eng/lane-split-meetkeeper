@@ -7,6 +7,8 @@ import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
 import { NewAthlete } from "@/components/new-athlete";
 import { DeleteAthlete } from "@/components/delete-athlete";
 import { HistoryTransfer } from "@/components/history-transfer";
+import { useWorkspaceFilters,matchesAthlete } from '@/lib/workspace-filters';
+import { useSwimCategories } from '@/lib/categories';
 
 const athletesQuery = queryOptions({
   queryKey: ["athletes"],
@@ -30,7 +32,8 @@ export const Route = createFileRoute("/_authenticated/athletes/")({
 function AthletesPage() {
   const { data } = useSuspenseQuery(athletesQuery);
   const [q, setQ] = useState("");
-  const list = data.filter((a) => `${a.first_name} ${a.last_name} ${a.federation_id ?? ""}`.toLowerCase().includes(q.toLowerCase()));
+  const {filters}=useWorkspaceFilters(),categories=useSwimCategories();
+  const list = data.filter((a) => matchesAthlete(a,filters,categories,filters.season==='all'?new Date().getFullYear():Number(filters.season))&&`${a.first_name} ${a.last_name} ${a.federation_id ?? ""}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div>
