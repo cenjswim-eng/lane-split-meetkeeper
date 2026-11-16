@@ -1,0 +1,2 @@
+import { useEffect,useState } from 'react';
+export function PdfPreview({file}:{file:File}){const [url,setUrl]=useState('');useEffect(()=>{const u=URL.createObjectURL(file);setUrl(u);return()=>URL.revokeObjectURL(u);},[file]);return url?<object data={url} type="application/pdf" aria-label="Vista previa del PDF" className="h-80 w-full rounded-md border"><a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Abrir vista previa del PDF</a></object>:null;}

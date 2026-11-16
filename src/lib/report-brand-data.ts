@@ -1,0 +1,13 @@
+import { queryOptions } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { neutralBrand,validateLogo,type ReportBrand } from './report-brand';
+export const brandQuery=queryOptions({queryKey:['club-brands'],queryFn:async()=>{const [clubs,brands]=await Promise.all([supabase.from('clubs').select('id,name,logo_path').order('name'),supabase.from('club_brands').select('*')]);if(clubs.error)throw clubs.error;if(brands.error)throw brands.error;return {clubs:clubs.data,brands:brands.data};}});
+/** Decode uploaded SVG only as an image, then rasterize; never insert SVG markup into the page. */
+export async function rasterLogo(file:Blob){const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;await image.decode();if(!image.naturalWidth||!image.naturalHeight)throw Error('Logo inválido.');const canvas=document.createElement('canvas');canvas.width=600;canvas.height=240;const ctx=canvas.getContext('2d');if(!ctx)throw Error('No se pudo ajustar el logo.');const scale=Math.min(600/image.naturalWidth,240/image.naturalHeight);ctx.drawImage(image,(600-image.naturalWidth*scale)/2,(240-image.naturalHeight*scale)/2,image.naturalWidth*scale,image.naturalHeight*scale);return canvas.toDataURL('image/png');}finally{URL.revokeObjectURL(url);}}
+export async function uploadBrandLogo(clubId:string,file:File){validateLogo(file);const png=await rasterLogo(file);const blob=await (await fetch(png)).blob();const path=`${clubId}/logo-${crypto.randomUUID()}.png`;const up=await supabase.storage.from('club-documents').upload(path,blob,{contentType:'image/png'});if(up.error)throw up.error;const save=await supabase.from('clubs').update({logo_path:path}).eq('id',clubId);if(save.error){await supabase.storage.from('club-documents').remove([path]);throw save.error;}return png;}
+export async function loadReportBrand(clubId?:string):Promise<ReportBrand>{
+ if(!clubId)return neutralBrand();
+ const [club,brand]=await Promise.all([supabase.from('clubs').select('name,logo_path').eq('id',clubId).single(),supabase.from('club_brands').select('*').eq('club_id',clubId).maybeSingle()]);if(club.error)throw club.error;if(brand.error)throw brand.error;
+ let logo:string|null=null;if(club.data.logo_path){const file=await supabase.storage.from('club-documents').download(club.data.logo_path);if(file.error)throw file.error;logo=await rasterLogo(file.data);}
+ const b=brand.data;return {...neutralBrand(club.data.name),name:b?.official_name||club.data.name,location:b?.location??'',motto:b?.motto??'',contact:b?.contact??'',primary:b?.primary_color??neutralBrand().primary,secondary:b?.secondary_color??neutralBrand().secondary,logo};
+}
