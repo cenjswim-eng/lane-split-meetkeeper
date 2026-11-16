@@ -91,6 +91,7 @@ function Profile() {
   return (
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
+      <div className="grid gap-2 sm:flex sm:flex-wrap"><Button asChild variant="outline"><Link to="/entries" search={{athlete:id}}>Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/standards">Marcas mínimas</Link></Button>{[...new Map(results.flatMap(r=>r.meets?[[r.meets.id,r.meets] as const]:[])).values()].map(m=><Button asChild key={m.id} variant="outline" className="h-auto whitespace-normal py-3"><Link to="/meets" search={{meet:m.id}}>{m.name}</Link></Button>)}</div>
       <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={async () => { const current = await loadStandardVersions(); return athleteProgressPdf(athlete, results, current.data, current.activeVersion); }} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>

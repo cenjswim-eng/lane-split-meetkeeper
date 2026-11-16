@@ -14,6 +14,9 @@ import { dashboardSummary } from "@/lib/dashboard-summary";
 import { loadStandardVersions } from "@/lib/standard-version-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DashboardAttention } from '@/components/dashboard-attention';
+import { matchesResult,useWorkspaceFilters,matchesMeet } from '@/lib/workspace-filters';
+import { useSwimCategories } from '@/lib/categories';
 
 const dashQuery = queryOptions({
   queryKey: ["dashboard"],
@@ -49,7 +52,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const { data } = useSuspenseQuery(dashQuery);
+  const { data:all } = useSuspenseQuery(dashQuery);const {filters}=useWorkspaceFilters(),categories=useSwimCategories();const data={...all,meets:all.meets.filter(m=>matchesMeet(m,filters)),results:all.results.filter(r=>matchesResult(r,filters,categories))};
   const summary = dashboardSummary(data.results, data.standards);
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = data.meets.filter(m => m.start_date && m.start_date >= today).sort((a, b) => (a.start_date ?? "").localeCompare(b.start_date ?? "")).slice(0, 4);
@@ -71,8 +74,9 @@ function Dashboard() {
       ].map(({ label, value, detail, icon: Icon, color }) => <div key={label} className="flex min-w-0 flex-col rounded-lg border bg-card p-4 sm:p-5"><div className="flex items-center justify-between gap-2"><Icon className={`size-5 shrink-0 ${color}`} /><span className="text-[10px] text-muted-foreground">CLUB</span></div><p className={`time mt-4 text-3xl font-semibold ${color}`}>{value}</p><h2 className="mt-1 font-sans text-sm font-medium leading-snug">{label}</h2><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{detail}</p></div>)}
     </div>
     <section aria-label="Accesos rápidos" className="border-y py-4"><div className="grid gap-2 sm:flex sm:flex-wrap">
-      <Button asChild className="h-11"><Link to="/import"><Upload />Importar archivo</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Swim Lane Coach\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
+      <Button asChild className="h-11"><Link to="/import"><Upload />Importar competencia</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/entries">Nueva inscripción</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/rankings">Ver ranking</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Swim Lane Coach\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
     </div></section>
+    <DashboardAttention/>
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <section className="min-w-0"><div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"><div className="min-w-0"><h2 className="text-2xl font-semibold">Resultados recientes del club</h2><p className="mt-1 text-xs text-muted-foreground">Nados individuales por mes · últimos 9 meses</p></div><span className="time mt-1 text-lg text-primary">{summary.recent.length}</span></div>
         {summary.recent.length ? <><div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2 rounded-sm bg-primary" />Resultados</span><span className="flex items-center gap-2"><span className="size-2 rounded-sm bg-accent" />Mejores marcas vigentes</span></div><div className="mt-3 h-64 w-full" role="img" aria-label="Gráfico mensual de resultados y mejores marcas del club"><ResponsiveContainer width="100%" height="100%"><BarChart data={summary.months} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}><CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 5" /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={11} interval="preserveStartEnd" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={{ background: "var(--popover)", borderColor: "var(--border)", borderRadius: 6, color: "var(--foreground)" }} cursor={{ fill: "var(--muted)" }} labelFormatter={(_, payload) => payload[0]?.payload.month ?? ""} /><Bar dataKey="swims" name="Resultados" fill="var(--primary)" radius={[3, 3, 0, 0]} maxBarSize={22} isAnimationActive={false} /><Bar dataKey="bests" name="Mejores marcas" fill="var(--accent)" radius={[3, 3, 0, 0]} maxBarSize={22} isAnimationActive={false} /></BarChart></ResponsiveContainer></div></> : <div className="mt-5 flex h-64 flex-col items-center justify-center border-y border-dashed text-center"><Timer className="mb-3 size-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">Sin resultados en los últimos nueve meses.</p><Button variant="link" asChild><Link to="/import">Importar resultados<ArrowUpRight /></Link></Button></div>}

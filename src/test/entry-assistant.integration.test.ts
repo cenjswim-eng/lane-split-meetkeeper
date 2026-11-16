@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { it,expect } from 'vitest';
-import { writeFileSync,unlinkSync } from 'node:fs';
+import { mkdirSync,writeFileSync,unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const url=process.env['SUPABASE_URL'],key=process.env['SUPABASE_SERVICE_ROLE_KEY'],publicKey=process.env['SUPABASE_PUBLISHABLE_KEY'];
 it.skipIf(!url||!key||!publicKey)('saves, resumes and exports assistant entries with real sessions and rejects another owner',async()=>{
@@ -14,8 +14,9 @@ it.skipIf(!url||!key||!publicKey)('saves, resumes and exports assistant entries 
  const athlete=await a.from('athletes').insert({first_name:'Ana',last_name:'Assistant',birth_date:'2011-12-31',gender:'F',federation_id:'AASSF311211'}).select().single();if(athlete.error)throw athlete.error;
  const ev=await a.from('events').insert({meet_id:m.data.id,event_number:'1',distance:100,stroke:1,gender:'F',min_age:14,max_age:15,course:'LCM',qualifying_times_ms:{LCM:66000}}).select().single();if(ev.error)throw ev.error;
  const session=(await a.auth.getSession()).data.session;if(!session)throw Error('Session missing');
+ mkdirSync('/tmp/browser/entry-assistant',{recursive:true});
  writeFileSync('/tmp/browser/entry-assistant/session.json',JSON.stringify({session,meet:m.data.id}),{mode:0o600});
- execFileSync('python3',['/tmp/browser/entry-assistant/check_private.py'],{stdio:'pipe',timeout:90000});
+ execFileSync('python3',['src/test/workspace-navigation.browser.py'],{stdio:'pipe',timeout:90000});
  const d=await a.from('entry_assistant_drafts').select().eq('meet_id',m.data.id).single();if(d.error)throw d.error;
  expect(d.data.rows).toHaveLength(1);
  expect((await b.from('entry_assistant_drafts').select().eq('id',d.data.id)).data).toEqual([]);
