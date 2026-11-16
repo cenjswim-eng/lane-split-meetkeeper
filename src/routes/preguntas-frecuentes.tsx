@@ -1,0 +1,7 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { PublicShell,PublicCta } from '@/components/public-shell';
+import { Accordion,AccordionItem,AccordionTrigger,AccordionContent } from '@/components/ui/accordion';
+import { faq } from '@/lib/marketing';
+import { publicHead } from '@/lib/public-seo';
+export const Route=createFileRoute('/preguntas-frecuentes')({staticData:{sitemap:true},head:()=>({...publicHead('/preguntas-frecuentes','Preguntas frecuentes — Swim Lane Coach','Respuestas sobre archivos Meet Manager, acceso, planes, mínimas, reportes y privacidad.'),scripts:[{type:'application/ld+json',children:JSON.stringify({'@context':'https://schema.org','@type':'FAQPage',mainEntity:faq.map(([q,a])=>({'@type':'Question',name:q,acceptedAnswer:{'@type':'Answer',text:a}}))})}]}),component:Page});
+function Page(){return <PublicShell><section className="mx-auto max-w-3xl px-5 py-12"><p className="text-sm text-primary">Swim Lane Coach</p><h1 className="mt-4 text-4xl font-semibold">Preguntas frecuentes</h1><Accordion type="single" collapsible className="mt-8">{faq.map(([q,a],i)=><AccordionItem key={q} value={String(i)}><AccordionTrigger className="text-left text-base">{q}</AccordionTrigger><AccordionContent forceMount className="leading-relaxed text-muted-foreground">{a}</AccordionContent></AccordionItem>)}</Accordion><div className="mt-10"><PublicCta/></div></section></PublicShell>;}
