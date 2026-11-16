@@ -9,7 +9,7 @@ import { useSwimCategories } from '@/lib/categories';
 import { coachQuery } from '@/lib/coach-data';
 import { MeetExport } from './meet-export';
 import { prepareEntries } from '@/lib/entry-files';
-export function EntryAssistant({meetId,clubId}:{meetId:string;clubId?:string}){
+export function EntryAssistant({meetId,clubId}:{meetId:string;clubId?:string|undefined}){
  const {data}=useSuspenseQuery(coachQuery),{data:drafts}=useSuspenseQuery(assistantDraftQuery);const categories=useSwimCategories(),qc=useQueryClient();
  const [selected,setSelected]=useState('new'),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
  const meet=data.meets.find(m=>m.id===meetId);if(!meet)return null;

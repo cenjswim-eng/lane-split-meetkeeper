@@ -10,7 +10,7 @@ import type { QualificationStandard, SwimCategory } from '@/lib/standard-rules';
 export interface AssistantProps {
  athletes:AssistantAthlete[];events:AssistantEvent[];results:AssistantResult[];date:string;course:string;categories:readonly SwimCategory[];
  versions:{id:string;name:string;standards:QualificationStandard[]}[];
- initial?:{rules:AssistantRules;rows:AssistantRow[]};busy?:boolean;demo?:boolean;
+ initial?:{rules:AssistantRules;rows:AssistantRow[]}|undefined;busy?:boolean;demo?:boolean;
  onSave?:(rules:AssistantRules,rows:AssistantRow[],commit:boolean)=>Promise<void>; exportControl?:React.ReactNode;
 }
 export function EntryAssistantView(p:AssistantProps) {
