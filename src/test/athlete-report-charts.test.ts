@@ -77,7 +77,7 @@ describe("athlete PDF keeps per-event evolution charts", () => {
 });
 
 describe("athlete PDF reports meet scoring points", () => {
-  const scored = (points: number, name: string, date: string): AthleteReportResult => ({ ...swim(60000, date), points, meets: { name, start_date: date } });
+  const scored = (points: number, name: string, date: string): AthleteReportResult => ({ ...swim(60000, date), points_scored: points, meets: { name, start_date: date } });
 
   it("sums points per meet and omits meets without points", () => {
     const results = [scored(9, "Copa A", "2026-03-01"), scored(7, "Copa A", "2026-03-01"), scored(0, "Copa B", "2026-05-10")];

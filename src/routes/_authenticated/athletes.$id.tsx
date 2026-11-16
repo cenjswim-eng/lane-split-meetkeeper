@@ -23,7 +23,7 @@ const profileQuery = (id: string) =>
         supabase.from("athletes").select("*, teams(code, name), groups(name)").eq("id", id).single(),
         supabase
           .from("results")
-          .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, points, is_dq, round, origin_team, meets(id, name, start_date, location), events(distance, stroke, event_number, is_relay), splits(split_distance, cumulative_time_ms, lap_time_ms)")
+          .select("id, seed_time_ms, final_time_ms, course, place, aqua_points, points_scored, is_dq, round, origin_team, meets(id, name, start_date, location), events(distance, stroke, event_number, is_relay), splits(split_distance, cumulative_time_ms, lap_time_ms)")
           .eq("athlete_id", id),
         loadStandardVersions(),
       ]);
