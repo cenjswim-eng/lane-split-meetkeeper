@@ -90,6 +90,6 @@ function CompactReportBody() {
       {!rows.length&&<p className="py-8 text-center text-sm text-muted-foreground">{!meets.length?"Selecciona una o más competencias.":scope==="athlete"&&!athleteId?"Selecciona un atleta.":"Sin resultados individuales para esta selección."}</p>}
     </div>
     <div className="grid grid-cols-2 gap-3 border-b pb-4 sm:grid-cols-4" aria-label="Resumen del torneo">{[["Pruebas nadadas",kpis.swims],["Nuevos PB",`${kpis.pbs} · ${kpis.pbPercent}%`],["Objetivos logrados",kpis.targets],["Tiempo descontado",`${formatTimeDiff(-kpis.savedMs)}s`]].map(([label,value])=><div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="font-mono text-lg font-semibold">{value}</p></div>)}</div>
-    <div className="flex justify-end pb-1">{!!rows.length&&!invalidTargets&&<PdfExport key={JSON.stringify([meets,scope,clubId,athleteId,mode,edits,headerClub,headerCoach,coach.activeVersion?.id])} title="Reporte ejecutivo de competencia" label="Generar PDF compacto" prepare={prepare} />}</div>
+    <div className="flex justify-end pb-1">{!!rows.length&&!invalidTargets&&<PdfExport key={JSON.stringify([meets,scope,clubId,athleteId,mode,edits,headerClub,headerCoach,coach.activeVersion?.id])} title="Reporte ejecutivo de competencia" clubId={clubId==="all"?undefined:clubId} label="Generar PDF compacto" prepare={prepare} />}</div>
   </div>;
 }
