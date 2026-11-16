@@ -86,11 +86,26 @@ export function entriesPdf(meetName: string, meta: string, rows: ReportRow[]) {
 }
 
 export interface AthleteReportResult {
-  final_time_ms: number | null; seed_time_ms: number | null; is_dq: boolean; course: string | null; round: string | null; place: number | null; aqua_points: number | null;
+  final_time_ms: number | null; seed_time_ms: number | null; is_dq: boolean; course: string | null; round: string | null; place: number | null; aqua_points: number | null; points?: number | null;
   events: { distance: number; stroke: number; is_relay?: boolean } | null;
   meets: { name: string; start_date: string | null } | null;
   splits: { split_distance: number; cumulative_time_ms: number; lap_time_ms: number | null }[];
 }
+export interface MeetPointsSummary { name: string; date: string | null; swims: number; points: number; }
+/** Scoring points earned per meet inside the report window; meets without points are omitted. */
+export function meetPointsSummary(results: readonly AthleteReportResult[]): MeetPointsSummary[] {
+  const byMeet = new Map<string, MeetPointsSummary>();
+  for (const r of results) {
+    const name = r.meets?.name;
+    if (!name) continue;
+    const entry = byMeet.get(name) ?? { name, date: r.meets?.start_date ?? null, swims: 0, points: 0 };
+    entry.swims += 1;
+    entry.points += r.points ?? 0;
+    byMeet.set(name, entry);
+  }
+  return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+}
+
 export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
@@ -122,8 +137,14 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 8 } });
   doc.setFontSize(8);
   doc.text("Variación: respecto a la mejor marca de la fecha de competencia anterior, misma prueba y piscina, dentro de los últimos 9 meses.", 14, y() + 5);
+  const meetPoints = meetPointsSummary(ranked);
+  if (meetPoints.length) {
+    autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Puntos por competencia", "Fecha", "Pruebas", "Puntos"]], body: [...meetPoints.map((m) => [m.name, m.date ?? "—", m.swims, m.points]), ["Total del periodo", "", meetPoints.reduce((n, m) => n + m.swims, 0), meetPoints.reduce((n, m) => n + m.points, 0)]], styles: { fontSize: 8 } });
+    doc.setFontSize(8);
+    doc.text("Puntos de premiación del torneo en vivo (finales); distintos de la puntuación AQUA.", 14, y() + 5);
+  }
   const sorted = ranked;
-  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
+  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Puntos", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", r.points ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   appendAthleteProgressCharts(doc, name, ranked);

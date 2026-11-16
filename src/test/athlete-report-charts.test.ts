@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { athleteProgressPdf, type AthleteReportResult } from "@/lib/reports";
+import { athleteProgressPdf, meetPointsSummary, type AthleteReportResult } from "@/lib/reports";
 
 // Dates stay inside the rolling nine-month window regardless of the real clock.
 const swim = (
@@ -73,5 +73,26 @@ describe("athlete PDF keeps per-event evolution charts", () => {
     expect(text).toContain("Diferencia con mínima");
     expect(text).toContain("Variación");
     expect(text).toContain("Evolución ·");
+  });
+});
+
+describe("athlete PDF reports meet scoring points", () => {
+  const scored = (points: number, name: string, date: string): AthleteReportResult => ({ ...swim(60000, date), points, meets: { name, start_date: date } });
+
+  it("sums points per meet and omits meets without points", () => {
+    const results = [scored(9, "Copa A", "2026-03-01"), scored(7, "Copa A", "2026-03-01"), scored(0, "Copa B", "2026-05-10")];
+    expect(meetPointsSummary(results)).toEqual([{ name: "Copa A", date: "2026-03-01", swims: 2, points: 16 }]);
+  });
+
+  it("shows the per-meet points table and total in the PDF", async () => {
+    const results = [scored(9, "Copa A", "2026-03-01"), scored(7, "Copa A", "2026-03-01")];
+    const text = await pdfText(athleteProgressPdf(athlete, results, [], null));
+    expect(text).toContain("Puntos por competencia");
+    expect(text).toContain("Total del periodo");
+  });
+
+  it("omits the points table when no meet awarded points", async () => {
+    const text = await pdfText(athleteProgressPdf(athlete, [swim(60000, "2026-03-01")], [], null));
+    expect(text).not.toContain("Puntos por competencia");
   });
 });
