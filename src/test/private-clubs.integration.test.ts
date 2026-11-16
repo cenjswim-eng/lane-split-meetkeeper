@@ -37,7 +37,7 @@ it.skipIf(!url || !key || !publicKey)('approved accounts have isolated records, 
     for (const [i, client] of clients.entries()) {
       const team = await insert(client, 'teams', { code: 'SAME-CODE', name: `Private team ${i}` });
       const club = await insert(client, 'clubs', { name: `Private club ${i}` });
-      const athlete = await insert(client, 'athletes', { first_name: `Private athlete ${i}`, last_name: 'Test', tm_athlete_id: 'SAME-TM-ID', team_id: team.id });
+      const athlete = await insert(client, 'athletes', { first_name: `Private athlete ${i}`, last_name: 'Test', tm_athlete_id: 'SAME-TM-ID', team_id: team.id, birth_date: '2010-01-01' });
       const meet = await client.rpc('resolve_import_identity', { p_kind: 'meet', p_data: { name: 'Same private meet', startDate: '2026-11-01', course: 'LCM' } });
       expect(meet.error).toBeNull();
       const again = await client.rpc('resolve_import_identity', { p_kind: 'meet', p_data: { name: 'Same private meet', startDate: '2026-11-01', course: 'LCM' } });
