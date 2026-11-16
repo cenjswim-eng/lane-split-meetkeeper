@@ -3,3 +3,4 @@
 - Decode legacy Hy-Tek text as Windows-1252 when UTF-8 is invalid; keep fixed-width columns stable, reject unsupported athlete layouts visibly, and never overwrite existing final times with entry-only imports.
 - EV3/HYV setup uses browser-safe swimparse with strict validation and preview; import_meet_setup saves meet-specific course cuts atomically without creating results or replacing national standards.
 - HY3 warnings retain line numbers and raw records; reset athlete/event context at record boundaries and retain the existing owner-scoped athletes/results/splits schema rather than parallel tables, preventing misattributed times without weakening privacy.
+- Individual SD3 exports are locally validated before delivery; external Meet Manager acceptance is a trainer attestation bound to the exact file SHA-256, never inferred from successful generation or download.
