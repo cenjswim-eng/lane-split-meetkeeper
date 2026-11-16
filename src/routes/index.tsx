@@ -8,10 +8,18 @@ import {
 import { LandingStatistics } from "@/components/landing-statistics";
 import { LandingReveal } from "@/components/landing-reveal";
 import swimmingTraining from "@/assets/swimming-training.jpg";
-import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
-import summaryPoster from "@/assets/videos/natacion-pro-resumen-poster.jpg.asset.json";
+import demoPanel from "@/assets/demo-panel.jpg";
+import summaryVideo from "@/assets/videos/swim-lane-coach-resumen.mp4.asset.json";
+import summaryPoster from "@/assets/videos/swim-lane-coach-resumen-poster.jpg.asset.json";
 
-const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
+function whatsAppUrl(message: string) {
+  return `https://wa.me/584128503939?text=${encodeURIComponent(message)}`;
+}
+const plansWhatsAppUrl = whatsAppUrl("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.");
+const trialWhatsAppUrl = whatsAppUrl("Hola, quiero pedir una prueba de Swim Lane Coach con el archivo de mi última competencia.\nMi nombre: \nClub: \nPaís: ");
+function planWhatsAppUrl(plan: string) {
+  return whatsAppUrl(`Hola, soy entrenador y me interesa el plan ${plan} de Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer el precio, los medios de pago y los pasos para activar mi cuenta.`);
+}
 const homeTitle = "Swim Lane Coach | Software para entrenadores y clubes de natación";
 const homeDescription = "Gestiona atletas, resultados y marcas mínimas de tu club de natación. Software para entrenadores, compatible con Meet Manager y Team Manager. Consulta planes.";
 
@@ -34,10 +42,10 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function WhatsAppButton({ label, className = "" }: { label: string; className?: string }) {
+function WhatsAppButton({ label, className = "", href = plansWhatsAppUrl }: { label: string; className?: string; href?: string }) {
   return (
     <Button asChild size="lg" className={`min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none ${className}`}>
-      <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
+      <a href={href} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
     </Button>
   );
 }
@@ -83,7 +91,7 @@ function MockSd3() {
       <FileSpreadsheet className="size-10 shrink-0 text-primary" aria-hidden="true" />
       <div className="min-w-0">
         <p className="time truncate text-sm font-semibold">inscripciones-estadal.sd3</p>
-        <p className="mt-1 text-xs text-muted-foreground">28 atletas · 64 inscripciones · listo para Team Manager</p>
+        <p className="mt-1 text-xs text-muted-foreground">24 atletas · 48 inscripciones · listo para Team Manager</p>
       </div>
     </div>
   );
@@ -120,21 +128,33 @@ function Index() {
       <section id="inicio" className="landing-hero relative isolate overflow-hidden">
         <img src={swimmingTraining} alt="Nadadores entrenando estilo libre en carriles de una piscina" width={1920} height={1024} fetchPriority="high" className="landing-hero-photo absolute inset-0 -z-20 h-full w-full object-cover" />
         <div className="landing-hero-shade absolute inset-0 -z-10" aria-hidden="true" />
-        <div className="landing-enter mx-auto max-w-6xl px-6 py-12 sm:px-10 sm:py-16 lg:py-20">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary">Para entrenadores y clubes de natación</p>
-          <h1 className="mt-4 max-w-2xl text-[42px] font-semibold leading-[1.08] sm:text-6xl lg:text-7xl">Swim Lane Coach</h1>
-          <p className="mt-4 max-w-md text-2xl font-medium leading-tight sm:text-3xl">Cada parcial de tus nadadores,<br /><span className="text-primary">sin perder ninguno.</span></p>
-          <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
-          <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <WhatsAppButton label="Solicitar acceso por WhatsApp" />
-            <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
-              <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública</Link>
-            </Button>
+        <div className="landing-enter mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:py-20">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-widest text-primary">Para entrenadores y clubes de natación</p>
+            <h1 className="mt-4 max-w-2xl text-[42px] font-semibold leading-[1.08] sm:text-6xl lg:text-7xl">Swim Lane Coach</h1>
+            <p className="mt-4 max-w-md text-2xl font-medium leading-tight sm:text-3xl">Cada parcial de tus nadadores,<br /><span className="text-primary">sin perder ninguno.</span></p>
+            <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
+            <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <Button asChild size="lg" className="min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none">
+                <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública<ArrowRight aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
+                <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Solicitar acceso por WhatsApp</a>
+              </Button>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-foreground/80">
+              <span className="mr-1">Compatible con</span>
+              {["HY3", "CL2", "SD3", "ZIP", "MDB"].map((format) => <span key={format} className="rounded border border-border px-2 py-1 font-medium">{format}</span>)}
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-foreground/80">
-            <span className="mr-1">Compatible con</span>
-            {["HY3", "CL2", "SD3", "ZIP", "MDB"].map((format) => <span key={format} className="rounded border border-border px-2 py-1 font-medium">{format}</span>)}
-          </div>
+          <figure className="min-w-0 overflow-hidden rounded-lg border border-border bg-card shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-border px-4 py-2.5" aria-hidden="true">
+              <span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" />
+              <span className="ml-2 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">swimlanecoach.app/demo</span>
+            </div>
+            <img src={demoPanel} alt="Captura del panel del club de ejemplo: 24 atletas, 6 competencias y 11 mínimas alcanzadas" width={1024} height={634} className="w-full" loading="lazy" />
+            <figcaption className="border-t border-border px-4 py-2 text-xs text-muted-foreground">Datos de ejemplo</figcaption>
+          </figure>
         </div>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-foreground/20 px-6 py-4 text-xs text-foreground/80 sm:px-10">
           <span className="flex items-center gap-2"><ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />Los registros de tu club son privados</span>
@@ -194,7 +214,7 @@ function Index() {
               {[
                 { icon: ChartNoAxesCombined, title: "Gráfica de progresión", text: "La evolución de cada prueba y piscina, lista para el reporte en PDF del atleta.", mock: <MockChart /> },
                 { icon: Medal, title: "Comparación entre equipos y temporadas", text: "Ranking interno por puntos AQUA y comparación entre categorías y temporadas.", mock: <MockCompare /> },
-                { icon: Target, title: "Cercanía a marcas mínimas", text: "Cuánto falta para la mínima de cada categoría, por prueba, sexo y piscina.", mock: <MockMinimum /> },
+                { icon: Target, title: "Cercanía a marcas mínimas", text: "Cuánto falta para la mínima de cada categoría, por prueba, sexo y piscina. Carga las mínimas de tu federación y actualízalas cuando cambien.", mock: <MockMinimum /> },
                 { icon: FileDown, title: "Exportación SD3", text: "Inscripciones compatibles con Meet Manager y Team Manager, listas para compartir.", mock: <MockSd3 /> },
               ].map(({ icon: Icon, title, text, mock }) => (
                 <article key={title} className="landing-feature min-w-0 rounded-lg border border-border bg-card p-6">
@@ -275,7 +295,7 @@ function Index() {
                   <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
                     {benefits.map((benefit) => <li key={benefit} className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />{benefit}</li>)}
                   </ul>
-                  <WhatsAppButton label="Consultar este plan" className="mt-6 w-full justify-center" />
+                  <WhatsAppButton label={`Consultar plan ${name}`} href={planWhatsAppUrl(name)} className="mt-6 w-full justify-center" />
                 </article>
               ))}
             </div>
@@ -301,7 +321,7 @@ function Index() {
                 </li>
               ))}
             </ol>
-            <p className="mt-8 max-w-2xl rounded-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">Seguridad: nunca compartas contraseñas ni datos de tarjeta por el chat. El pago se coordina por WhatsApp, no en esta página.</p>
+            <p className="mt-8 max-w-2xl rounded-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">Seguridad: nunca compartas contraseñas ni datos de tarjeta por el chat. El pago se coordina por WhatsApp, no en esta página. Los datos de tus atletas son privados: solo los ve el personal autorizado de tu club y nunca se comparten ni se publican.</p>
           </div>
         </section>
       </LandingReveal>
@@ -315,14 +335,15 @@ function Index() {
               {[
                 { q: "¿Qué archivos acepta?", a: "Archivos HY3, CL2, SD3 y ZIP de Meet Manager y Team Manager, bases de datos de Access (.mdb) y PDF de resultados. También puedes importar marcas mínimas desde PDF o captura." },
                 { q: "¿Cuánto tarda la activación?", a: "Después de acordar el plan y confirmar el pago por WhatsApp, el dueño revisa tu solicitud y activa tu cuenta. Te avisamos en la misma conversación." },
-                { q: "¿Mis datos están seguros?", a: "Sí. Cada cuenta es privada: solo tú ves los atletas, resultados y documentos de tu club. Ninguna otra cuenta puede acceder a ellos." },
+                { q: "¿Mis datos están seguros?", a: "Sí. Cada cuenta es privada: solo tú ves los atletas, resultados y documentos de tu club. Ninguna otra cuenta puede acceder a ellos. Los datos de tus atletas son privados: solo los ve el personal autorizado de tu club y nunca se comparten ni se publican." },
+                { q: "¿Puedo cargar las marcas mínimas de mi federación?", a: "Sí. Importas el documento de marcas mínimas que publica tu federación cada año, o cuando cambia, y la app compara cada resultado con la mínima de su categoría." },
                 { q: "¿Sirve para clubes pequeños?", a: "Sí. Funciona igual para un entrenador con pocos atletas que para un club con varias categorías y entrenadores." },
                 { q: "¿Qué medios de pago hay?", a: "Los medios de pago se acuerdan directamente por WhatsApp con el dueño, según tu país." },
                 { q: "¿Hay prueba o demo?", a: "Sí. Abre «Explorar demo pública» para recorrer el panel, los atletas, las competencias y los reportes sin iniciar sesión. Todos los datos son ficticios y de solo lectura. Para usar los registros de tu club, consulta los planes por WhatsApp y solicita la activación." },
               ].map(({ q, a }, index) => (
                 <AccordionItem key={q} value={`faq-${index}`}>
                   <AccordionTrigger className="min-h-12 text-left text-base">{q}</AccordionTrigger>
-                  <AccordionContent className="leading-relaxed text-muted-foreground">{a}</AccordionContent>
+                  <AccordionContent forceMount className="leading-relaxed text-muted-foreground">{a}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
@@ -344,8 +365,8 @@ function Index() {
 
       <section className="border-t border-border bg-muted">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center md:py-16">
-          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Prueba Swim Lane Coach con el archivo de tu última competencia</h2>
-          <WhatsAppButton label="Solicitar acceso por WhatsApp" className="shrink-0" />
+          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Mira cómo quedaría el archivo de tu última competencia</h2>
+          <WhatsAppButton label="Pedir una prueba por WhatsApp" href={trialWhatsAppUrl} className="shrink-0" />
         </div>
       </section>
 

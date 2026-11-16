@@ -13,7 +13,7 @@ describe("Public read-only demo", () => {
     expect(Reflect.set(demoMinimums, "F", 1)).toBe(false);
   });
   it("derives the dashboard totals from the example rows", () => {
-    expect(demoSummary()).toEqual({ athletes: 6, meets: 3, bests: 6, qualified: 3, swims: 18 });
+    expect(demoSummary()).toEqual({ athletes: 24, meets: 6, bests: 24, qualified: 11, swims: 144 });
   });
   it("shows improvement and the gap from an illustrative minimum", () => {
     const ana = demoAthletes[0];
@@ -27,8 +27,8 @@ describe("Public read-only demo", () => {
   });
   it("ranks each athlete once by their best AQUA points", () => {
     const ranking = demoRanking();
-    expect(new Set(ranking.map(row => row.athlete.id)).size).toBe(6);
+    expect(new Set(ranking.map(row => row.athlete.id)).size).toBe(24);
     expect(ranking.map(row => row.best.points)).toEqual([...ranking.map(row => row.best.points)].sort((a, b) => b - a));
-    expect(ranking.find(row => row.athlete.id === "demo-sofia")?.best.time).toBe(69200);
+    expect(ranking.find(row => row.athlete.id === "demo-sofia")?.best.time).toBe(67200);
   });
 });
