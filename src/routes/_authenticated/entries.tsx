@@ -22,6 +22,8 @@ import { MeetEntriesExporter } from '@/components/exports/MeetEntriesExporter';
 import { EntryAssistant } from '@/components/entry-assistant';
 import { assistantDraftQuery } from '@/lib/entry-assistant-data';
 import { AssistantMeetCreate } from '@/components/assistant-meet-create';
+import { useWorkspaceFilters,matchesAthlete,matchesMeet } from '@/lib/workspace-filters';
+import { useSwimCategories } from '@/lib/categories';
 
 export const Route = createFileRoute("/_authenticated/entries")({
  validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined; athlete?:string|undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined,athlete:typeof s['athlete']==='string'?s['athlete']:undefined }),
@@ -33,7 +35,9 @@ function Entries() {
  const { data: management } = useSuspenseQuery(clubManagementQuery);
  const {data:relays}=useSuspenseQuery(teamRelayQuery);
  const search = Route.useSearch(); const navigate = Route.useNavigate();
- const data = search.club ? scopeClubData(all, search.club, management.links) : all;
+ const base = search.club ? scopeClubData(all, search.club, management.links) : all;
+ const {filters}=useWorkspaceFilters(),categories=useSwimCategories();
+ const data={...base,athletes:base.athletes.filter(a=>matchesAthlete(a,filters,categories,filters.season==='all'?new Date().getFullYear():Number(filters.season))),meets:base.meets.filter(m=>matchesMeet(m,filters))};
  const [chosenMeet, setMeetId] = useState(search.meet ?? "");
  const [chosenAthlete, setAthleteId] = useState(search.athlete??"");
  const meetId = data.meets.some(m => m.id === chosenMeet) ? chosenMeet : data.meets[0]?.id ?? "";
