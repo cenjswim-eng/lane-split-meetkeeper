@@ -20,6 +20,11 @@ async def main():
    project=urlparse(os.environ['VITE_SUPABASE_URL']).hostname.split('.')[0]
   key=keys[0] if keys else f'sb-{project}-auth-token'
   await page.evaluate('([k,v])=>localStorage.setItem(k,v)',[key,json.dumps(data['session'])])
+  await page.goto('http://localhost:8080/import')
+  await page.get_by_label('Elegir archivos para importar').set_input_files(str(out/'results.sd3'))
+  await page.get_by_role('button',name='Confirmar e importar 1 archivo(s)',exact=True).click()
+  await page.get_by_text('0 logros nuevos: 0 mejores marcas, 0 mínimas y 0 primeras marcas',exact=True).first.wait_for()
+  await page.screenshot(path=str(out/'0_reimportacion.png'))
   await page.goto('http://localhost:8080/achievements')
   await page.get_by_role('heading',name='Logros del club',exact=True).wait_for()
   await page.get_by_text('Primera marca',exact=True).first.wait_for()
@@ -47,6 +52,7 @@ async def main():
   await page.goto('http://localhost:8080/achievements')
   await page.get_by_role('heading',name='Logros del club',exact=True).wait_for()
   assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+  await page.locator('article').first.scroll_into_view_if_needed()
   await page.screenshot(path=str(out/'3_movil.png'))
   assert not errors,errors
   await browser.close()

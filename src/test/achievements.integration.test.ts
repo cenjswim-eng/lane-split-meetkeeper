@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { expect,it } from 'vitest';
 import { mkdirSync,writeFileSync,unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { buildSd3 } from '@/lib/hytek/sdif';
 const url=process.env['SUPABASE_URL'],key=process.env['SUPABASE_SERVICE_ROLE_KEY'],publicKey=process.env['SUPABASE_PUBLISHABLE_KEY'];
 it.skipIf(!url||!key||!publicKey)('imports, reimports, corrects and deletes achievements privately across two real accounts',async()=>{
  if(!url||!key||!publicKey)return;
@@ -25,6 +26,7 @@ it.skipIf(!url||!key||!publicKey)('imports, reimports, corrects and deletes achi
   await a.from('athlete_achievements').update({time_ms:1}).eq('id',pb?.id);
   expect(must(await a.from('athlete_achievements').select('time_ms').eq('id',pb?.id).single())).toEqual({time_ms:64000});
   const session=must(await a.auth.getSession()).session;if(!session)throw Error('Missing session');mkdirSync('/tmp/browser/achievements',{recursive:true});writeFileSync('/tmp/browser/achievements/session.json',JSON.stringify({session,athlete:pb?.athlete_id}),{mode:0o600});
+  writeFileSync('/tmp/browser/achievements/results.sd3',buildSd3({name:'Logros Copa Final',location:null,start_date:'2026-11-14',end_date:'2026-11-14',course:'LCM'},[{athlete:{first_name:'Ana',last_name:'Logros',birth_date:'2011-12-31',gender:'F',federation_id:null,team_code:null},event:{event_number:'1',distance:100,stroke:1,gender:'F',min_age:14,max_age:15},final_time_ms:64000,seed_time_ms:null,is_dq:false,place:1,aqua_points:null,course:'LCM',round:'F',splits:[]}],[]));
   execFileSync('python3',['src/test/achievements.browser.py'],{stdio:'pipe',timeout:90000});
   must(await a.from('results').update({final_time_ms:67000}).eq('id',pb?.result_id));log=must(await a.from('athlete_achievements').select());expect(log).toHaveLength(2);expect(log?.find(r=>r.kind==='pb')).toMatchObject({improvement_ms:1000});
   must(await a.from('results').update({is_dq:true}).eq('id',pb?.result_id));expect(must(await a.from('athlete_achievements').select())).toHaveLength(1);
