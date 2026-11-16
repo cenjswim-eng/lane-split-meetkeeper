@@ -8,10 +8,18 @@ import {
 import { LandingStatistics } from "@/components/landing-statistics";
 import { LandingReveal } from "@/components/landing-reveal";
 import swimmingTraining from "@/assets/swimming-training.jpg";
-import summaryVideo from "@/assets/videos/natacion-pro-resumen.mp4.asset.json";
-import summaryPoster from "@/assets/videos/natacion-pro-resumen-poster.jpg.asset.json";
+import demoPanel from "@/assets/demo-panel.jpg";
+import summaryVideo from "@/assets/videos/swim-lane-coach-resumen.mp4.asset.json";
+import summaryPoster from "@/assets/videos/swim-lane-coach-resumen-poster.jpg.asset.json";
 
-const plansWhatsAppUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.")}`;
+function whatsAppUrl(message: string) {
+  return `https://wa.me/584128503939?text=${encodeURIComponent(message)}`;
+}
+const plansWhatsAppUrl = whatsAppUrl("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.");
+const trialWhatsAppUrl = whatsAppUrl("Hola, quiero pedir una prueba de Swim Lane Coach con el archivo de mi última competencia.\nMi nombre: \nClub: \nPaís: ");
+function planWhatsAppUrl(plan: string) {
+  return whatsAppUrl(`Hola, soy entrenador y me interesa el plan ${plan} de Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer el precio, los medios de pago y los pasos para activar mi cuenta.`);
+}
 const homeTitle = "Swim Lane Coach | Software para entrenadores y clubes de natación";
 const homeDescription = "Gestiona atletas, resultados y marcas mínimas de tu club de natación. Software para entrenadores, compatible con Meet Manager y Team Manager. Consulta planes.";
 
@@ -34,10 +42,10 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function WhatsAppButton({ label, className = "" }: { label: string; className?: string }) {
+function WhatsAppButton({ label, className = "", href = plansWhatsAppUrl }: { label: string; className?: string; href?: string }) {
   return (
     <Button asChild size="lg" className={`min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none ${className}`}>
-      <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
+      <a href={href} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
     </Button>
   );
 }
@@ -83,7 +91,7 @@ function MockSd3() {
       <FileSpreadsheet className="size-10 shrink-0 text-primary" aria-hidden="true" />
       <div className="min-w-0">
         <p className="time truncate text-sm font-semibold">inscripciones-estadal.sd3</p>
-        <p className="mt-1 text-xs text-muted-foreground">28 atletas · 64 inscripciones · listo para Team Manager</p>
+        <p className="mt-1 text-xs text-muted-foreground">24 atletas · 48 inscripciones · listo para Team Manager</p>
       </div>
     </div>
   );
@@ -194,7 +202,7 @@ function Index() {
               {[
                 { icon: ChartNoAxesCombined, title: "Gráfica de progresión", text: "La evolución de cada prueba y piscina, lista para el reporte en PDF del atleta.", mock: <MockChart /> },
                 { icon: Medal, title: "Comparación entre equipos y temporadas", text: "Ranking interno por puntos AQUA y comparación entre categorías y temporadas.", mock: <MockCompare /> },
-                { icon: Target, title: "Cercanía a marcas mínimas", text: "Cuánto falta para la mínima de cada categoría, por prueba, sexo y piscina.", mock: <MockMinimum /> },
+                { icon: Target, title: "Cercanía a marcas mínimas", text: "Cuánto falta para la mínima de cada categoría, por prueba, sexo y piscina. Carga las mínimas de tu federación y actualízalas cuando cambien.", mock: <MockMinimum /> },
                 { icon: FileDown, title: "Exportación SD3", text: "Inscripciones compatibles con Meet Manager y Team Manager, listas para compartir.", mock: <MockSd3 /> },
               ].map(({ icon: Icon, title, text, mock }) => (
                 <article key={title} className="landing-feature min-w-0 rounded-lg border border-border bg-card p-6">
