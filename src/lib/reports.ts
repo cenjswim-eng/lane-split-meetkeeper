@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
+import type { ReportBrand } from './report-brand';
 import { formatTime, eventLabel, ageAtDec31, ageGroup } from "./swim";
 import { MEMBER_ROLES, type MemberRole } from "./club";
 import { exportFilename } from "./file-delivery";
@@ -48,8 +49,9 @@ function brandedOutput(doc: jsPDF) {
 }
 
 /** Official results sheet ("listado de marcas"). */
-export function resultsPdf(meetName: string, meta: string, rows: ReportRow[]) {
+export function resultsPdf(meetName: string, meta: string, rows: ReportRow[],brand?:ReportBrand) {
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   header(doc, `Listado de marcas — ${meetName}`, meta);
   autoTable(doc, {
     startY: 28,
@@ -73,8 +75,9 @@ export function resultsPdf(meetName: string, meta: string, rows: ReportRow[]) {
 }
 
 /** Pre-entry sheet ("pre-inscripciones") with seed times, ready to send. */
-export function entriesPdf(meetName: string, meta: string, rows: ReportRow[]) {
+export function entriesPdf(meetName: string, meta: string, rows: ReportRow[],brand?:ReportBrand) {
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   header(doc, `Pre-inscripción — ${meetName}`, meta);
   autoTable(doc, {
     startY: 28,
@@ -107,10 +110,11 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = []) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   const name = `${athlete.first_name} ${athlete.last_name}`;
   const year = new Date().getFullYear();
   const age = ageAtDec31(athlete.birth_date, year);
@@ -151,7 +155,7 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Puntos", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", r.points_scored ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
-  appendAthleteProgressCharts(doc, name, ranked);
+  appendAthleteProgressCharts(doc, name, ranked,undefined,brand);
   for (let page = 1; page <= doc.getNumberOfPages(); page++) {
     doc.setPage(page);
     doc.setFont("helvetica", "normal");
@@ -163,8 +167,9 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   return new File([brandedOutput(doc)], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
 }
 
-export function clubRosterPdf(name: string, members: { first_name: string; last_name: string; member_role: string; active: boolean; email: string | null; phone: string | null }[]) {
+export function clubRosterPdf(name: string, members: { first_name: string; last_name: string; member_role: string; active: boolean; email: string | null; phone: string | null }[],brand?:ReportBrand) {
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   header(doc, `Registro del club — ${name}`, new Date().toLocaleDateString("es-VE"));
   autoTable(doc, { startY: 28, head: [["Integrante", "Tipo", "Estado", "Correo", "Teléfono"]], body: members.map((m) => [`${m.first_name} ${m.last_name}`, MEMBER_ROLES[m.member_role as MemberRole] ?? m.member_role, m.active ? "Activo" : "Inactivo", m.email ?? "—", m.phone ?? "—"]), styles: { fontSize: 9 } });
   return new File([brandedOutput(doc)], exportFilename(name, "_integrantes.pdf"), { type: "application/pdf" });

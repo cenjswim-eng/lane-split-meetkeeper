@@ -1,5 +1,6 @@
 import type { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { brandedTable as autoTable } from './report-table-theme';
+import type { ReportBrand } from './report-brand';
 import { athleteProgressSeries, athleteRecordWindow } from "./athlete-records";
 import type { AthleteReportResult } from "./reports";
 import { eventLabel, formatTime } from "./swim";
@@ -11,7 +12,7 @@ const dateLabel = (date: string | null | undefined) => date ? date.split("-").re
 const SWIMS_PER_PAGE = 7;
 
 /** Vector charts stay sharp when printed and need no browser canvas or screenshot. */
-export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: AthleteReportResult[], now = new Date()) {
+export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: AthleteReportResult[], now = new Date(),brand?:ReportBrand) {
   const { from, to } = athleteRecordWindow(now);
   for (const group of athleteProgressSeries(results, now)) {
     const times = group.records.map((r) => r.final_time_ms ?? 0);
@@ -28,7 +29,7 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
     for (let offset = 0; offset < group.records.length; offset += SWIMS_PER_PAGE) {
       const records = group.records.slice(offset, offset + SWIMS_PER_PAGE);
       doc.addPage();
-      doc.setTextColor(print.ink);
+      doc.setTextColor(brand?.primary??print.ink);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.text(`Evolución · ${eventLabel(group.distance, group.stroke)} · ${group.course ?? "Piscina sin especificar"}`, 14, 16);
@@ -45,7 +46,7 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
       doc.setLineWidth(0.2);
       for (let tick = 0; tick <= 4; tick++) {
         const y = top + tick * height / 4;
-        doc.setDrawColor(print.grid);
+        doc.setDrawColor(brand?.secondary??print.grid);
         doc.line(left, y, left + width, y);
         doc.text(formatTime(min + (max - min) * tick / 4), left - 4, y + 1, { align: "right" });
       }
@@ -55,10 +56,10 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
         const time = r.final_time_ms;
         if (time == null) return;
         const p = point(i, time);
-        doc.setDrawColor(print.line);
+        doc.setDrawColor(brand?.primary??print.line);
         doc.setLineWidth(0.7);
         if (previous) doc.line(previous.x, previous.y, p.x, p.y);
-        doc.setFillColor(time === best ? print.improvement : print.line);
+        doc.setFillColor(time === best ? print.improvement : brand?.primary??print.line);
         doc.circle(p.x, p.y, 1.3, "F");
         doc.setTextColor(print.ink);
         doc.setFontSize(8);

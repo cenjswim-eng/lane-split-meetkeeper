@@ -3,6 +3,7 @@ import { buildSd3, type ExportRow } from "@/lib/hytek/sdif";
 import { entriesPdf, resultsPdf, type ReportRow } from "@/lib/reports";
 import { ageAtDec31, eventLabel } from "@/lib/swim";
 import { exportFilename } from "@/lib/file-delivery";
+import type { ReportBrand } from './report-brand';
 
 export async function exportMeet(meet: { id: string; name: string; location: string | null; start_date: string | null; end_date: string | null; course: string }) {
   const data = [];
@@ -53,9 +54,9 @@ export async function reportRows(meetId: string): Promise<ReportRow[]> {
     .sort((a, b) => a.event.localeCompare(b.event) || (a.place ?? 99) - (b.place ?? 99));
 }
 
-export async function exportPdf(meet: { id: string; name: string; location: string | null; start_date: string | null; course: string }, kind: "results" | "entries") {
+export async function exportPdf(meet: { id: string; name: string; location: string | null; start_date: string | null; course: string }, kind: "results" | "entries",brand?:ReportBrand) {
   const rows = await reportRows(meet.id);
   const meta = `${meet.location ?? ""} · ${meet.start_date ?? ""} · ${meet.course}`;
-  return kind === "results" ? resultsPdf(meet.name, meta, rows) : entriesPdf(meet.name, meta, rows);
+  return kind === "results" ? resultsPdf(meet.name, meta, rows,brand) : entriesPdf(meet.name, meta, rows,brand);
 }
 
