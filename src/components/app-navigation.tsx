@@ -22,13 +22,14 @@ const items = [
   { to: "/reports", label: "Reportes", icon: FileText },
   { to: "/relays", label: "Relevos", icon: Waves },
   { to: "/profile", label: "Mi perfil", icon: UserRound },
+  { to: "/brand", label: "Marca del club", icon: Settings2 },
   { to: "/access", label: "Accesos", icon: ShieldCheck },
 ] as const;
 
 const groups = [
  {label:"Principal",paths:["/dashboard","/athletes","/meets","/standards","/rankings","/achievements","/reports","/clubs"]},
  {label:"Competencias",paths:["/import","/entries","/relays","/seeding","/run"]},
- {label:"Club y configuración",paths:["/club","/categories","/profile","/access"]},
+ {label:"Club y configuración",paths:["/club","/brand","/categories","/profile","/access"]},
 ];
 
 export function AppNavigation({ name, logoUrl, onSignOut }: { name: string; logoUrl?: string | null; onSignOut: () => void }) {

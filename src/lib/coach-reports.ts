@@ -3,7 +3,8 @@ import { eventLabel, formatTime } from "@/lib/swim";
 import { internalRanking, aquaRanking } from "@/lib/entry-rules";
 import type { DashboardResult } from "@/lib/dashboard-summary";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
+import type { ReportBrand } from './report-brand';
 
 type Cell = string | number | null;
 export async function workbookFile(name: string, sheets: { name: string; headers: string[]; rows: Cell[][] }[]) {
@@ -30,8 +31,9 @@ export const aquaRankingHeaders = ["Puesto", "Atleta", "AQUA", "Sexo", "Prueba",
 export function aquaRankingRows(results: (DashboardResult & { aqua_points: number | null })[]) {
   return aquaRanking(results).map(r => [r.rank, `${r.athletes?.first_name ?? ""} ${r.athletes?.last_name ?? ""}`, r.aqua_points ?? 0, r.athletes?.gender ?? "—", r.events ? eventLabel(r.events.distance, r.events.stroke) : "—", r.course ?? "—", formatTime(r.final_time_ms), r.meets?.name ?? "—", r.meets?.start_date ?? "—"]);
 }
-export function aquaRankingPdf(results: (DashboardResult & { aqua_points: number | null })[]) {
+export function aquaRankingPdf(results: (DashboardResult & { aqua_points: number | null })[],brand?:ReportBrand) {
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   doc.setProperties({ title: "Ranking interno AQUA", author: "Swim Lane Coach", creator: "Swim Lane Coach" });
   doc.setFontSize(17); doc.text("Ranking interno · Puntos AQUA", 14, 16);
   doc.setFontSize(10); doc.text("Últimos 9 meses · Mejor puntuación individual por atleta", 14, 23);
@@ -39,8 +41,9 @@ export function aquaRankingPdf(results: (DashboardResult & { aqua_points: number
   for (let p = 1; p <= doc.getNumberOfPages(); p++) { doc.setPage(p); doc.setFontSize(8); doc.text("Swim Lane Coach · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6); }
   return new File([doc.output("blob")], "Swim Lane Coach_ranking_AQUA.pdf", { type: "application/pdf" });
 }
-export function rankingPdf(results: DashboardResult[]) {
+export function rankingPdf(results: DashboardResult[],brand?:ReportBrand) {
   const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc,brand);
   doc.setProperties({ title: "Ranking interno del club", author: "Swim Lane Coach", creator: "Swim Lane Coach" });
   doc.setFontSize(17); doc.text("Ranking interno del club", 14, 16);
   doc.setFontSize(10); doc.text("Últimos 9 meses · Por prueba, piscina, sexo y categoría al 31/12", 14, 23);

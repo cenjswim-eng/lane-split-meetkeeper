@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PdfExport } from "@/components/pdf-export";
+import type { ReportBrand } from '@/lib/report-brand';
 
 export function CompactMeetReportModal() {
   const [open,setOpen]=useState(false);
@@ -56,7 +57,7 @@ function CompactReportBody() {
   const kpis=compactKpis(rows);
   const source=mode==="national"?standardSourceNote(coach.activeVersion):mode==="pb"?"Referencia: mejor tiempo personal previo, misma prueba y piscina.":mode==="tournament"?"Referencia: mínimas importadas de la prueba del torneo, según piscina, sexo y edad.":"Referencia: objetivos manuales del entrenador; no son mínimas oficiales.";
   const invalidTargets=rows.some(row=>invalid[row.id]);
-  async function prepare() {
+  async function prepare(brand?:ReportBrand) {
     if(!coach || !detail)throw new Error("Los resultados todavía no están disponibles.");
     if(invalidTargets)throw new Error("Corrige las marcas objetivo inválidas.");
     const current=await loadStandardVersions();
@@ -64,7 +65,7 @@ function CompactReportBody() {
     const freshRows=compactReportRows(detail.results,coach.athletes,meets,mode,current.data,coach.events,edits,scope==="athlete"?athleteId:"",clubId==="all"?"":clubId);
     let logoUrl=clubId==="all"?profile?.logoUrl ?? null:null;
     if(club?.logo_path){const signed=await supabase.storage.from("club-documents").createSignedUrl(club.logo_path,300);if(signed.error)throw signed.error;logoUrl=signed.data?.signedUrl ?? null;}
-    return compactMeetPdf({rows:freshRows,club:headerClub,coach:headerCoach,meets:coach.meets.filter(m=>meets.includes(m.id)).map(m=>`${m.name} (${courseLabel(m.course)})`),source:(mode==="national"?standardSourceNote(current.activeVersion):source)+(Object.keys(targetText).length?" · Incluye objetivos editados manualmente.":""),logo:await compactLogo(logoUrl)});
+    return compactMeetPdf({rows:freshRows,club:headerClub,coach:headerCoach,meets:coach.meets.filter(m=>meets.includes(m.id)).map(m=>`${m.name} (${courseLabel(m.course)})`),source:(mode==="national"?standardSourceNote(current.activeVersion):source)+(Object.keys(targetText).length?" · Incluye objetivos editados manualmente.":""),logo:await compactLogo(logoUrl),brand});
   }
   return <div className="min-h-0 space-y-4 overflow-y-auto">
     <div className="grid gap-3 border-y py-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,6 +91,6 @@ function CompactReportBody() {
       {!rows.length&&<p className="py-8 text-center text-sm text-muted-foreground">{!meets.length?"Selecciona una o más competencias.":scope==="athlete"&&!athleteId?"Selecciona un atleta.":"Sin resultados individuales para esta selección."}</p>}
     </div>
     <div className="grid grid-cols-2 gap-3 border-b pb-4 sm:grid-cols-4" aria-label="Resumen del torneo">{[["Pruebas nadadas",kpis.swims],["Nuevos PB",`${kpis.pbs} · ${kpis.pbPercent}%`],["Objetivos logrados",kpis.targets],["Tiempo descontado",`${formatTimeDiff(-kpis.savedMs)}s`]].map(([label,value])=><div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="font-mono text-lg font-semibold">{value}</p></div>)}</div>
-    <div className="flex justify-end pb-1">{!!rows.length&&!invalidTargets&&<PdfExport key={JSON.stringify([meets,scope,clubId,athleteId,mode,edits,headerClub,headerCoach,coach.activeVersion?.id])} title="Reporte ejecutivo de competencia" label="Generar PDF compacto" prepare={prepare} />}</div>
+    <div className="flex justify-end pb-1">{!!rows.length&&!invalidTargets&&<PdfExport key={JSON.stringify([meets,scope,clubId,athleteId,mode,edits,headerClub,headerCoach,coach.activeVersion?.id])} title="Reporte ejecutivo de competencia" clubId={clubId==="all"?undefined:clubId} label="Generar PDF compacto" prepare={prepare} />}</div>
   </div>;
 }

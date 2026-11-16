@@ -3,12 +3,15 @@ import autoTable from "jspdf-autotable";
 import { compactCells, compactHeaders, compactKpis, type CompactRow } from "./compact-meet-report";
 import { formatTimeDiff } from "@/utils/timeDiffUtils";
 import { exportFilename } from "./file-delivery";
+import { brandedTable as themedTable,setReportTableBrand } from './report-table-theme';
+import type { ReportBrand } from './report-brand';
 
 // Print palette is defined centrally, separately from screen/account colors.
 export const compactPrintTheme = { ink: "#20282c", muted: "#525c61", paper: "#ffffff", band: "#edf1f2", success: "#08733c", failure: "#b13620" };
-export interface CompactPdfOptions { rows: CompactRow[]; club: string; coach: string; meets: string[]; source: string; logo?: string | null; issued?: Date }
+export interface CompactPdfOptions { rows: CompactRow[]; club: string; coach: string; meets: string[]; source: string; logo?: string | null; issued?: Date;brand?:ReportBrand|undefined }
 export function compactMeetPdf(options: CompactPdfOptions): File {
   const doc = new jsPDF({ orientation:"landscape", format:"a4" });
+  setReportTableBrand(doc,options.brand);
   const { rows } = options;
   if (!rows.length) throw new Error("No hay resultados para los filtros seleccionados.");
   const width = doc.internal.pageSize.getWidth(), height = doc.internal.pageSize.getHeight();
@@ -37,7 +40,7 @@ export function compactMeetPdf(options: CompactPdfOptions): File {
   for (const row of rows) { if (previous!==row.athleteId) { index++;previous=row.athleteId; } colored.set(index++,row); }
   const kpi=compactKpis(rows);
   body.push([{content:`TOTAL · ${kpi.swims} pruebas nadadas · ${kpi.pbs} PB (${kpi.pbPercent}%) · ${kpi.targets} objetivos logrados · Tiempo descontado: ${formatTimeDiff(-kpi.savedMs)}s`,colSpan:7,styles:{fillColor:theme.band,fontStyle:"bold"}}]);
-  autoTable(doc,{
+  themedTable(doc,{
     startY:27,margin:{left:7,right:7,top:27,bottom:28},head:[compactHeaders],body,
     theme:"grid",showHead:"everyPage",rowPageBreak:"avoid",
     styles:{font:"helvetica",fontSize:8,cellPadding:1.6,textColor:theme.ink,lineColor:theme.band,lineWidth:0.15,overflow:"linebreak"},

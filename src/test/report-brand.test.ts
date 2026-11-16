@@ -1,0 +1,6 @@
+import { expect,it } from 'vitest';
+import { validateLogo,reportExpiry,privateSurname,minimalPrivacy,contrastInk } from '@/lib/report-brand';
+it('accepts PNG JPG SVG at 2 MB and rejects larger or unsupported logos',()=>{for(const type of ['image/png','image/jpeg','image/svg+xml'])expect(()=>validateLogo({type,size:2097152})).not.toThrow();expect(()=>validateLogo({type:'image/png',size:2097153})).toThrow();expect(()=>validateLogo({type:'text/html',size:1})).toThrow();});
+it('expires shares after exactly seven or thirty days or never',()=>{const now=new Date('2026-11-16T13:49:00Z');expect(reportExpiry(7,now)).toBe('2026-11-23T13:49:00.000Z');expect(reportExpiry(30,now)).toBe('2026-12-16T13:49:00.000Z');expect(reportExpiry(null,now)).toBeNull();});
+it('defaults to minimal data and abbreviates surnames',()=>{expect(minimalPrivacy).toEqual({fullSurname:false,birthDate:false,aqua:false});expect(privateSurname('Segovia Pérez',false)).toBe('S. P.');expect(privateSurname('Segovia Pérez',true)).toBe('Segovia Pérez');});
+it('uses dark print text on a light primary color',()=>{expect(contrastInk('#ffffff')).toBe('#182e39');expect(contrastInk('#000000')).toBe('#ffffff');});
