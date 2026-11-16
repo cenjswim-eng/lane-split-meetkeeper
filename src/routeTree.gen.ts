@@ -22,6 +22,7 @@ import { Route as ParaEntrenadoresRouteImport } from './routes/para-entrenadores
 import { Route as PreguntasFrecuentesRouteImport } from './routes/preguntas-frecuentes'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedAchievementsRouteImport } from './routes/_authenticated/achievements'
@@ -110,6 +111,11 @@ const PrivacidadRoute = PrivacidadRouteImport.update({
 const RequestAccessRoute = RequestAccessRouteImport.update({
   id: '/request-access',
   path: '/request-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TerminosRoute = TerminosRouteImport.update({
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/achievements': typeof AuthenticatedAchievementsRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/achievements': typeof AuthenticatedAchievementsRoute
@@ -333,6 +341,7 @@ export interface FileRoutesById {
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/achievements': typeof AuthenticatedAchievementsRoute
@@ -374,6 +383,7 @@ export interface FileRouteTypes {
     | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
+    | '/sitemap.xml'
     | '/terminos'
     | '/access'
     | '/achievements'
@@ -412,6 +422,7 @@ export interface FileRouteTypes {
     | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
+    | '/sitemap.xml'
     | '/terminos'
     | '/access'
     | '/achievements'
@@ -452,6 +463,7 @@ export interface FileRouteTypes {
     | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
+    | '/sitemap.xml'
     | '/terminos'
     | '/_authenticated/access'
     | '/_authenticated/achievements'
@@ -493,6 +505,7 @@ export interface RootRouteChildren {
   PreguntasFrecuentesRoute: typeof PreguntasFrecuentesRoute
   PrivacidadRoute: typeof PrivacidadRoute
   RequestAccessRoute: typeof RequestAccessRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TerminosRoute: typeof TerminosRoute
   ReportFileTokenRoute: typeof ReportFileTokenRoute
   ShareTokenRoute: typeof ShareTokenRoute
@@ -590,6 +603,13 @@ declare module '@tanstack/react-router' {
       path: '/request-access'
       fullPath: '/request-access'
       preLoaderRoute: typeof RequestAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terminos': {
@@ -843,6 +863,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreguntasFrecuentesRoute: PreguntasFrecuentesRoute,
   PrivacidadRoute: PrivacidadRoute,
   RequestAccessRoute: RequestAccessRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TerminosRoute: TerminosRoute,
   ReportFileTokenRoute: ReportFileTokenRoute,
   ShareTokenRoute: ShareTokenRoute,
