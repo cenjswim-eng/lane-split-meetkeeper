@@ -34,6 +34,12 @@ it.skipIf(!url||!key||!publicKey)('imports, reimports, corrects and deletes achi
   must(await a.from('results').delete().eq('id',pb?.result_id));expect(must(await a.from('athlete_achievements').select())).toHaveLength(1);
   // A 25 m swim is a first mark, never a PB against the stored 50 m times.
   const short={...second,meet:{...second.meet,name:'Logros 25m',course:'SCM'},results:[{...second.results[0],course:'SCM',finalMs:60000}]};must(await a.rpc('import_meet_payload',{p_payload:short}));expect(must(await a.from('athlete_achievements').select().eq('course','SCM'))?.map(r=>r.kind)).toEqual(['first']);
+  // A backdated import reassigns first mark and recomputes the later PB.
+  const earlier={...payload,meet:{...payload.meet,name:'Logros Historial Anterior',startDate:'2025-10-01',endDate:'2025-10-01'},results:[{...payload.results[0],finalMs:70000}]};must(await a.rpc('import_meet_payload',{p_payload:earlier}));
+  const long=must(await a.from('athlete_achievements').select().eq('course','LCM'));
+  expect(long?.find(r=>r.achieved_on==='2025-10-01')).toMatchObject({kind:'first',time_ms:70000});
+  expect(long?.find(r=>r.achieved_on==='2026-01-12')).toMatchObject({kind:'pb',previous_ms:70000,improvement_ms:2000});
+  expect(long?.some(r=>r.kind==='minimum')).toBe(false);
  }finally {
   try{unlinkSync('/tmp/browser/achievements/session.json');}catch{}
   for(const id of users){for(const table of ['standard_versions','splits','results','meet_entries','events','athletes','meets','teams','import_logs']){const r=await admin.from(table).delete().eq('owner_id',id);if(r.error)throw r.error;}await admin.from('user_roles').delete().eq('user_id',id);await admin.auth.admin.deleteUser(id);}
