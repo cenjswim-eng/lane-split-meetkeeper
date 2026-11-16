@@ -267,6 +267,13 @@
       "when": 1794782420982,
       "tag": "0037_complete_live_relay_timing",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794834193988,
+      "tag": "0038_private_entry_assistant_drafts",
+      "breakpoints": true
     }
   ]
 }

@@ -356,6 +356,51 @@ export type Database = {
         }
         Relationships: []
       }
+      entry_assistant_drafts: {
+        Row: {
+          club_id: string | null
+          id: string
+          meet_id: string
+          owner_id: string
+          rows: Json
+          rules: Json
+          updated_at: string
+        }
+        Insert: {
+          club_id?: string | null
+          id?: string
+          meet_id: string
+          owner_id?: string
+          rows?: Json
+          rules?: Json
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string | null
+          id?: string
+          meet_id?: string
+          owner_id?: string
+          rows?: Json
+          rules?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_assistant_drafts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_assistant_drafts_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           course: string | null
@@ -473,6 +518,7 @@ export type Database = {
         Row: {
           athlete_id: string
           created_at: string
+          entry_origin: string
           event_id: string
           heat: number | null
           id: string
@@ -480,14 +526,17 @@ export type Database = {
           lane: number | null
           meet_id: string
           owner_id: string
+          reference_date: string | null
           seed_course: string | null
           seed_time_ms: number | null
           seeding_time_ms: number | null
           status: string
+          time_converted: boolean
         }
         Insert: {
           athlete_id: string
           created_at?: string
+          entry_origin?: string
           event_id: string
           heat?: number | null
           id?: string
@@ -495,14 +544,17 @@ export type Database = {
           lane?: number | null
           meet_id: string
           owner_id?: string
+          reference_date?: string | null
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
           status?: string
+          time_converted?: boolean
         }
         Update: {
           athlete_id?: string
           created_at?: string
+          entry_origin?: string
           event_id?: string
           heat?: number | null
           id?: string
@@ -510,10 +562,12 @@ export type Database = {
           lane?: number | null
           meet_id?: string
           owner_id?: string
+          reference_date?: string | null
           seed_course?: string | null
           seed_time_ms?: number | null
           seeding_time_ms?: number | null
           status?: string
+          time_converted?: boolean
         }
         Relationships: [
           {
@@ -1217,6 +1271,7 @@ export type Database = {
     }
     Functions: {
       activate_standard_version: { Args: { p_id: string }; Returns: undefined }
+      commit_entry_assistant: { Args: { p_draft: string }; Returns: number }
       configure_run_points: {
         Args: { p_individual: Json; p_meet: string; p_relay: Json }
         Returns: undefined

@@ -19,11 +19,14 @@ import { teamRelayQuery } from '@/lib/team-relay-data';
 import { tournamentEligible, entryLimitWarnings, entryFees } from '@/lib/tournament-rules';
 import { scopeClubData } from "@/lib/club-management";
 import { MeetEntriesExporter } from '@/components/exports/MeetEntriesExporter';
+import { EntryAssistant } from '@/components/entry-assistant';
+import { assistantDraftQuery } from '@/lib/entry-assistant-data';
+import { AssistantMeetCreate } from '@/components/assistant-meet-create';
 
 export const Route = createFileRoute("/_authenticated/entries")({
  validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined }),
  head: () => ({ meta: [{ title: "Inscripciones — Swim Lane Coach" }, { name: "description", content: "Selecciona nadadores y pruebas, consulta mínimas y exporta inscripciones SD3 para Meet Manager." }, { property: "og:title", content: "Inscripciones — Swim Lane Coach" }, { property: "og:description", content: "Inscripciones privadas del club y exportaciones para Meet Manager y Team Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
- loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery),context.queryClient.ensureQueryData(teamRelayQuery)]); }, component: Entries,
+ loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery),context.queryClient.ensureQueryData(teamRelayQuery),context.queryClient.ensureQueryData(assistantDraftQuery)]); }, component: Entries,
 });
 function Entries() {
  const { data: all } = useSuspenseQuery(coachQuery); const qc = useQueryClient();
@@ -58,7 +61,8 @@ function Entries() {
  const text = `Swim Lane Coach\nInscripciones · ${meet?.name ?? ""}\n${meet?.start_date ?? ""} · ${meet?.course ?? ""}\n` + entries.map(e => { const a=data.athletes.find(a=>a.id===e.athlete_id), ev=data.events.find(ev=>ev.id===e.event_id); return `${a?.first_name ?? ""} ${a?.last_name ?? ""} · ${ev ? eventLabel(ev.distance,ev.stroke) : ""} · ${formatTime(e.seed_time_ms)}`; }).join("\n");
  return <div className="space-y-6"><h1 className="text-4xl font-bold">Inscripciones</h1><Select value={search.club ?? "all"} onValueChange={v => { setSelected([]); setMeetId(""); setAthleteId(""); void navigate({ search: { club: v === "all" ? undefined : v } }); }}><SelectTrigger aria-label="Club de inscripciones" className="w-full sm:w-80"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos mis clubes</SelectItem>{management.clubs.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><div className="grid gap-3 sm:grid-cols-2"><Select value={meetId} onValueChange={v=>{setMeetId(v);setSelected([]);}}><SelectTrigger aria-label="Competencia"><SelectValue placeholder="Competencia" /></SelectTrigger><SelectContent>{data.meets.map(m=><SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select><Select value={athleteId} onValueChange={v=>{setAthleteId(v);setSelected([]);}}><SelectTrigger aria-label="Atleta"><SelectValue placeholder="Atleta" /></SelectTrigger><SelectContent>{data.athletes.map(a=><SelectItem key={a.id} value={a.id}>{a.first_name} {a.last_name}</SelectItem>)}</SelectContent></Select></div>
  {meet&&<div className="flex flex-wrap items-center gap-3"><TournamentSetup key={meet.id} meet={meet}/><span className="text-sm text-muted-foreground">Edad al 31/12 · {athleteEntries.length+pending.length} pruebas del atleta</span></div>}
- <MeetEntriesExporter meetId={meetId}/>
+ <div className="flex flex-wrap gap-3"><MeetEntriesExporter meetId={meetId}/><AssistantMeetCreate onCreated={id=>{setMeetId(id);setSelected([]);}}/></div>
+ {meet&&<EntryAssistant key={`${meetId}-${search.club}`} meetId={meetId} clubId={search.club}/>}
  {warnings.map(w=><p key={w} role="alert" className="text-sm text-destructive">{w}</p>)}
  <section className="border-y"><h2 className="py-4 text-2xl font-semibold">Pruebas de la competencia</h2>{events.length ? events.map(ev=>{
  const seed = athlete && meet ? entrySeed(data.results,athlete.id,ev.distance,ev.stroke,ev.course??meet.course,meet.start_date) : null;
