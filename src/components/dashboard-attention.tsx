@@ -1,0 +1,20 @@
+import { Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { coachQuery } from '@/lib/coach-data';
+import { assistantDraftQuery,decodeAssistantDraft } from '@/lib/entry-assistant-data';
+import { assistantWarnings } from '@/lib/entry-assistant';
+import { versionStandards } from '@/lib/standard-versions';
+import { useSwimCategories } from '@/lib/categories';
+import { entryMinimum } from '@/lib/entry-rules';
+import { rankedAthleteRecords } from '@/lib/athlete-records';
+import { matchesResult,useWorkspaceFilters } from '@/lib/workspace-filters';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from './ui/button';
+export function DashboardAttention(){
+ const {data}=useQuery(coachQuery),{data:drafts}=useQuery(assistantDraftQuery),categories=useSwimCategories(),{filters}=useWorkspaceFilters();
+ const {data:logs}=useQuery({queryKey:['recent-import-activity'],queryFn:async()=>{const r=await supabase.from('import_logs').select('*').order('created_at',{ascending:false}).limit(12);if(r.error)throw r.error;return r.data;}});
+ const recent=rankedAthleteRecords(data?.results??[]).filter(r=>matchesResult(r,filters,categories));
+ const close=recent.flatMap(r=>{const a=data?.athletes.find(a=>a.id===r.athlete_id);if(!a||!r.events)return [];const m=entryMinimum(data?.standards??[],a,r.events,r.course??'',r.meets?.start_date??null,r.final_time_ms);return m.limit!=null&&r.final_time_ms!=null&&r.final_time_ms>m.limit?[{r,diff:r.final_time_ms-m.limit}]:[];}).sort((a,b)=>a.diff-b.diff).slice(0,5);
+ const warningDrafts=drafts?.flatMap(d=>{try{const v=decodeAssistantDraft(d.rules,d.rows),standards=versionStandards(data?.versions.find(s=>s.id===v.rules.versionId)??null);const count=v.rows.reduce((n,r)=>n+assistantWarnings(r,v.rows,data?.athletes.find(a=>a.id===r.athleteId),data?.events.find(e=>e.id===r.eventId),v.rules,standards,categories).length,0);return count?[{d,count}]:[];}catch{return [{d,count:1}];}})??[];
+ return <div className="grid gap-8 xl:grid-cols-2"><section className="space-y-3"><h2 className="text-2xl font-semibold">Requiere atención</h2><div className="divide-y border-y">{close.map(({r,diff})=><Link key={r.id} to="/athletes/$id" params={{id:r.athlete_id}} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 py-3 text-sm"><span className="min-w-0">{r.athletes?.first_name} {r.athletes?.last_name} · {r.events?.distance} m</span><span className="shrink-0 text-accent">Faltan {(diff/1000).toFixed(2)} s</span></Link>)}{warningDrafts.map(({d,count})=><Link className="block py-3 text-sm text-accent" to="/entries" search={{meet:d.meet_id,club:d.club_id??undefined}} key={d.id}>{data?.meets.find(m=>m.id===d.meet_id)?.name} · {count} advertencias en borrador</Link>)}{logs?.filter(l=>{const s=l.summary;return s&&typeof s==='object'&&!Array.isArray(s)&&('error' in s||'errors' in s);}).map(l=><Link className="block py-3 text-sm text-destructive" to="/import" key={l.id}>{l.file_name} · Revisar importación</Link>)}{!close.length&&!warningDrafts.length&&<p className="py-4 text-sm text-muted-foreground">Sin marcas pendientes ni advertencias en borradores revisados.</p>}</div><Button asChild variant="outline"><Link to="/entries">Revisar inscripciones</Link></Button></section><section className="space-y-3"><h2 className="text-2xl font-semibold">Actividad reciente</h2><div className="divide-y border-y">{logs?.slice(0,5).map(l=><Link key={l.id} className="block py-3 text-sm" to="/meets"><p className="break-words font-medium">{l.file_name}</p><p className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleString('es')} · {l.file_type}</p></Link>)}{recent.slice(0,3).map(r=><Link key={r.id} to="/athletes/$id" params={{id:r.athlete_id}} className="block py-3 text-sm">{r.athletes?.first_name} {r.athletes?.last_name} · {r.meets?.name}</Link>)}{!logs?.length&&!recent.length&&<p className="py-4 text-sm text-muted-foreground">Aún no hay actividad registrada.</p>}</div></section></div>;
+}

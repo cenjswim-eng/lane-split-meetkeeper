@@ -25,6 +25,7 @@ import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMeetsRouteImport } from './routes/_authenticated/meets'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedRankingsRouteImport } from './routes/_authenticated/rankings'
 import { Route as AuthenticatedRelaysRouteImport } from './routes/_authenticated/relays'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRunRouteImport } from './routes/_authenticated/run'
@@ -113,6 +114,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRankingsRoute = AuthenticatedRankingsRouteImport.update({
+  id: '/rankings',
+  path: '/rankings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRelaysRoute = AuthenticatedRelaysRouteImport.update({
   id: '/relays',
   path: '/relays',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/rankings': typeof AuthenticatedRankingsRoute
   '/relays': typeof AuthenticatedRelaysRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/run': typeof AuthenticatedRunRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/import': typeof AuthenticatedImportRoute
   '/meets': typeof AuthenticatedMeetsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/rankings': typeof AuthenticatedRankingsRoute
   '/relays': typeof AuthenticatedRelaysRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/run': typeof AuthenticatedRunRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/meets': typeof AuthenticatedMeetsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/rankings': typeof AuthenticatedRankingsRoute
   '/_authenticated/relays': typeof AuthenticatedRelaysRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/run': typeof AuthenticatedRunRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/meets'
     | '/profile'
+    | '/rankings'
     | '/relays'
     | '/reports'
     | '/run'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/meets'
     | '/profile'
+    | '/rankings'
     | '/relays'
     | '/reports'
     | '/run'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/import'
     | '/_authenticated/meets'
     | '/_authenticated/profile'
+    | '/_authenticated/rankings'
     | '/_authenticated/relays'
     | '/_authenticated/reports'
     | '/_authenticated/run'
@@ -437,6 +449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/rankings': {
+      id: '/_authenticated/rankings'
+      path: '/rankings'
+      fullPath: '/rankings'
+      preLoaderRoute: typeof AuthenticatedRankingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relays': {
       id: '/_authenticated/relays'
       path: '/relays'
@@ -506,6 +525,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMeetsRoute: typeof AuthenticatedMeetsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedRankingsRoute: typeof AuthenticatedRankingsRoute
   AuthenticatedRelaysRoute: typeof AuthenticatedRelaysRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedRunRoute: typeof AuthenticatedRunRoute
@@ -525,6 +545,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMeetsRoute: AuthenticatedMeetsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedRankingsRoute: AuthenticatedRankingsRoute,
   AuthenticatedRelaysRoute: AuthenticatedRelaysRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedRunRoute: AuthenticatedRunRoute,
