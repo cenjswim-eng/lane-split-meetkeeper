@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/profile")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: "Mi perfil — Swim Lane Coach" }, { name: "description", content: "Personaliza los colores de tu espacio y el logo de tu club." }, { property: "og:title", content: "Mi perfil — Swim Lane Coach" }, { name: "twitter:title", content: "Mi perfil — Swim Lane Coach" }, { property: "og:description", content: "Colores personalizados y logo del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(profileQuery),
   component: ProfilePage,
@@ -64,7 +65,7 @@ function ProfilePage() {
       </div>}</section>
       <div className="flex flex-wrap gap-3 border-t pt-6"><Button disabled={busy} type="submit" className="h-11"><Save />{busy ? "Guardando…" : "Guardar cambios"}</Button><Button type="button" variant="ghost" className="h-11 text-muted-foreground" onClick={() => { setPrimary(DEFAULT_THEME.primary_color); setAccent(DEFAULT_THEME.accent_color); }}><RotateCcw />Restaurar colores</Button></div>
     </form>
-    <aside className="min-w-0 border-t pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0" aria-label="Vista previa del perfil"><p className="mb-4 text-xs font-medium text-muted-foreground">VISTA PREVIA</p><div className="overflow-hidden rounded-lg border bg-card"><div className="flex items-center gap-3 border-b p-5">{data.logoUrl ? <img src={data.logoUrl} alt="Logo del club en vista previa" className="size-10 object-contain" /> : <Waves className="size-8 shrink-0 text-primary" />}<div className="min-w-0"><p className="break-words font-semibold">{name.trim() || "Entrenador"}</p><p className="mt-1 break-words text-xs text-muted-foreground">{data.club?.name ?? "Mi club"}</p></div></div><div className="space-y-4 p-5"><p className="text-lg font-semibold">Natacion <span className="text-accent">pro</span></p><div className="flex items-center gap-2 text-sm text-primary"><Check className="size-4" />Cuenta privada</div><div className="h-1 rounded-full bg-primary" /><div className="h-1 w-2/3 rounded-full bg-accent" /></div></div></aside>
+    <aside className="min-w-0 border-t pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0" aria-label="Vista previa del perfil"><p className="mb-4 text-xs font-medium text-muted-foreground">VISTA PREVIA</p><div className="overflow-hidden rounded-lg border bg-card"><div className="flex items-center gap-3 border-b p-5">{data.logoUrl ? <img src={data.logoUrl} alt="Logo del club en vista previa" className="size-10 object-contain" /> : <Waves className="size-8 shrink-0 text-primary" />}<div className="min-w-0"><p className="break-words font-semibold">{name.trim() || "Entrenador"}</p><p className="mt-1 break-words text-xs text-muted-foreground">{data.club?.name ?? "Mi club"}</p></div></div><div className="space-y-4 p-5"><p className="text-lg font-semibold">Swim Lane <span className="text-accent">Coach</span></p><div className="flex items-center gap-2 text-sm text-primary"><Check className="size-4" />Cuenta privada</div><div className="h-1 rounded-full bg-primary" /><div className="h-1 w-2/3 rounded-full bg-accent" /></div></div></aside>
     </div>
   </div>;
 }

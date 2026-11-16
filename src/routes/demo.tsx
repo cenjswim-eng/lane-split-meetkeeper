@@ -12,6 +12,7 @@ import { AchievementList } from '@/components/achievement-list';
 import { DemoBrandedReport } from '@/components/demo-branded-report';
 
 export const Route = createFileRoute("/demo")({
+  staticData: { sitemap: true },
   head: () => ({ meta: [
     { title: "Demo pública del panel — Swim Lane Coach" },
     { name: "description", content: "Explora el panel de Swim Lane Coach sin iniciar sesión: atletas, competencias, evolución y ranking con datos ficticios de solo lectura." },

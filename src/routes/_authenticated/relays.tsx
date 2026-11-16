@@ -27,6 +27,7 @@ const relayQuery = (course: string, distance: number, gender: string) =>
   });
 
 export const Route = createFileRoute("/_authenticated/relays")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Optimizador de relevos — Swim Lane Coach" },

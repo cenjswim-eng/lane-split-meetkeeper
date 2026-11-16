@@ -41,6 +41,7 @@ const dashQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [
     { title: "Resumen del entrenador — Swim Lane Coach" },
     { name: "description", content: "Resumen privado del club: atletas, competencias, mejores marcas, mínimas y resultados recientes." },

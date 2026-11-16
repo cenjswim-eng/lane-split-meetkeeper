@@ -37,6 +37,7 @@ const profileQuery = (id: string) =>
   });
 
 export const Route = createFileRoute("/_authenticated/athletes/$id")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: "Perfil del atleta — Swim Lane Coach" }, { name: "description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:title", content: "Perfil del atleta — Swim Lane Coach" }, { name: "twitter:title", content: "Perfil del atleta — Swim Lane Coach" }, { property: "og:description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: ({ context, params }) => Promise.all([context.queryClient.ensureQueryData(profileQuery(params.id)),context.queryClient.ensureQueryData(achievementsQuery)]),
   component: Profile,

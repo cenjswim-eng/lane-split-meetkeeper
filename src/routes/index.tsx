@@ -7,8 +7,14 @@ import {
 } from "lucide-react";
 import { LandingStatistics } from "@/components/landing-statistics";
 import { LandingReveal } from "@/components/landing-reveal";
-import swimmingTraining from "@/assets/swimming-training.jpg";
-import demoPanel from "@/assets/demo-panel.jpg";
+import { publicHead, previewUrl } from "@/lib/public-seo";
+import preview from "@/assets/swim-lane-coach-preview.asset.json";
+import { ContactForm } from "@/components/contact-form";
+import { FloatingWhatsApp } from "@/components/public-shell";
+import { trackEvent } from "@/lib/marketing-analytics";
+import { testimonials } from "@/lib/marketing";
+import swimmingTraining from "@/assets/swimming-training.webp";
+import demoPanel from "@/assets/demo-panel.webp";
 import summaryVideo from "@/assets/videos/swim-lane-coach-resumen.mp4.asset.json";
 import summaryPoster from "@/assets/videos/swim-lane-coach-resumen-poster.jpg.asset.json";
 
@@ -20,25 +26,12 @@ const trialWhatsAppUrl = whatsAppUrl("Hola, quiero pedir una prueba de Swim Lane
 function planWhatsAppUrl(plan: string) {
   return whatsAppUrl(`Hola, soy entrenador y me interesa el plan ${plan} de Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer el precio, los medios de pago y los pasos para activar mi cuenta.`);
 }
-const homeTitle = "Swim Lane Coach | Software para entrenadores y clubes de natación";
-const homeDescription = "Gestiona atletas, resultados y marcas mínimas de tu club de natación. Software para entrenadores, compatible con Meet Manager y Team Manager. Consulta planes.";
+const homeTitle = "Swim Lane Coach – Software para entrenadores y clubes de natación";
+const homeDescription = "Software para entrenadores y clubes de natación compatible con Meet Manager y Team Manager: resultados, marcas mínimas y reportes por atleta en PDF.";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: homeTitle },
-      { name: "description", content: homeDescription },
-      { property: "og:title", content: homeTitle },
-      { property: "og:site_name", content: "Swim Lane Coach" },
-      { name: "twitter:title", content: homeTitle },
-      { property: "og:description", content: homeDescription },
-      { name: "twitter:description", content: homeDescription },
-      { property: "og:url", content: "https://swimlanecoach.app/" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [{ rel: "canonical", href: "https://swimlanecoach.app/" }],
-  }),
+  staticData: { sitemap: true },
+  head: () => ({ ...publicHead('/', homeTitle, homeDescription), scripts: [{type: 'application/ld+json', children: JSON.stringify({'@context':'https://schema.org','@graph':[{'@type':'Organization','@id':'https://swimlanecoach.app/#organization',name:'Swim Lane Coach',url:'https://swimlanecoach.app'},{'@type':'SoftwareApplication',name:'Swim Lane Coach',url:'https://swimlanecoach.app',applicationCategory:'SportsApplication',operatingSystem:'Web',description:homeDescription,publisher:{'@id':'https://swimlanecoach.app/#organization'},screenshot:previewUrl}]})}]}),
   component: Index,
 });
 
@@ -115,10 +108,10 @@ function Index() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:px-10">
           <a href="#inicio" className="flex min-w-0 items-center gap-2"><Waves className="size-6 shrink-0 text-primary" aria-hidden="true" /><span className="text-base font-semibold leading-tight sm:text-xl">Swim Lane <span className="text-primary">Coach</span></span></a>
           <nav aria-label="Navegación de inicio" className="flex items-center gap-1 sm:gap-2">
-            <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#funciones">Funciones</a></Button>
-            <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#como-funciona">Cómo funciona</a></Button>
+            <Button asChild variant="ghost" className="hidden lg:inline-flex"><Link to="/funciones">Funciones</Link></Button>
+            <Button asChild variant="ghost" className="hidden lg:inline-flex"><Link to="/como-funciona">Cómo funciona</Link></Button>
             <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#planes">Planes</a></Button>
-            <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#preguntas">Preguntas</a></Button>
+            <Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/preguntas-frecuentes">Preguntas</Link></Button>
             <Button asChild variant="outline" size="sm" className="min-h-10"><Link to="/dashboard" aria-label="Iniciar sesión"><LogIn aria-hidden="true" /><span className="hidden sm:inline">Iniciar sesión</span></Link></Button>
             <Button asChild size="sm" className="min-h-10 shadow-none"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><span className="hidden sm:inline">Solicitar acceso</span><span className="sm:hidden">Acceso</span></a></Button>
           </nav>
@@ -136,7 +129,7 @@ function Index() {
             <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
             <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg" className="min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none">
-                <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública<ArrowRight aria-hidden="true" /></Link>
+                <Link to="/demo" onClick={() => trackEvent("cta_click", {placement:"home_demo"})}><LayoutDashboard aria-hidden="true" />Explorar demo pública<ArrowRight aria-hidden="true" /></Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
                 <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Solicitar acceso por WhatsApp</a>
@@ -274,7 +267,8 @@ function Index() {
         </section>
       </LandingReveal>
 
-      {/* Bloque listo pero oculto hasta tener contenido real: "Clubes que ya lo usan" y "Testimonios". */}
+      {testimonials.length > 0 && <section className="mx-auto max-w-6xl px-6 py-12"><h2 className="text-2xl font-semibold">Clubes que comparten su experiencia</h2><div className="mt-8 grid gap-6 sm:grid-cols-2">{testimonials.map(t=><figure key={t.name} className="border-t pt-5">{t.logo&&<img src={t.logo} alt={`Logo de ${t.club}`} loading="lazy" className="h-16 object-contain"/>}<blockquote className="mt-4">{t.quote}</blockquote><figcaption className="mt-3 text-sm text-muted-foreground">{t.name} · {t.club}</figcaption></figure>)}</div></section>}
+      <section className="border-t"><div className="mx-auto max-w-6xl px-6 py-12 sm:px-10"><h2 className="text-2xl font-semibold">Una guía para cada paso</h2><nav aria-label="Guías del entrenador" className="mt-6 flex flex-wrap gap-3">{([['/funciones','Funciones'],['/para-entrenadores','Para entrenadores'],['/para-clubes','Para clubes'],['/como-funciona','Cómo funciona'],['/blog','Recursos']] as const).map(([to,label])=><Button asChild variant="outline" key={to}><Link to={to}>{label}<ArrowRight/></Link></Button>)}</nav><figure className="mt-8 max-w-4xl overflow-hidden rounded-lg border"><img src={preview.url} alt="Panel real de la demo Swim Lane Coach, con datos ficticios" width={1200} height={630} loading="lazy" className="w-full"/><figcaption className="bg-card px-4 py-3 text-xs text-muted-foreground">Panel real de la demo · Datos ficticios</figcaption></figure></div></section>
 
       <LandingReveal>
         <section id="planes" className="border-t border-border bg-card/40">
@@ -370,13 +364,15 @@ function Index() {
         </div>
       </section>
 
+      <section className="border-t"><div className="mx-auto max-w-3xl px-6 py-12 sm:px-10"><p className="text-sm text-primary">Contacto</p><h2 className="mt-3 text-2xl font-semibold">Cuéntanos de tu club</h2><p className="mt-3 text-muted-foreground">Consulta el plan y la activación antes de usar tus registros reales.</p><div className="mt-8"><ContactForm/></div></div></section>
+      <FloatingWhatsApp/>
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground sm:px-10">
           <div className="flex items-center gap-2"><Waves className="size-5 text-primary" aria-hidden="true" /><span className="font-semibold text-foreground">Swim Lane <span className="text-primary">Coach</span></span></div>
           <p className="text-xs">Compatible con Meet Manager y Team Manager</p>
           <nav aria-label="Enlaces de pie de página" className="flex flex-wrap items-center gap-4">
             <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center gap-1.5 hover:text-foreground"><MessageCircle className="size-4" aria-hidden="true" />WhatsApp</a>
-            <Link to="/terminos" className="flex min-h-11 items-center hover:text-foreground">Términos</Link>
+            <Link to="/blog" className="flex min-h-11 items-center hover:text-foreground">Recursos</Link><Link to="/contacto" className="flex min-h-11 items-center hover:text-foreground">Contacto</Link><Link to="/terminos" className="flex min-h-11 items-center hover:text-foreground">Términos</Link>
             <Link to="/privacidad" className="flex min-h-11 items-center hover:text-foreground">Privacidad</Link>
           </nav>
           <p className="text-xs">© 2026 Swim Lane Coach</p>

@@ -1,0 +1,7 @@
+import { createFileRoute,Link } from '@tanstack/react-router';
+import { ArrowUpRight,BookOpen } from 'lucide-react';
+import { PublicShell } from '@/components/public-shell';
+import { guides } from '@/lib/public-content';
+import { publicHead } from '@/lib/public-seo';
+export const Route=createFileRoute('/blog/')({staticData:{sitemap:true},head:()=>publicHead('/blog','Recursos para entrenadores de natación — Swim Lane Coach','Guías de importación Meet Manager, puntos AQUA, mínimas, parciales y reportes individuales.'),component:Page});
+function Page(){return <PublicShell><section className="mx-auto max-w-6xl px-5 py-12 sm:px-10"><BookOpen className="size-7 text-primary"/><h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Recursos para entrenadores</h1><p className="mt-5 max-w-2xl text-lg text-muted-foreground">Archivos, referencias y análisis para revisar lo que ocurre entre una competencia y la siguiente.</p><div className="mt-10 grid gap-6 sm:grid-cols-2">{guides.map(g=><article key={g.slug} className="flex flex-col rounded-lg border bg-card p-6"><p className="text-xs text-primary">{g.category}</p><h2 className="mt-4 text-xl font-semibold"><Link to="/blog/$slug" params={{slug:g.slug}}>{g.title}</Link></h2><p className="mt-3 flex-1 leading-relaxed text-muted-foreground">{g.summary}</p><Link to="/blog/$slug" params={{slug:g.slug}} className="mt-6 flex items-center gap-2 text-sm font-medium text-primary">Leer guía<ArrowUpRight className="size-4"/></Link></article>)}</div></section></PublicShell>;}

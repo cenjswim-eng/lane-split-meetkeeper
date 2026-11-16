@@ -43,7 +43,7 @@ function brandedOutput(doc: jsPDF) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(90);
-    doc.text("Swim Lane Coach · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6);
+    doc.textWithLink("Generado con Swim Lane Coach", 14, doc.internal.pageSize.getHeight() - 6, {url: "https://swimlanecoach.app/?utm_source=report&utm_medium=referral&utm_campaign=pdf"});
   }
   return doc.output("blob");
 }

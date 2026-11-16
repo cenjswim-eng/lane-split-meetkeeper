@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { template as contactOwner } from './contact-owner';
 import { template as accessRequest } from './access-request'
 
 export interface TemplateEntry {
@@ -19,5 +20,6 @@ export interface TemplateEntry {
  *   // then add to TEMPLATES: 'welcome': welcomeTemplate
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
+  'contact-owner': contactOwner,
   'access-request': accessRequest,
 }

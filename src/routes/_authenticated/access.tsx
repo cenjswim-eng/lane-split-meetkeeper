@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { decideAccess, suspendAccess } from '@/lib/access-approval.functions';
 import { Button } from '@/components/ui/button';
+import { ContactSubmissions } from '@/components/contact-submissions';
 import { Ban, Check, RotateCcw, X } from 'lucide-react';
 
 const requestsQuery = queryOptions({ queryKey: ['access-requests'], queryFn: async () => {
@@ -18,6 +19,7 @@ const requestsQuery = queryOptions({ queryKey: ['access-requests'], queryFn: asy
 } });
 
 export const Route = createFileRoute('/_authenticated/access')({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: 'Aprobación de cuentas — Swim Lane Coach' }, { name: 'description', content: 'Control privado de solicitudes de acceso por el dueño.' }, { property: 'og:title', content: 'Aprobación de cuentas — Swim Lane Coach' }, { name: 'twitter:title', content: 'Aprobación de cuentas — Swim Lane Coach' }, { property: 'og:description', content: 'Revisión de solicitudes de acceso al programa.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(requestsQuery),
   component: AccessPage,
@@ -46,5 +48,6 @@ function AccessPage() {
   return <section className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-4xl font-bold uppercase">Accesos</h1><Button variant="outline" onClick={() => refetch()}>Actualizar</Button></div><p className="text-muted-foreground">Las cuentas aprobadas tendrán permisos administrativos. Solo tú puedes autorizar nuevas cuentas. Si alguien no renueva su suscripción, suspende su acceso y reactívalo cuando pague; sus datos se conservan.</p>
     {!data.requests.length && <p className="border-y py-8 text-muted-foreground">No hay solicitudes de acceso.</p>}
     <div className="divide-y">{data.requests.map(request => <div key={request.id} className="flex flex-wrap items-center justify-between gap-4 py-5"><div className="min-w-0"><p className="break-all font-medium">{request.email}</p><p className="text-sm text-muted-foreground">{new Date(request.created_at).toLocaleDateString('es')} · {request.status === 'pending' ? 'Pendiente' : request.status === 'approved' ? 'Aprobada' : request.status === 'suspended' ? 'Suspendida' : 'Rechazada'}</p></div>{request.status === 'pending' && <div className="flex gap-2"><Button disabled={busy} onClick={() => handle(request.id, true, request.email)}><Check />Aprobar</Button><Button variant="outline" disabled={busy} onClick={() => handle(request.id, false, request.email)}><X />Rechazar</Button></div>}{request.status === 'approved' && <Button variant="destructive" disabled={busy} onClick={() => toggle(request.id, true, request.email)}><Ban />Suspender acceso</Button>}{request.status === 'suspended' && <Button disabled={busy} onClick={() => toggle(request.id, false, request.email)}><RotateCcw />Reactivar</Button>}</div>)}</div>
+    <ContactSubmissions/>
   </section>;
 }

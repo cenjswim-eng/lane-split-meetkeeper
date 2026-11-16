@@ -25,6 +25,7 @@ const clubQuery = queryOptions({ queryKey: ["club-register"], queryFn: async () 
   return { clubs: clubs.data ?? [], members: members.data ?? [], documents: documents.data ?? [] };
 } });
 export const Route = createFileRoute("/_authenticated/club")({
+  staticData: { sitemap: false },
   validateSearch: (search: Record<string, unknown>): { club?: string | undefined } => ({ club: typeof search["club"] === "string" ? search["club"] : undefined }),
   head: () => ({ meta: [{ title: "Mi club — Swim Lane Coach" }, { name: "description", content: "Documentos Access y registro actualizado de nadadores, entrenadores, directivos y personal." }, { property: "og:title", content: "Mi club — Swim Lane Coach" }, { name: "twitter:title", content: "Mi club — Swim Lane Coach" }, { property: "og:description", content: "Registro de todos los integrantes y documentos privados del club." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(clubQuery), component: ClubPage,
