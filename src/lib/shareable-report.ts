@@ -4,11 +4,11 @@ import { privateSurname,contrastInk,type ReportPrivacy,type ReportBrand } from '
 import { brandPdf } from './branded-pdf';
 import { formatTime,eventLabel } from './swim';
 import type { coachQuery } from './coach-data';
-import { internalRanking } from './entry-rules';
+import { internalRanking,aquaRanking } from './entry-rules';
 import { athleteProgressPdf } from './reports';
 import { rankedAthleteRecords } from './athlete-records';
 export type CoachData=Awaited<ReturnType<NonNullable<typeof coachQuery.queryFn>>>;
-export type SharedSelection={kind:'athlete'|'meet'|'ranking';clubId:string;athleteId?:string|undefined;meetId?:string|undefined};
+export type SharedSelection={kind:'athlete'|'meet'|'ranking';clubId:string;athleteId?:string|undefined;meetId?:string|undefined;rankingMode?:'time'|'aqua'|undefined};
 /** A fresh, selected-club snapshot: never publish the original full/private PDF. */
 export async function shareablePdf(data:CoachData,selection:SharedSelection,privacy:ReportPrivacy,brand:ReportBrand){
  const athletes=data.athletes.filter(a=>a.club_id===selection.clubId);const ids=new Set(athletes.map(a=>a.id));
@@ -21,7 +21,7 @@ export async function shareablePdf(data:CoachData,selection:SharedSelection,priv
   const file=athleteProgressPdf({...athlete,last_name:privateSurname(athlete.last_name,privacy.fullSurname),federation_id:null,teams:{name:brand.name}},safeResults,data.standards,data.activeVersion,[],brand,privacy);
   return {file:await brandPdf(file,brand,'Reporte individual'),title:'Reporte individual'};
  }
- const rows=selection.kind==='ranking'?internalRanking(results):results;
+ const rows=selection.kind==='ranking'?(selection.rankingMode==='aqua'?aquaRanking(results):internalRanking(results)):results;
  if(!rows.length)throw Error('No hay resultados de este club para compartir.');
  const doc=new jsPDF({orientation:'landscape'});const title=selection.kind==='meet'?'Resultados de competencia':'Ranking del club';
  doc.setFontSize(16);doc.text(title,14,16);
