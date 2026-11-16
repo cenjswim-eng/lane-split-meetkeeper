@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { contactSchema,campaignFromSearch } from '@/lib/marketing';
-import { isSitemapRouteIncluded,sitemapXML } from '@/lib/sitemap';
+import { sitemapXML } from '@/lib/sitemap';
 import { trackPublicPage } from '@/lib/marketing-analytics';
 import { vi } from 'vitest';
 describe('contact privacy and campaign attribution',()=>{

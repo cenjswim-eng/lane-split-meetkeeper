@@ -1,4 +1,4 @@
-import { PDFDocument,StandardFonts,rgb,PDFName,PDFString } from 'pdf-lib';
+import { PDFDocument,StandardFonts,rgb,PDFString } from 'pdf-lib';
 import { contrastInk,type ReportBrand } from './report-brand';
 export async function brandPdf(file:File,brand:ReportBrand,title:string):Promise<File>{
  if(file.type!=='application/pdf')return file;

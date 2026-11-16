@@ -4,7 +4,7 @@ import { Waves } from "lucide-react";
 
 export const Route = createFileRoute("/privacidad")({
   staticData: { sitemap: true },
-  head: () => publicHead("/privacidad", "Privacidad — Swim Lane Coach", "Privacidad de registros del club, consultas de contacto y reportes compartidos por autorización."),
+  head: () => publicHead("/privacidad", "Privacidad — Swim Lane Coach", "Privacidad de registros del club, consultas de contacto y reportes compartidos por autorización.", "website", false),
   component: Privacidad,
 });
 

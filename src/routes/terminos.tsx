@@ -4,7 +4,7 @@ import { Waves } from "lucide-react";
 
 export const Route = createFileRoute("/terminos")({
   staticData: { sitemap: true },
-  head: () => publicHead("/terminos", "Términos de uso — Swim Lane Coach", "Términos del software de natación, acceso por suscripción y activación del dueño."),
+  head: () => publicHead("/terminos", "Términos de uso — Swim Lane Coach", "Términos del software de natación, acceso por suscripción y activación del dueño.", "website", false),
   component: Terminos,
 });
 
