@@ -7,6 +7,7 @@ import type { coachQuery } from './coach-data';
 import { internalRanking,aquaRanking } from './entry-rules';
 import { athleteProgressPdf } from './reports';
 import { rankedAthleteRecords } from './athlete-records';
+import { rankingPdf,aquaRankingPdf } from './coach-reports';
 export type CoachData=Awaited<ReturnType<NonNullable<typeof coachQuery.queryFn>>>;
 export type SharedSelection={kind:'athlete'|'meet'|'ranking';clubId:string;athleteId?:string|undefined;meetId?:string|undefined;rankingMode?:'time'|'aqua'|undefined};
 /** A fresh, selected-club snapshot: never publish the original full/private PDF. */
@@ -21,9 +22,16 @@ export async function shareablePdf(data:CoachData,selection:SharedSelection,priv
   const file=athleteProgressPdf({...athlete,last_name:privateSurname(athlete.last_name,privacy.fullSurname),federation_id:null,teams:{name:brand.name}},safeResults,data.standards,data.activeVersion,[],brand,privacy);
   return {file:await brandPdf(file,brand,'Reporte individual'),title:'Reporte individual'};
  }
- const rows=selection.kind==='ranking'?(selection.rankingMode==='aqua'?aquaRanking(results):internalRanking(results)):results;
+ if(selection.kind==='ranking'){
+  const safe=results.map(r=>({...r,athletes:r.athletes?{...r.athletes,last_name:privateSurname(r.athletes.last_name,privacy.fullSurname)}:null}));
+  const ranked=selection.rankingMode==='aqua'?aquaRanking(safe):internalRanking(safe);
+  if(!ranked.length)throw Error('No hay marcas vigentes del club para este ranking.');
+  const file=selection.rankingMode==='aqua'?aquaRankingPdf(safe,brand,privacy):rankingPdf(safe,brand);
+  return {file:await brandPdf(file,brand,'Ranking del club'),title:'Ranking del club'};
+ }
+ const rows=results;
  if(!rows.length)throw Error('No hay resultados de este club para compartir.');
- const doc=new jsPDF({orientation:'landscape'});const title=selection.kind==='meet'?'Resultados de competencia':'Ranking del club';
+ const doc=new jsPDF({orientation:'landscape'});const title='Resultados de competencia';
  doc.setFontSize(16);doc.text(title,14,16);
  const columns=['Atleta','Prueba','Piscina','Tiempo','Competencia','Fecha',...(privacy.birthDate?['Nacimiento']:[]),...(privacy.aqua?['AQUA']:[])];
  autoTable(doc,{startY:24,head:[columns],body:rows.map(r=>{const a=athletes.find(a=>a.id===r.athlete_id);return [`${a?.first_name??''} ${privateSurname(a?.last_name??'',privacy.fullSurname)}`,r.events?eventLabel(r.events.distance,r.events.stroke):'—',r.course??'—',r.is_dq?'DQ':formatTime(r.final_time_ms),r.meets?.name??'—',r.meets?.start_date??'—',...(privacy.birthDate?[a?.birth_date??'—']:[]),...(privacy.aqua?[(r as {aqua_points?:number|null}).aqua_points??'—']:[])];}),styles:{fontSize:8,lineColor:brand.secondary},headStyles:{fillColor:brand.primary,textColor:contrastInk(brand.primary)},margin:{bottom:16}});

@@ -4,7 +4,7 @@ import { internalRanking, aquaRanking } from "@/lib/entry-rules";
 import type { DashboardResult } from "@/lib/dashboard-summary";
 import { jsPDF } from "jspdf";
 import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
-import type { ReportBrand } from './report-brand';
+import type { ReportBrand,ReportPrivacy } from './report-brand';
 
 type Cell = string | number | null;
 export async function workbookFile(name: string, sheets: { name: string; headers: string[]; rows: Cell[][] }[]) {
@@ -31,13 +31,14 @@ export const aquaRankingHeaders = ["Puesto", "Atleta", "AQUA", "Sexo", "Prueba",
 export function aquaRankingRows(results: (DashboardResult & { aqua_points: number | null })[]) {
   return aquaRanking(results).map(r => [r.rank, `${r.athletes?.first_name ?? ""} ${r.athletes?.last_name ?? ""}`, r.aqua_points ?? 0, r.athletes?.gender ?? "—", r.events ? eventLabel(r.events.distance, r.events.stroke) : "—", r.course ?? "—", formatTime(r.final_time_ms), r.meets?.name ?? "—", r.meets?.start_date ?? "—"]);
 }
-export function aquaRankingPdf(results: (DashboardResult & { aqua_points: number | null })[],brand?:ReportBrand) {
+export function aquaRankingPdf(results: (DashboardResult & { aqua_points: number | null })[],brand?:ReportBrand,privacy?:ReportPrivacy) {
   const doc = new jsPDF({ orientation: "landscape" });
   setReportTableBrand(doc,brand);
   doc.setProperties({ title: "Ranking interno AQUA", author: "Swim Lane Coach", creator: "Swim Lane Coach" });
   doc.setFontSize(17); doc.text("Ranking interno · Puntos AQUA", 14, 16);
   doc.setFontSize(10); doc.text("Últimos 9 meses · Mejor puntuación individual por atleta", 14, 23);
-  autoTable(doc, { startY: 29, head: [aquaRankingHeaders], body: aquaRankingRows(results), styles: { fontSize: 8 } });
+  const hideAqua=privacy&&!privacy.aqua;
+  autoTable(doc, { startY: 29, head: [hideAqua?aquaRankingHeaders.filter((_,i)=>i!==2):aquaRankingHeaders], body: aquaRankingRows(results).map(row=>hideAqua?row.filter((_,i)=>i!==2):row), styles: { fontSize: 8 } });
   for (let p = 1; p <= doc.getNumberOfPages(); p++) { doc.setPage(p); doc.setFontSize(8); doc.text("Swim Lane Coach · Compatible con Meet Manager y Team Manager", 14, doc.internal.pageSize.getHeight() - 6); }
   return new File([doc.output("blob")], "Swim Lane Coach_ranking_AQUA.pdf", { type: "application/pdf" });
 }
