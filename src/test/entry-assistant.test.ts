@@ -1,0 +1,23 @@
+import { describe,it,expect } from 'vitest';
+import { assistantReference,assistantWarnings,defaultAssistantRules,suggestEntries,type AssistantResult,type AssistantRow } from '@/lib/entry-assistant';
+import { SWIM_CATEGORIES } from '@/lib/standard-rules';
+const now=new Date('2026-11-16T12:00:00Z');
+const athlete={id:'a',first_name:'Ana',last_name:'Test',birth_date:'2011-12-31',gender:'F'};
+const events=[{id:'one',distance:100,stroke:1,gender:'F',min_age:14,max_age:15,course:'LCM',qualifying_times_ms:{LCM:66000}},{id:'two',distance:50,stroke:2,gender:'F',min_age:14,max_age:15,course:'LCM',qualifying_times_ms:{LCM:33000}},{id:'three',distance:200,stroke:1,gender:'F',min_age:14,max_age:15,course:'LCM'}];
+const result=(distance:number,stroke:number,ms:number,course='LCM',date='2026-11-07',points=500):AssistantResult=>({athlete_id:'a',final_time_ms:ms,is_dq:false,course,aqua_points:points,meets:{start_date:date},events:{distance,stroke,is_relay:false}});
+const rules=()=>defaultAssistantRules('2026-12-12','LCM');
+const row:AssistantRow={athleteId:'a',eventId:'one',timeMs:66500,origin:'manual',converted:false,referenceDate:'2026-11-07'};
+describe('entry assistant',()=>{
+it('prefers same pool even if other pool is faster',()=>{const e=events[0];if(!e)throw Error();expect(assistantReference(athlete,e,[result(100,1,65000),result(100,1,60000,'SCM')],{...rules(),factor:0.97},now).timeMs).toBe(65000);});
+it('converts only with explicit factor, to integer milliseconds',()=>{const e=events[0];if(!e)throw Error();expect(assistantReference(athlete,e,[result(100,1,60000,'SCM')],rules(),now).timeMs).toBeNull();expect(assistantReference(athlete,e,[result(100,1,60000,'SCM')],{...rules(),factor:0.97},now)).toMatchObject({timeMs:61856,converted:true});});
+it('prioritizes made minimum then proximity then AQUA and respects athlete maximum',()=>{const rows=suggestEntries([athlete],events,[result(100,1,65000),result(50,2,33420),result(200,1,140000,'LCM','2026-11-07',900)],{...rules(),maxAthlete:2},[],SWIM_CATEGORIES,now);expect(rows.map(r=>r.eventId)).toEqual(['one','two']);});
+it('respects maximum athletes per event',()=>{const rows=suggestEntries([athlete,{...athlete,id:'b'}],events,{length:0} as never,{...rules(),maxEvent:1},[],SWIM_CATEGORIES,now);expect(rows.filter(r=>r.eventId==='one')).toHaveLength(1);});
+it('keeps NT eligible for manual entry and suggestions',()=>{expect(suggestEntries([athlete],events,[],{...rules(),maxAthlete:1},[],SWIM_CATEGORIES,now)[0]?.timeMs).toBeNull();});
+it('excludes results older than nine months and future swims',()=>{const e=events[0];if(!e)throw Error();expect(assistantReference(athlete,e,[result(100,1,60000,'LCM','2026-02-15'),result(100,1,61000,'LCM','2026-11-17')],rules(),now).timeMs).toBeNull();});
+it('warns missing minimum without removing row',()=>{const e=events[0];if(!e)throw Error();expect(assistantWarnings(row,[row],athlete,e,{...rules(),requiresMinimum:true},[],SWIM_CATEGORIES,now)).toContain('No cumple mínima');});
+it('warns category and sex mismatch using Dec 31',()=>{const e=events[0];if(!e)throw Error();expect(assistantWarnings(row,[row],{...athlete,gender:'M'},e,rules(),[],SWIM_CATEGORIES,now)).toContain('Fuera de categoría o sexo permitido');});
+it('warns athlete limit',()=>{expect(assistantWarnings(row,[row,{...row,eventId:'two'}],athlete,events[0],{...rules(),maxAthlete:1},[],SWIM_CATEGORIES,now)).toContain('Máximo de pruebas por atleta superado');});
+it('warns event limit',()=>{expect(assistantWarnings(row,[row,{...row,athleteId:'b'}],athlete,events[0],{...rules(),maxEvent:1},[],SWIM_CATEGORIES,now)).toContain('Máximo de atletas por prueba superado');});
+it('warns duplicate',()=>{expect(assistantWarnings(row,[row,row],athlete,events[0],rules(),[],SWIM_CATEGORIES,now)).toContain('Inscripción duplicada');});
+it('warns manual stale reference date',()=>{expect(assistantWarnings({...row,referenceDate:'2026-02-15'},[row],athlete,events[0],rules(),[],SWIM_CATEGORIES,now)).toContain('Tiempo de más de 9 meses');});
+});

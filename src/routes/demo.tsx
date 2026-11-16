@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { demoAthletes, demoMeets, demoRanking, demoSummary, demoSwims, DEMO_SEASON } from "@/lib/demo-data";
 import { ageAtDec31, formatTime } from "@/lib/swim";
+import { DemoEntryAssistant } from '@/components/demo-entry-assistant';
 
 export const Route = createFileRoute("/demo")({
   head: () => ({ meta: [
@@ -23,6 +24,7 @@ const views = [
   { id: "panel", label: "Panel", icon: LayoutDashboard },
   { id: "athletes", label: "Atletas", icon: Users },
   { id: "meets", label: "Competencias", icon: CalendarDays },
+  { id: "entries", label: "Inscripciones", icon: FileText },
   { id: "reports", label: "Reportes", icon: FileText },
 ] as const;
 type View = typeof views[number]["id"];
@@ -71,7 +73,8 @@ function PublicDemo() {
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-8"><Link to="/" className="flex min-w-0 items-center gap-2 font-semibold"><Waves className="size-6 shrink-0 text-primary" /><span className="truncate">Swim Lane Coach</span></Link><Button asChild variant="outline" size="sm"><Link to="/auth">Iniciar sesión<ArrowRight className="size-4" /></Link></Button></div></header>
       <div className="border-b bg-secondary/30"><div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-xs sm:px-8"><span className="flex items-center gap-2 font-semibold text-primary"><LockKeyhole className="size-4" />Demo pública · Solo lectura</span><span className="text-muted-foreground">Todos los nombres, competencias, tiempos y mínimas son ficticios. No son marcas oficiales.</span></div></div>
       <main className="workspace-content mx-auto max-w-7xl space-y-8 px-4 py-6 pb-28 sm:px-8 lg:pb-12">
-        <header className="border-b pb-6"><p className="text-xs font-medium uppercase text-primary">Club Horizonte · Temporada {DEMO_SEASON}</p><h1 className="mt-2">{athlete ? athlete.name : view === "panel" ? "Panel del club" : view === "athletes" ? "Atletas del club" : view === "meets" ? "Competencias y resultados" : "Reportes y ranking"}</h1><p className="mt-2 text-sm text-muted-foreground">{athlete ? `100 m Libre · Piscina de 50 m · ${ageAtDec31(athlete.birth, DEMO_SEASON)} años al 31 de diciembre` : "Resumen del entrenador · Datos de ejemplo"}</p></header>
+        <header className="border-b pb-6"><p className="text-xs font-medium uppercase text-primary">Club Horizonte · Temporada {DEMO_SEASON}</p><h1 className="mt-2">{athlete ? athlete.name : view === "panel" ? "Panel del club" : view === "athletes" ? "Atletas del club" : view === "meets" ? "Competencias y resultados" : view === 'entries' ? 'Inscripciones del club' : "Reportes y ranking"}</h1><p className="mt-2 text-sm text-muted-foreground">{athlete ? `100 m Libre · Piscina de 50 m · ${ageAtDec31(athlete.birth, DEMO_SEASON)} años al 31 de diciembre` : "Resumen del entrenador · Datos de ejemplo"}</p></header>
+        {view === 'entries' && <DemoEntryAssistant/>}
 
         {view === "panel" && <>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{[
@@ -104,6 +107,6 @@ function PublicDemo() {
         <footer className="flex flex-wrap items-center justify-between gap-4 border-t pt-6"><p className="text-xs text-muted-foreground">Compatible con Meet Manager y Team Manager</p><Button asChild variant="outline"><a href={plansUrl} target="_blank" rel="noopener noreferrer"><MessageCircle />Consultar planes y acceso</a></Button></footer>
       </main>
     </div>
-    <nav aria-label="Paneles de la demo en móvil" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-background/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur lg:hidden">{navigation(true)}</nav>
+    <nav aria-label="Paneles de la demo en móvil" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur lg:hidden">{navigation(true)}</nav>
   </div>;
 }
