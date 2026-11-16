@@ -11,6 +11,7 @@ const items = [
   { to: "/meets", label: "Competencias", icon: CalendarDays },
   { to: "/clubs", label: "Club", icon: Building2 },
   { to: "/rankings", label: "Rankings", icon: Medal },
+  { to: "/achievements", label: "Logros", icon: Medal },
   { to: "/seeding", label: "Organizar torneo", icon: Layers },
   { to: "/run", label: "Torneo en vivo", icon: Waves },
   { to: "/club", label: "Registro del club", icon: FileText },
@@ -25,7 +26,7 @@ const items = [
 ] as const;
 
 const groups = [
- {label:"Principal",paths:["/dashboard","/athletes","/meets","/standards","/rankings","/reports","/clubs"]},
+ {label:"Principal",paths:["/dashboard","/athletes","/meets","/standards","/rankings","/achievements","/reports","/clubs"]},
  {label:"Competencias",paths:["/import","/entries","/relays","/seeding","/run"]},
  {label:"Club y configuración",paths:["/club","/categories","/profile","/access"]},
 ];

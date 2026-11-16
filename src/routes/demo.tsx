@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { demoAthletes, demoMeets, demoRanking, demoSummary, demoSwims, DEMO_SEASON } from "@/lib/demo-data";
 import { ageAtDec31, formatTime } from "@/lib/swim";
 import { DemoEntryAssistant } from '@/components/demo-entry-assistant';
+import { demoAchievements } from '@/lib/demo-achievements';
+import { AchievementList } from '@/components/achievement-list';
 
 export const Route = createFileRoute("/demo")({
   head: () => ({ meta: [
@@ -26,6 +28,7 @@ const views = [
   { id: "meets", label: "Competencias", icon: CalendarDays },
   { id: "entries", label: "Inscripciones", icon: FileText },
   { id: "reports", label: "Reportes", icon: FileText },
+  { id: "achievements", label: "Logros", icon: Medal },
 ] as const;
 type View = typeof views[number]["id"];
 const plansUrl = `https://wa.me/584128503939?text=${encodeURIComponent("Hola, exploré la demo de Swim Lane Coach y quiero conocer los planes y solicitar acceso para mi club.\nNombre: \nClub: \nPaís: ")}`;
@@ -73,8 +76,9 @@ function PublicDemo() {
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-8"><Link to="/" className="flex min-w-0 items-center gap-2 font-semibold"><Waves className="size-6 shrink-0 text-primary" /><span className="truncate">Swim Lane Coach</span></Link><Button asChild variant="outline" size="sm"><Link to="/auth">Iniciar sesión<ArrowRight className="size-4" /></Link></Button></div></header>
       <div className="border-b bg-secondary/30"><div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-xs sm:px-8"><span className="flex items-center gap-2 font-semibold text-primary"><LockKeyhole className="size-4" />Demo pública · Solo lectura</span><span className="text-muted-foreground">Todos los nombres, competencias, tiempos y mínimas son ficticios. No son marcas oficiales.</span></div></div>
       <main className="workspace-content mx-auto max-w-7xl space-y-8 px-4 py-6 pb-28 sm:px-8 lg:pb-12">
-        <header className="border-b pb-6"><p className="text-xs font-medium uppercase text-primary">Club Horizonte · Temporada {DEMO_SEASON}</p><h1 className="mt-2">{athlete ? athlete.name : view === "panel" ? "Panel del club" : view === "athletes" ? "Atletas del club" : view === "meets" ? "Competencias y resultados" : view === 'entries' ? 'Inscripciones del club' : "Reportes y ranking"}</h1><p className="mt-2 text-sm text-muted-foreground">{athlete ? `100 m Libre · Piscina de 50 m · ${ageAtDec31(athlete.birth, DEMO_SEASON)} años al 31 de diciembre` : "Resumen del entrenador · Datos de ejemplo"}</p></header>
+        <header className="border-b pb-6"><p className="text-xs font-medium uppercase text-primary">Club Horizonte · Temporada {DEMO_SEASON}</p><h1 className="mt-2">{athlete ? athlete.name : view === "panel" ? "Panel del club" : view === "athletes" ? "Atletas del club" : view === "meets" ? "Competencias y resultados" : view === 'entries' ? 'Inscripciones del club' : view === 'achievements' ? 'Logros del club' : "Reportes y ranking"}</h1><p className="mt-2 text-sm text-muted-foreground">{athlete ? `100 m Libre · Piscina de 50 m · ${ageAtDec31(athlete.birth, DEMO_SEASON)} años al 31 de diciembre` : "Resumen del entrenador · Datos de ejemplo"}</p></header>
         {view === 'entries' && <DemoEntryAssistant/>}
+        {view === 'achievements' && <section className="space-y-4"><h2>Logros del club · Ejemplo</h2><AchievementList rows={demoAchievements()} filters readOnly/></section>}
 
         {view === "panel" && <>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{[
@@ -84,6 +88,7 @@ function PublicDemo() {
             { label: "Mínimas alcanzadas", value: summary.qualified, icon: Medal },
           ].map(({ label, value, icon: Icon }) => <div key={label} className="rounded-lg border bg-card p-4 sm:p-5"><Icon className="size-5 text-primary" /><p className="time mt-4 text-3xl font-semibold">{value}</p><h2 className="mt-1 !text-sm">{label}</h2><p className="mt-2 text-xs text-muted-foreground">Datos de ejemplo · últimos 9 meses</p></div>)}</div>
           <div className="flex flex-wrap gap-2 border-y py-4"><Button onClick={() => selectView("athletes")}><Users />Ver atletas</Button><Button variant="outline" onClick={() => selectView("reports")}><FileText />Ver reportes</Button><Button variant="outline" onClick={() => selectView("meets")}><CalendarDays />Ver competencias</Button></div>
+          <section className="space-y-4"><h2>Logros recientes</h2><AchievementList rows={demoAchievements()} limit={4} readOnly/><Button variant="link" onClick={()=>selectView('achievements')}>Todos los logros</Button></section>
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <section className="min-w-0"><h2>Resultados recientes del club</h2><p className="mt-1 text-xs text-muted-foreground">{summary.swims} nados individuales · Piscina de 50 m</p><div className="mt-5 h-64 w-full" role="img" aria-label="Resultados de ejemplo: nados del club en cada competencia de la temporada"><ResponsiveContainer width="100%" height="100%"><BarChart data={demoMeets.map(row => ({ month: new Date(`${row.date}T12:00:00`).toLocaleDateString("es", { month: "short" }), swims: demoAthletes.length }))}><CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 5" /><XAxis dataKey="month" stroke="var(--muted-foreground)" /><YAxis allowDecimals={false} stroke="var(--muted-foreground)" width={28} /><Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--muted)" }} /><Bar dataKey="swims" name="Resultados" fill="var(--primary)" maxBarSize={40} radius={[3, 3, 0, 0]} isAnimationActive={false} /></BarChart></ResponsiveContainer></div></section>
             <section><h2>Próximas competencias</h2><div className="mt-5 border-y py-5"><p className="text-xs text-accent">12 DIC 2026 · PISCINA DE 50 M</p><h3 className="mt-2 text-lg font-semibold">Encuentro de cierre Demo</h3><p className="mt-2 text-sm text-muted-foreground">Centro Acuático de Ejemplo</p></div><Button variant="link" className="mt-2 px-0" onClick={() => selectView("meets")}>Ver competencias cargadas<ArrowRight /></Button></section>
@@ -107,6 +112,6 @@ function PublicDemo() {
         <footer className="flex flex-wrap items-center justify-between gap-4 border-t pt-6"><p className="text-xs text-muted-foreground">Compatible con Meet Manager y Team Manager</p><Button asChild variant="outline"><a href={plansUrl} target="_blank" rel="noopener noreferrer"><MessageCircle />Consultar planes y acceso</a></Button></footer>
       </main>
     </div>
-    <nav aria-label="Paneles de la demo en móvil" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur lg:hidden">{navigation(true)}</nav>
+    <nav aria-label="Paneles de la demo en móvil" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t bg-background/95 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur lg:hidden">{navigation(true)}</nav>
   </div>;
 }

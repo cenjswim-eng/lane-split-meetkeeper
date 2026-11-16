@@ -42,3 +42,4 @@
 - Athlete history transfers copy results/splits (never move or edit originals) via admin-checked copy_athlete_history, logged in record_transfers and undoable; fuzzy identity scoring is pure in src/lib/history-match.ts.
 - Age categories: per-account swim_categories (Venezuela fallback) passed to categoryBounds; saving re-links standards by name.
 - Demo: immutable local fixtures only; no DB calls, for privacy.
+- Achievements are derived transactionally from full result history in owner-scoped deferred database triggers; preserve stable result/type/scope identities on reimport, use best daily swim when exact chronology is unavailable, and keep qualification tied to the active official snapshot and December-31 season/category.

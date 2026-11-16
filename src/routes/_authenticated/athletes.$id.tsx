@@ -14,6 +14,8 @@ import { AthleteTrainingZones } from "@/components/athlete-training-zones";
 import { standardApplies } from "@/lib/standard-rules";
 import { loadStandardVersions } from "@/lib/standard-version-data";
 import { HistoryTransfer, TransferLog } from "@/components/history-transfer";
+import { RecentAchievements } from '@/components/achievement-list';
+import { achievementsQuery, loadAchievements } from '@/lib/achievement-data';
 
 const profileQuery = (id: string) =>
   queryOptions({
@@ -35,7 +37,7 @@ const profileQuery = (id: string) =>
 
 export const Route = createFileRoute("/_authenticated/athletes/$id")({
   head: () => ({ meta: [{ title: "Perfil del atleta — Swim Lane Coach" }, { name: "description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:title", content: "Perfil del atleta — Swim Lane Coach" }, { name: "twitter:title", content: "Perfil del atleta — Swim Lane Coach" }, { property: "og:description", content: "Mejores marcas, progresión y parciales del nadador." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(profileQuery(params.id)),
+  loader: ({ context, params }) => Promise.all([context.queryClient.ensureQueryData(profileQuery(params.id)),context.queryClient.ensureQueryData(achievementsQuery)]),
   component: Profile,
 });
 
@@ -92,7 +94,7 @@ function Profile() {
     <div className="space-y-8">
       <Link to="/athletes" className="text-sm text-muted-foreground hover:text-foreground">← Atletas</Link>
       <div className="grid gap-2 sm:flex sm:flex-wrap"><Button asChild variant="outline"><Link to="/entries" search={{athlete:id}}>Inscripciones</Link></Button><Button asChild variant="outline"><Link to="/standards">Marcas mínimas</Link></Button>{[...new Map(results.flatMap(r=>r.meets?[[r.meets.id,r.meets] as const]:[])).values()].map(m=><Button asChild key={m.id} variant="outline" className="h-auto whitespace-normal py-3"><Link to="/meets" search={{meet:m.id}}>{m.name}</Link></Button>)}</div>
-      <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={async () => { const current = await loadStandardVersions(); return athleteProgressPdf(athlete, results, current.data, current.activeVersion); }} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
+      <div className="flex flex-wrap justify-end gap-2"><HistoryTransfer athleteId={id} /><PdfExport title="Seguimiento del atleta" label="PDF de seguimiento" prepare={async () => { const [current,logros] = await Promise.all([loadStandardVersions(),loadAchievements(id)]); return athleteProgressPdf(athlete, results, current.data, current.activeVersion,logros); }} /><DeleteAthlete id={id} name={`${athlete.first_name} ${athlete.last_name}`} onDeleted={() => navigate({ to: "/athletes" })} /></div>
       <section className="grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="time text-xs uppercase tracking-widest text-primary">{athlete.teams?.name ?? "Sin club"}</p>
@@ -181,6 +183,7 @@ function Profile() {
       )}
 
       <AthleteTrainingZones key={id} records={results} />
+      <RecentAchievements athleteId={id}/>
 
       <TransferLog athleteId={id} />
 

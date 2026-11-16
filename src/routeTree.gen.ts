@@ -17,6 +17,7 @@ import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
+import { Route as AuthenticatedAchievementsRouteImport } from './routes/_authenticated/achievements'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedClubsRouteImport } from './routes/_authenticated/clubs'
@@ -74,6 +75,12 @@ const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAchievementsRoute =
+  AuthenticatedAchievementsRouteImport.update({
+    id: '/achievements',
+    path: '/achievements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
+  '/achievements': typeof AuthenticatedAchievementsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/clubs': typeof AuthenticatedClubsRoute
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
+  '/achievements': typeof AuthenticatedAchievementsRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/clubs': typeof AuthenticatedClubsRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
+  '/_authenticated/achievements': typeof AuthenticatedAchievementsRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/clubs': typeof AuthenticatedClubsRoute
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/request-access'
     | '/terminos'
     | '/access'
+    | '/achievements'
     | '/categories'
     | '/club'
     | '/clubs'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/request-access'
     | '/terminos'
     | '/access'
+    | '/achievements'
     | '/categories'
     | '/club'
     | '/clubs'
@@ -305,6 +317,7 @@ export interface FileRouteTypes {
     | '/request-access'
     | '/terminos'
     | '/_authenticated/access'
+    | '/_authenticated/achievements'
     | '/_authenticated/categories'
     | '/_authenticated/club'
     | '/_authenticated/clubs'
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/access'
       fullPath: '/access'
       preLoaderRoute: typeof AuthenticatedAccessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/achievements': {
+      id: '/_authenticated/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AuthenticatedAchievementsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/categories': {
@@ -517,6 +537,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
+  AuthenticatedAchievementsRoute: typeof AuthenticatedAchievementsRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedClubsRoute: typeof AuthenticatedClubsRoute
@@ -537,6 +558,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
+  AuthenticatedAchievementsRoute: AuthenticatedAchievementsRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedClubsRoute: AuthenticatedClubsRoute,

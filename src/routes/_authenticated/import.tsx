@@ -151,6 +151,8 @@ function ImportPage() {
             {s.athletesNew} atletas nuevos · {s.athletesMatched} ya existentes · {s.results} resultados · {s.splits} parciales
             {s.events != null && ` · ${s.events} pruebas guardadas`}
           </p>
+          <p className="mt-2 text-sm text-success">{s.achievements}</p>
+          <Button variant="link" asChild><Link to="/achievements">Ver logros</Link></Button>
           <Link to="/athletes" className="mt-2 inline-block text-sm text-primary underline">Ver atletas</Link>
           {s.events != null && <Link to="/entries" className="ml-4 mt-2 inline-block text-sm text-primary underline">Ver pruebas e inscribir atletas</Link>}
         </div>

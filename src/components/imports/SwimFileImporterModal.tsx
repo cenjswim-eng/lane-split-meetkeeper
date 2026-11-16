@@ -28,7 +28,7 @@ export function SwimFileImporterModal() {
  const mutation=useMutation({mutationFn:async()=>{
   if(!file) throw new Error('Selecciona un archivo.');
   return importParsed(file.name,file.parsed,setProgress,{hash:file.hash,...(clubId==='none'?{}:{clubId}),teamCode,links:resolved});
- },onSuccess:async summary=>{setStep(3);setProgress(100);toast.success(`${summary.results} marcas y ${summary.splits} parciales guardados.`);await Promise.all(['meets','athletes','results','coach-data','club-management','dashboard','import-logs'].map(k=>qc.invalidateQueries({queryKey:[k]})));},onError:e=>{setError(e.message);setStep(2);}});
+ },onSuccess:async summary=>{setStep(3);setProgress(100);toast.success(`${summary.results} marcas y ${summary.splits} parciales guardados.`);await Promise.all(['meets','athletes','athlete','results','achievements','coach-data','club-management','dashboard','import-logs'].map(k=>qc.invalidateQueries({queryKey:[k]})));},onError:e=>{setError(e.message);setStep(2);}});
  async function pick(f?:File){if(!f||reading||mutation.isPending)return;setReading(true);setError('');try{setFile(await parseSwimFile(f));setLinks({});setTeam('all');setStep(2);}catch(e){setError(e instanceof Error?e.message:'No se pudo leer el archivo.');}finally{setReading(false);}}
  function update(field:'name'|'startDate'|'course',value:string){setFile(f=>f?{...f,parsed:{...f.parsed,meet:{...f.parsed.meet,[field]:value}}}:f);}
  return <Dialog open={open} onOpenChange={v=>{if(mutation.isPending)return;setOpen(v);if(!v){setStep(1);setFile(null);setError('');mutation.reset();}}}>
@@ -48,6 +48,6 @@ export function SwimFileImporterModal() {
  {unresolved&&<p className="text-sm text-accent">Revisa las posibles coincidencias antes de confirmar.</p>}
  <div className="flex flex-wrap justify-between gap-2"><Button variant="outline" onClick={()=>setStep(1)} disabled={mutation.isPending}><ArrowLeft/>Cambiar archivo</Button><Button disabled={mutation.isPending||!athletes.length||unresolved||!file.parsed.meet.name.trim()||!file.parsed.meet.startDate} onClick={()=>{setStep(3);setProgress(5);mutation.mutate();}}><ArrowRight/>Confirmar e Importar</Button></div>
  </div>}
- {step===3&&<div className="space-y-5 py-6"><Progress value={progress}/>{mutation.isPending?<p role="status">Guardando la competencia y sus registros…</p>:<><Check className="size-12 text-success"/><h2 className="text-xl font-semibold">Importación completada</h2><p>{mutation.data?.athletesNew} atletas nuevos · {mutation.data?.athletesMatched} existentes · {mutation.data?.results} marcas · {mutation.data?.splits} parciales</p><Button onClick={()=>setOpen(false)}>Cerrar</Button></>}</div>}
+ {step===3&&<div className="space-y-5 py-6"><Progress value={progress}/>{mutation.isPending?<p role="status">Guardando la competencia y sus registros…</p>:<><Check className="size-12 text-success"/><h2 className="text-xl font-semibold">Importación completada</h2><p>{mutation.data?.athletesNew} atletas nuevos · {mutation.data?.athletesMatched} existentes · {mutation.data?.results} marcas · {mutation.data?.splits} parciales</p><p role="status">{mutation.data?.achievements}</p><Button onClick={()=>setOpen(false)}>Cerrar</Button></>}</div>}
  </DialogContent></Dialog>;
 }

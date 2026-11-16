@@ -19,7 +19,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
     state.meets.set(key, "meet-1"); return { data: state.meets.get(key), error: null };
   }),
   from: (table: string) => {
-    const chain = { select: () => chain, eq: () => chain, is: () => chain, ilike: () => chain, limit: () => chain,
+    const chain = { select: () => chain, eq: () => chain, gte: () => chain, is: () => chain, ilike: () => chain, limit: () => chain,
       maybeSingle: async () => ({ data: { id:"athlete-1" }, error:null }),
       single: async () => ({ data:{id:"result-1"},error:null }),
       upsert: (row: Record<string,unknown>) => { if(table === "results") { const key = `${row['athlete_id']}|${row['event_id']}|${row['round']}`; state.results.set(key, { ...(state.results.get(key) as object ?? {}), ...row }); } return chain; },
