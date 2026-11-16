@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { canShareFile, downloadFile, shareFile, zipExport } from "@/lib/file-delivery";
+import { validateEntrySdif, entryFileFingerprint, type EntryValidation } from '@/lib/hytek/entry-validation';
+import { EntryImportConfirmation } from './entry-import-confirmation';
 
 export type ExportKind = "sd3" | "hy3" | "results" | "entries";
 
@@ -16,6 +18,9 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [packed, setPacked] = useState(false);
+  const [validation,setValidation]=useState<EntryValidation|null>(null);
+  const [hash,setHash]=useState('');
+  const [delivered,setDelivered]=useState(false);
   const selected = packed ? zip : file;
   const shareable = selected ? canShareFile(selected) : false;
 
@@ -23,8 +28,15 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
     setBusy(true);
     setFile(null);
     setZip(null);
+    setValidation(null);setHash('');setDelivered(false);
     try {
       const ready = await prepare(kind);
+      if(entriesOnly&&kind==='sd3'){
+        const bytes=await ready.arrayBuffer();
+        const checked=validateEntrySdif(new TextDecoder('ascii').decode(bytes));
+        setValidation(checked);setHash(await entryFileFingerprint(bytes));
+        if(checked.errors.length){setFile(ready);return;}
+      }
       const archive = kind === "sd3" ? await zipExport(ready) : null;
       setFile(ready);
       setZip(archive);
@@ -37,20 +49,20 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
   async function share() {
     if (!selected) return;
     setSharing(true);
-    try { await shareFile(selected); }
+    try { const result=await shareFile(selected);if(result==='shared')setDelivered(true); }
     catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo compartir. Puedes descargar el archivo."); }
     finally { setSharing(false); }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setFile(null); setZip(null); } }}>
+    <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setFile(null); setZip(null);setValidation(null);setHash('');setDelivered(false); } }}>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}><Share2 />{entriesOnly ? "Exportar para Meet Manager" : "Exportar"}</Button>
-      <DialogContent className="w-[calc(100%-2rem)] rounded-lg">
+      <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg">
         <DialogHeader>
           <DialogTitle>{entriesOnly ? "Inscripciones para Meet Manager" : "Exportar competencia"}</DialogTitle>
           <DialogDescription className="break-words">{name}</DialogDescription>
         </DialogHeader>
-        <Select value={kind} disabled={busy || sharing} onValueChange={(value: ExportKind) => { setKind(value); setFile(null); setZip(null); setPacked(false); }}>
+        <Select value={kind} disabled={busy || sharing} onValueChange={(value: ExportKind) => { setKind(value); setFile(null); setZip(null); setPacked(false);setValidation(null);setHash('');setDelivered(false); }}>
           <SelectTrigger aria-label="Formato de exportación"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="sd3">{entriesOnly ? "SD3 · Inscripciones Meet Manager" : "SD3 · Compatible con Hy-Tek"}</SelectItem>
@@ -66,7 +78,8 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
           </div>}
           <p className="break-all text-sm text-muted-foreground">{selected?.name}</p>
           {shareable && <Button onClick={share} disabled={sharing}><Share2 />{sharing ? "Compartiendo…" : "Compartir…"}</Button>}
-          <Button variant="outline" disabled={sharing} onClick={() => { if (selected) downloadFile(selected); }}><Download />Descargar archivo</Button>
+          <Button variant="outline" disabled={sharing||!!validation?.errors.length} onClick={() => { if (selected) {downloadFile(selected);setDelivered(true);} }}><Download />Descargar archivo</Button>
+          {validation&&hash&&<EntryImportConfirmation key={hash} validation={validation} file={file} hash={hash} delivered={delivered}/>}
         </>}
       </DialogContent>
     </Dialog>
