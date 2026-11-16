@@ -33,6 +33,8 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedRunRouteImport } from './routes/_authenticated/run'
 import { Route as AuthenticatedSeedingRouteImport } from './routes/_authenticated/seeding'
 import { Route as AuthenticatedStandardsRouteImport } from './routes/_authenticated/standards'
+import { Route as ReportFileTokenRouteImport } from './routes/report-file.$token'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedAthletesIndexRouteImport } from './routes/_authenticated/athletes.index'
 import { Route as AuthenticatedAthletesIdRouteImport } from './routes/_authenticated/athletes.$id'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -157,6 +159,16 @@ const AuthenticatedStandardsRoute = AuthenticatedStandardsRouteImport.update({
   path: '/standards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ReportFileTokenRoute = ReportFileTokenRouteImport.update({
+  id: '/report-file/$token',
+  path: '/report-file/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAthletesIndexRoute =
   AuthenticatedAthletesIndexRouteImport.update({
     id: '/athletes/',
@@ -199,6 +211,8 @@ export interface FileRoutesByFullPath {
   '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
+  '/report-file/$token': typeof ReportFileTokenRoute
+  '/share/$token': typeof ShareTokenRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -227,6 +241,8 @@ export interface FileRoutesByTo {
   '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
+  '/report-file/$token': typeof ReportFileTokenRoute
+  '/share/$token': typeof ShareTokenRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -257,6 +273,8 @@ export interface FileRoutesById {
   '/_authenticated/run': typeof AuthenticatedRunRoute
   '/_authenticated/seeding': typeof AuthenticatedSeedingRoute
   '/_authenticated/standards': typeof AuthenticatedStandardsRoute
+  '/report-file/$token': typeof ReportFileTokenRoute
+  '/share/$token': typeof ShareTokenRoute
   '/_authenticated/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/_authenticated/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -287,6 +305,8 @@ export interface FileRouteTypes {
     | '/run'
     | '/seeding'
     | '/standards'
+    | '/report-file/$token'
+    | '/share/$token'
     | '/athletes/$id'
     | '/athletes/'
     | '/lovable/email/transactional/preview'
@@ -315,6 +335,8 @@ export interface FileRouteTypes {
     | '/run'
     | '/seeding'
     | '/standards'
+    | '/report-file/$token'
+    | '/share/$token'
     | '/athletes/$id'
     | '/athletes'
     | '/lovable/email/transactional/preview'
@@ -344,6 +366,8 @@ export interface FileRouteTypes {
     | '/_authenticated/run'
     | '/_authenticated/seeding'
     | '/_authenticated/standards'
+    | '/report-file/$token'
+    | '/share/$token'
     | '/_authenticated/athletes/$id'
     | '/_authenticated/athletes/'
     | '/lovable/email/transactional/preview'
@@ -357,6 +381,8 @@ export interface RootRouteChildren {
   PrivacidadRoute: typeof PrivacidadRoute
   RequestAccessRoute: typeof RequestAccessRoute
   TerminosRoute: typeof TerminosRoute
+  ReportFileTokenRoute: typeof ReportFileTokenRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -530,6 +556,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStandardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/report-file/$token': {
+      id: '/report-file/$token'
+      path: '/report-file/$token'
+      fullPath: '/report-file/$token'
+      preLoaderRoute: typeof ReportFileTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/athletes/': {
       id: '/_authenticated/athletes/'
       path: '/athletes'
@@ -609,6 +649,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadRoute: PrivacidadRoute,
   RequestAccessRoute: RequestAccessRoute,
   TerminosRoute: TerminosRoute,
+  ReportFileTokenRoute: ReportFileTokenRoute,
+  ShareTokenRoute: ShareTokenRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport

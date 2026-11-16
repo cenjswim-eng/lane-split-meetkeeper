@@ -7,10 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { canShareFile, downloadFile, shareFile, zipExport } from "@/lib/file-delivery";
 import { validateEntrySdif, entryFileFingerprint, type EntryValidation } from '@/lib/hytek/entry-validation';
 import { EntryImportConfirmation } from './entry-import-confirmation';
+import { PdfPreview } from './pdf-preview';
+import { loadReportBrand } from '@/lib/report-brand-data';
+import { brandPdf } from '@/lib/branded-pdf';
 
 export type ExportKind = "sd3" | "hy3" | "results" | "entries";
 
-export function MeetExport({ name, prepare, entriesOnly = false }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean }) {
+export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean;clubId?:string|undefined }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExportKind>("sd3");
   const [file, setFile] = useState<File | null>(null);
@@ -30,7 +33,8 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
     setZip(null);
     setValidation(null);setHash('');setDelivered(false);
     try {
-      const ready = await prepare(kind);
+      const original = await prepare(kind);
+      const ready=original.type==='application/pdf'?await brandPdf(original,await loadReportBrand(clubId),name):original;
       if(entriesOnly&&kind==='sd3'){
         const bytes=await ready.arrayBuffer();
         const checked=validateEntrySdif(new TextDecoder('ascii').decode(bytes));
@@ -77,6 +81,7 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
             <Button className="flex-1" variant={packed ? "secondary" : "outline"} disabled={sharing} onClick={() => setPacked(true)}><FileArchive />ZIP</Button>
           </div>}
           <p className="break-all text-sm text-muted-foreground">{selected?.name}</p>
+          {file.type==='application/pdf'&&<PdfPreview file={file}/>}
           {shareable && <Button onClick={share} disabled={sharing}><Share2 />{sharing ? "Compartiendo…" : "Compartir…"}</Button>}
           <Button variant="outline" disabled={sharing||!!validation?.errors.length} onClick={() => { if (selected) {downloadFile(selected);setDelivered(true);} }}><Download />Descargar archivo</Button>
           {validation&&hash&&<EntryImportConfirmation key={hash} validation={validation} file={file} hash={hash} delivered={delivered}/>}
