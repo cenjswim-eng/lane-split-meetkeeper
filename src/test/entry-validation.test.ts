@@ -3,7 +3,7 @@ import { buildMeetManagerEntries } from '@/lib/hytek/meet-manager-entries';
 import { validateEntrySdif,canConfirmEntryImport } from '@/lib/hytek/entry-validation';
 import type { ExportRow } from '@/lib/hytek/sdif';
 const meet={name:'Copa',location:null,start_date:'2026-12-12',end_date:'2026-12-12',course:'LCM'};
-const row:ExportRow={athlete:{first_name:'Ana',last_name:'Rios',birth_date:'2011-12-31',gender:'F',team_code:'CLUB'},event:{event_number:'1',distance:100,stroke:1,gender:'F',min_age:14,max_age:15},seed_time_ms:null,final_time_ms:null,is_dq:false,place:null,aqua_points:null,course:'LCM',round:'F',splits:[]};
+const row:ExportRow={athlete:{first_name:'Ana',last_name:'Rios',federation_id:null,birth_date:'2011-12-31',gender:'F',team_code:'CLUB'},event:{event_number:'1',distance:100,stroke:1,gender:'F',min_age:14,max_age:15},seed_time_ms:null,final_time_ms:null,is_dq:false,place:null,aqua_points:null,course:'LCM',round:'F',splits:[]};
 const text=()=>buildMeetManagerEntries(meet,[row],[]);
 function change(type:string,start:number,value:string){return text().split('\r\n').map(l=>l.startsWith(type)?l.slice(0,start-1)+value+l.slice(start-1+value.length):l).join('\r\n');}
 describe('SD3 validation and explicit external confirmation',()=>{

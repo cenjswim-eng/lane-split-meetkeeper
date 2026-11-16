@@ -62,7 +62,7 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
           <DialogTitle>{entriesOnly ? "Inscripciones para Meet Manager" : "Exportar competencia"}</DialogTitle>
           <DialogDescription className="break-words">{name}</DialogDescription>
         </DialogHeader>
-        <Select value={kind} disabled={busy || sharing} onValueChange={(value: ExportKind) => { setKind(value); setFile(null); setZip(null); setPacked(false); }}>
+        <Select value={kind} disabled={busy || sharing} onValueChange={(value: ExportKind) => { setKind(value); setFile(null); setZip(null); setPacked(false);setValidation(null);setHash('');setDelivered(false); }}>
           <SelectTrigger aria-label="Formato de exportación"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="sd3">{entriesOnly ? "SD3 · Inscripciones Meet Manager" : "SD3 · Compatible con Hy-Tek"}</SelectItem>
@@ -78,7 +78,8 @@ export function MeetExport({ name, prepare, entriesOnly = false }: { name: strin
           </div>}
           <p className="break-all text-sm text-muted-foreground">{selected?.name}</p>
           {shareable && <Button onClick={share} disabled={sharing}><Share2 />{sharing ? "Compartiendo…" : "Compartir…"}</Button>}
-          <Button variant="outline" disabled={sharing} onClick={() => { if (selected) downloadFile(selected); }}><Download />Descargar archivo</Button>
+          <Button variant="outline" disabled={sharing||!!validation?.errors.length} onClick={() => { if (selected) {downloadFile(selected);setDelivered(true);} }}><Download />Descargar archivo</Button>
+          {validation&&hash&&<EntryImportConfirmation key={hash} validation={validation} file={file} hash={hash} delivered={delivered}/>}
         </>}
       </DialogContent>
     </Dialog>
