@@ -3,7 +3,7 @@ import { PDFDocument,PDFName,PDFDict,PDFString } from 'pdf-lib';
 import { brandPdf } from '@/lib/branded-pdf';
 import { neutralBrand } from '@/lib/report-brand';
 it('preserves all report pages and adds a branded website link on each page',async()=>{
- const source=await PDFDocument.create();source.addPage([595,842]);source.addPage([595,842]);
+ const source=await PDFDocument.create();source.addPage([595,842]).drawText('Competition results');source.addPage([595,842]).drawText('Progress chart');
  const bytes=await source.save();
  const file={type:'application/pdf',name:'test.pdf',arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)} as File;
  const output=await brandPdf(file,neutralBrand('Club Ejemplo'),'Reporte');
