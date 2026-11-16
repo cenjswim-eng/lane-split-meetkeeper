@@ -34,6 +34,9 @@ async def main():
   await page.get_by_role('button',name='Preparar vista previa',exact=True).click()
   await page.get_by_label('Vista previa del PDF',exact=True).wait_for()
   await page.get_by_role('button',name='Confirmar y crear enlace',exact=True).click()
+  await page.wait_for_timeout(1500)
+  print(await page.locator('[data-sonner-toast]').all_text_contents())
+  await page.screenshot(path=str(out/'error_share.png'))
   href=await page.get_by_role('link',name='Enviar por WhatsApp',exact=True).get_attribute('href')
   from urllib.parse import unquote
   share=unquote(href).split('\n')[-1]
