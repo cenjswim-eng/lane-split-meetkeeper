@@ -12,7 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
+import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as FuncionesRouteImport } from './routes/funciones'
+import { Route as ParaClubesRouteImport } from './routes/para-clubes'
+import { Route as ParaEntrenadoresRouteImport } from './routes/para-entrenadores'
+import { Route as PreguntasFrecuentesRouteImport } from './routes/preguntas-frecuentes'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as TerminosRouteImport } from './routes/terminos'
@@ -33,6 +40,8 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedRunRouteImport } from './routes/_authenticated/run'
 import { Route as AuthenticatedSeedingRouteImport } from './routes/_authenticated/seeding'
 import { Route as AuthenticatedStandardsRouteImport } from './routes/_authenticated/standards'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ReportFileTokenRouteImport } from './routes/report-file.$token'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedAthletesIndexRouteImport } from './routes/_authenticated/athletes.index'
@@ -53,9 +62,44 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
+  id: '/como-funciona',
+  path: '/como-funciona',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FuncionesRoute = FuncionesRouteImport.update({
+  id: '/funciones',
+  path: '/funciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParaClubesRoute = ParaClubesRouteImport.update({
+  id: '/para-clubes',
+  path: '/para-clubes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParaEntrenadoresRoute = ParaEntrenadoresRouteImport.update({
+  id: '/para-entrenadores',
+  path: '/para-entrenadores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreguntasFrecuentesRoute = PreguntasFrecuentesRouteImport.update({
+  id: '/preguntas-frecuentes',
+  path: '/preguntas-frecuentes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadRoute = PrivacidadRouteImport.update({
@@ -159,6 +203,16 @@ const AuthenticatedStandardsRoute = AuthenticatedStandardsRouteImport.update({
   path: '/standards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
 const ReportFileTokenRoute = ReportFileTokenRouteImport.update({
   id: '/report-file/$token',
   path: '/report-file/$token',
@@ -190,7 +244,14 @@ const LovableEmailTransactionalPreviewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/como-funciona': typeof ComoFuncionaRoute
+  '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
+  '/funciones': typeof FuncionesRoute
+  '/para-clubes': typeof ParaClubesRoute
+  '/para-entrenadores': typeof ParaEntrenadoresRoute
+  '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
@@ -211,8 +272,10 @@ export interface FileRoutesByFullPath {
   '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/report-file/$token': typeof ReportFileTokenRoute
   '/share/$token': typeof ShareTokenRoute
+  '/blog/': typeof BlogIndexRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -220,7 +283,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/como-funciona': typeof ComoFuncionaRoute
+  '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
+  '/funciones': typeof FuncionesRoute
+  '/para-clubes': typeof ParaClubesRoute
+  '/para-entrenadores': typeof ParaEntrenadoresRoute
+  '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
@@ -241,8 +310,10 @@ export interface FileRoutesByTo {
   '/run': typeof AuthenticatedRunRoute
   '/seeding': typeof AuthenticatedSeedingRoute
   '/standards': typeof AuthenticatedStandardsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/report-file/$token': typeof ReportFileTokenRoute
   '/share/$token': typeof ShareTokenRoute
+  '/blog': typeof BlogIndexRoute
   '/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/athletes': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -252,7 +323,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/como-funciona': typeof ComoFuncionaRoute
+  '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
+  '/funciones': typeof FuncionesRoute
+  '/para-clubes': typeof ParaClubesRoute
+  '/para-entrenadores': typeof ParaEntrenadoresRoute
+  '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
   '/request-access': typeof RequestAccessRoute
   '/terminos': typeof TerminosRoute
@@ -273,8 +351,10 @@ export interface FileRoutesById {
   '/_authenticated/run': typeof AuthenticatedRunRoute
   '/_authenticated/seeding': typeof AuthenticatedSeedingRoute
   '/_authenticated/standards': typeof AuthenticatedStandardsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/report-file/$token': typeof ReportFileTokenRoute
   '/share/$token': typeof ShareTokenRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authenticated/athletes/$id': typeof AuthenticatedAthletesIdRoute
   '/_authenticated/athletes/': typeof AuthenticatedAthletesIndexRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -284,7 +364,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/blog'
+    | '/como-funciona'
+    | '/contacto'
     | '/demo'
+    | '/funciones'
+    | '/para-clubes'
+    | '/para-entrenadores'
+    | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
     | '/terminos'
@@ -305,8 +392,10 @@ export interface FileRouteTypes {
     | '/run'
     | '/seeding'
     | '/standards'
+    | '/blog/$slug'
     | '/report-file/$token'
     | '/share/$token'
+    | '/blog/'
     | '/athletes/$id'
     | '/athletes/'
     | '/lovable/email/transactional/preview'
@@ -314,7 +403,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/como-funciona'
+    | '/contacto'
     | '/demo'
+    | '/funciones'
+    | '/para-clubes'
+    | '/para-entrenadores'
+    | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
     | '/terminos'
@@ -335,8 +430,10 @@ export interface FileRouteTypes {
     | '/run'
     | '/seeding'
     | '/standards'
+    | '/blog/$slug'
     | '/report-file/$token'
     | '/share/$token'
+    | '/blog'
     | '/athletes/$id'
     | '/athletes'
     | '/lovable/email/transactional/preview'
@@ -345,7 +442,14 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/blog'
+    | '/como-funciona'
+    | '/contacto'
     | '/demo'
+    | '/funciones'
+    | '/para-clubes'
+    | '/para-entrenadores'
+    | '/preguntas-frecuentes'
     | '/privacidad'
     | '/request-access'
     | '/terminos'
@@ -366,8 +470,10 @@ export interface FileRouteTypes {
     | '/_authenticated/run'
     | '/_authenticated/seeding'
     | '/_authenticated/standards'
+    | '/blog/$slug'
     | '/report-file/$token'
     | '/share/$token'
+    | '/blog/'
     | '/_authenticated/athletes/$id'
     | '/_authenticated/athletes/'
     | '/lovable/email/transactional/preview'
@@ -377,7 +483,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BlogRoute: typeof BlogRouteWithChildren
+  ComoFuncionaRoute: typeof ComoFuncionaRoute
+  ContactoRoute: typeof ContactoRoute
   DemoRoute: typeof DemoRoute
+  FuncionesRoute: typeof FuncionesRoute
+  ParaClubesRoute: typeof ParaClubesRoute
+  ParaEntrenadoresRoute: typeof ParaEntrenadoresRoute
+  PreguntasFrecuentesRoute: typeof PreguntasFrecuentesRoute
   PrivacidadRoute: typeof PrivacidadRoute
   RequestAccessRoute: typeof RequestAccessRoute
   TerminosRoute: typeof TerminosRoute
@@ -409,11 +522,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/como-funciona': {
+      id: '/como-funciona'
+      path: '/como-funciona'
+      fullPath: '/como-funciona'
+      preLoaderRoute: typeof ComoFuncionaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo': {
       id: '/demo'
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funciones': {
+      id: '/funciones'
+      path: '/funciones'
+      fullPath: '/funciones'
+      preLoaderRoute: typeof FuncionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/para-clubes': {
+      id: '/para-clubes'
+      path: '/para-clubes'
+      fullPath: '/para-clubes'
+      preLoaderRoute: typeof ParaClubesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/para-entrenadores': {
+      id: '/para-entrenadores'
+      path: '/para-entrenadores'
+      fullPath: '/para-entrenadores'
+      preLoaderRoute: typeof ParaEntrenadoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preguntas-frecuentes': {
+      id: '/preguntas-frecuentes'
+      path: '/preguntas-frecuentes'
+      fullPath: '/preguntas-frecuentes'
+      preLoaderRoute: typeof PreguntasFrecuentesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidad': {
@@ -556,6 +718,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStandardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/report-file/$token': {
       id: '/report-file/$token'
       path: '/report-file/$token'
@@ -641,11 +817,30 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  BlogRoute: BlogRouteWithChildren,
+  ComoFuncionaRoute: ComoFuncionaRoute,
+  ContactoRoute: ContactoRoute,
   DemoRoute: DemoRoute,
+  FuncionesRoute: FuncionesRoute,
+  ParaClubesRoute: ParaClubesRoute,
+  ParaEntrenadoresRoute: ParaEntrenadoresRoute,
+  PreguntasFrecuentesRoute: PreguntasFrecuentesRoute,
   PrivacidadRoute: PrivacidadRoute,
   RequestAccessRoute: RequestAccessRoute,
   TerminosRoute: TerminosRoute,
