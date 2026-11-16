@@ -235,6 +235,50 @@ export type Database = {
           },
         ]
       }
+      club_brands: {
+        Row: {
+          club_id: string
+          contact: string
+          location: string
+          motto: string
+          official_name: string
+          owner_id: string
+          primary_color: string
+          secondary_color: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          contact?: string
+          location?: string
+          motto?: string
+          official_name?: string
+          owner_id?: string
+          primary_color?: string
+          secondary_color?: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          contact?: string
+          location?: string
+          motto?: string
+          official_name?: string
+          owner_id?: string
+          primary_color?: string
+          secondary_color?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_brands_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_documents: {
         Row: {
           club_id: string
@@ -1156,6 +1200,62 @@ export type Database = {
           },
         ]
       }
+      shared_reports: {
+        Row: {
+          brand: Json
+          club_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_opened_at: string | null
+          opens: number
+          owner_id: string
+          privacy: Json
+          revoked_at: string | null
+          storage_path: string
+          title: string
+          token_hash: string
+        }
+        Insert: {
+          brand: Json
+          club_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_opened_at?: string | null
+          opens?: number
+          owner_id?: string
+          privacy: Json
+          revoked_at?: string | null
+          storage_path: string
+          title: string
+          token_hash: string
+        }
+        Update: {
+          brand?: Json
+          club_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_opened_at?: string | null
+          opens?: number
+          owner_id?: string
+          privacy?: Json
+          revoked_at?: string | null
+          storage_path?: string
+          title?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_reports_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       splits: {
         Row: {
           cumulative_time_ms: number
@@ -1430,6 +1530,17 @@ export type Database = {
       merge_clubs: {
         Args: { p_source: string; p_target: string }
         Returns: Json
+      }
+      open_shared_report: {
+        Args: { p_count?: boolean; p_hash: string }
+        Returns: {
+          brand: Json
+          expires_at: string
+          id: string
+          owner_id: string
+          storage_path: string
+          title: string
+        }[]
       }
       recalculate_run_event: {
         Args: { p_event: string; p_round: string }
