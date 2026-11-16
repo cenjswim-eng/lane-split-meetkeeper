@@ -335,14 +335,15 @@ function Index() {
               {[
                 { q: "¿Qué archivos acepta?", a: "Archivos HY3, CL2, SD3 y ZIP de Meet Manager y Team Manager, bases de datos de Access (.mdb) y PDF de resultados. También puedes importar marcas mínimas desde PDF o captura." },
                 { q: "¿Cuánto tarda la activación?", a: "Después de acordar el plan y confirmar el pago por WhatsApp, el dueño revisa tu solicitud y activa tu cuenta. Te avisamos en la misma conversación." },
-                { q: "¿Mis datos están seguros?", a: "Sí. Cada cuenta es privada: solo tú ves los atletas, resultados y documentos de tu club. Ninguna otra cuenta puede acceder a ellos." },
+                { q: "¿Mis datos están seguros?", a: "Sí. Cada cuenta es privada: solo tú ves los atletas, resultados y documentos de tu club. Ninguna otra cuenta puede acceder a ellos. Los datos de tus atletas son privados: solo los ve el personal autorizado de tu club y nunca se comparten ni se publican." },
+                { q: "¿Puedo cargar las marcas mínimas de mi federación?", a: "Sí. Importas el documento de marcas mínimas que publica tu federación cada año, o cuando cambia, y la app compara cada resultado con la mínima de su categoría." },
                 { q: "¿Sirve para clubes pequeños?", a: "Sí. Funciona igual para un entrenador con pocos atletas que para un club con varias categorías y entrenadores." },
                 { q: "¿Qué medios de pago hay?", a: "Los medios de pago se acuerdan directamente por WhatsApp con el dueño, según tu país." },
                 { q: "¿Hay prueba o demo?", a: "Sí. Abre «Explorar demo pública» para recorrer el panel, los atletas, las competencias y los reportes sin iniciar sesión. Todos los datos son ficticios y de solo lectura. Para usar los registros de tu club, consulta los planes por WhatsApp y solicita la activación." },
               ].map(({ q, a }, index) => (
                 <AccordionItem key={q} value={`faq-${index}`}>
                   <AccordionTrigger className="min-h-12 text-left text-base">{q}</AccordionTrigger>
-                  <AccordionContent className="leading-relaxed text-muted-foreground">{a}</AccordionContent>
+                  <AccordionContent forceMount className="leading-relaxed text-muted-foreground">{a}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
@@ -364,8 +365,8 @@ function Index() {
 
       <section className="border-t border-border bg-muted">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center md:py-16">
-          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Prueba Swim Lane Coach con el archivo de tu última competencia</h2>
-          <WhatsAppButton label="Solicitar acceso por WhatsApp" className="shrink-0" />
+          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Mira cómo quedaría el archivo de tu última competencia</h2>
+          <WhatsAppButton label="Pedir una prueba por WhatsApp" href={trialWhatsAppUrl} className="shrink-0" />
         </div>
       </section>
 
