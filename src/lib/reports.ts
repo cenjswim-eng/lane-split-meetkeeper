@@ -9,6 +9,7 @@ import { athleteMinimum } from "./athlete-minimum";
 import { athleteComparisons, comparisonLabel } from "./athlete-comparison";
 import type { QualificationStandard } from "./standard-rules";
 import { standardSourceNote, STANDARD_AGE_NOTE, type StandardVersion } from "./standard-versions";
+import { latestMeetAchievements, achievementLabels, type Achievement } from './achievements';
 
 export interface ReportRow {
   athlete: string;
@@ -106,7 +107,7 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = []) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
   const doc = new jsPDF({ orientation: "landscape" });
@@ -124,6 +125,9 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     if (!prev || r.final_time_ms < (prev.final_time_ms ?? Infinity)) best.set(key, r);
   }
   const y = () => (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 28;
+  const latestDate = results.map(r=>r.meets?.start_date??'').sort().at(-1);
+  const lastAchievements = latestMeetAchievements(achievements.filter(a=>a.achieved_on===latestDate));
+  if(lastAchievements.length) autoTable(doc,{startY:y()+8,margin:{bottom:25},head:[['Logros de la última competencia','Prueba / piscina','Tiempo','Mejora / mínima']],body:lastAchievements.map(a=>[`${a.meets?.name??''} · ${achievementLabels[a.kind]}`,`${eventLabel(a.distance,a.stroke)} ${a.course}`,formatTime(a.time_ms),a.kind==='pb'?`${((a.improvement_ms??0)/1000).toFixed(3)} s`:a.kind==='minimum'?formatTime(a.minimum_ms):'Primera marca']),styles:{fontSize:8}});
   const minimumCells = (r: AthleteReportResult) => {
     const minimum = athleteMinimum(athlete, r, standards);
     if (!minimum) return ["—", "—"];

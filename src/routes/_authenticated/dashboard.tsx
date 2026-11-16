@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DashboardAttention } from '@/components/dashboard-attention';
 import { matchesResult,useWorkspaceFilters,matchesMeet } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
+import { RecentAchievements } from '@/components/achievement-list';
+import { achievementsQuery } from '@/lib/achievement-data';
 
 const dashQuery = queryOptions({
   queryKey: ["dashboard"],
@@ -47,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     { name: "twitter:title", content: "Resumen del entrenador — Swim Lane Coach" },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
   ] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(dashQuery),
+  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(dashQuery),context.queryClient.ensureQueryData(achievementsQuery)]),
   component: Dashboard,
 });
 
@@ -77,6 +79,7 @@ function Dashboard() {
       <Button asChild className="h-11"><Link to="/import"><Upload />Importar competencia</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/entries">Nueva inscripción</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/rankings">Ver ranking</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Swim Lane Coach\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
     </div></section>
     <DashboardAttention/>
+    <RecentAchievements/>
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <section className="min-w-0"><div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"><div className="min-w-0"><h2 className="text-2xl font-semibold">Resultados recientes del club</h2><p className="mt-1 text-xs text-muted-foreground">Nados individuales por mes · últimos 9 meses</p></div><span className="time mt-1 text-lg text-primary">{summary.recent.length}</span></div>
         {summary.recent.length ? <><div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2 rounded-sm bg-primary" />Resultados</span><span className="flex items-center gap-2"><span className="size-2 rounded-sm bg-accent" />Mejores marcas vigentes</span></div><div className="mt-3 h-64 w-full" role="img" aria-label="Gráfico mensual de resultados y mejores marcas del club"><ResponsiveContainer width="100%" height="100%"><BarChart data={summary.months} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}><CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 5" /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={11} interval="preserveStartEnd" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={{ background: "var(--popover)", borderColor: "var(--border)", borderRadius: 6, color: "var(--foreground)" }} cursor={{ fill: "var(--muted)" }} labelFormatter={(_, payload) => payload[0]?.payload.month ?? ""} /><Bar dataKey="swims" name="Resultados" fill="var(--primary)" radius={[3, 3, 0, 0]} maxBarSize={22} isAnimationActive={false} /><Bar dataKey="bests" name="Mejores marcas" fill="var(--accent)" radius={[3, 3, 0, 0]} maxBarSize={22} isAnimationActive={false} /></BarChart></ResponsiveContainer></div></> : <div className="mt-5 flex h-64 flex-col items-center justify-center border-y border-dashed text-center"><Timer className="mb-3 size-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">Sin resultados en los últimos nueve meses.</p><Button variant="link" asChild><Link to="/import">Importar resultados<ArrowUpRight /></Link></Button></div>}

@@ -16,6 +16,7 @@ import { AquaRanking } from "@/components/aqua-ranking";
 import { ShareSummary } from "@/components/share-summary";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { loadAchievements } from '@/lib/achievement-data';
 
 export const Route = createFileRoute("/_authenticated/reports")({head:()=>({meta:[{title:"Reportes del club — Swim Lane Coach"},{name:"description",content:"Fichas de atletas, resultados de competencias y ranking interno en PDF y Excel."},{property:"og:title",content:"Reportes del club — Swim Lane Coach"},{property:"og:description",content:"Reportes privados del entrenador en PDF y Excel, con resúmenes para compartir."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),loader:({context})=>context.queryClient.ensureQueryData(coachQuery),component:Reports});
 function Reports(){const {data}=useSuspenseQuery(coachQuery);const [athleteId,setAthleteId]=useState(data.athletes[0]?.id??"");const [meetId,setMeetId]=useState(data.meets[0]?.id??"");const athlete=data.athletes.find(a=>a.id===athleteId);const meet=data.meets.find(m=>m.id===meetId);const results=rankedAthleteRecords(data.results.filter(r=>r.athlete_id===athleteId));const rows=rankingRows(data.results);
