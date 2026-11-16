@@ -20,6 +20,8 @@ it.skipIf(!url||!key||!publicKey)('isolates brands and files and verifies public
   must(await a.from('results').insert({athlete_id:athlete.id,meet_id:m.id,event_id:ev.id,final_time_ms:64000,aqua_points:999,course:'LCM'}));
   const session=must(await a.auth.getSession()).session;if(!session)throw Error('Session missing');mkdirSync('/tmp/browser/shared-reports',{recursive:true});writeFileSync('/tmp/browser/shared-reports/session.json',JSON.stringify({session,athlete:athlete.id}),{mode:0o600});
   execFileSync('python3',['src/test/shared-reports.browser.py'],{stdio:'pipe',timeout:120000});
+  const publicText=execFileSync('pdftotext',['/tmp/browser/shared-reports/public.pdf','-'],{encoding:'utf8'});
+  expect(publicText).not.toContain('ApellidoPrivado');expect(publicText).not.toContain('2011-12-31');expect(publicText).not.toContain('999');
   const rows=must(await a.from('shared_reports').select());expect(rows).toHaveLength(1);const row=rows?.[0];if(!row)throw Error('Share missing');
   expect(row.privacy).toEqual({fullSurname:false,birthDate:false,aqua:false});expect(row.opens).toBeGreaterThan(0);expect(row.revoked_at).not.toBeNull();
   expect(must(await b.from('shared_reports').select())).toEqual([]);expect((await b.storage.from('shared-reports').download(row.storage_path)).error).not.toBeNull();

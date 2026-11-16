@@ -15,7 +15,7 @@ export function PdfExport({ title, prepare, label = "Exportar PDF", clubId }: { 
   const [busy, setBusy] = useState(false);
   return <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setFile(null); }}>
     <Button variant="outline" onClick={() => setOpen(true)}><FileText className="size-4" />{label}</Button>
-    <DialogContent className="w-[calc(100%-2rem)] rounded-lg"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{label}</DialogDescription></DialogHeader>
+    <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{label}</DialogDescription></DialogHeader>
       {!file ? <Button disabled={busy} onClick={async () => { setBusy(true); try { const brand=await loadReportBrand(clubId);const ready=await prepare(brand);setFile(ready.type==='application/pdf'?await brandPdf(ready,brand,title):ready); } catch(e) { toast.error((e as Error).message); } finally { setBusy(false); } }}>{busy ? "Preparando…" : label.includes("Excel") || label === "Exportar" ? "Preparar archivo" : "Preparar PDF"}</Button> : <>
         <p className="break-all text-sm text-muted-foreground">{file.name}</p>
         {file.type==='application/pdf'&&<PdfPreview file={file}/>}

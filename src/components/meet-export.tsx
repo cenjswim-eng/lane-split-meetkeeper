@@ -10,10 +10,11 @@ import { EntryImportConfirmation } from './entry-import-confirmation';
 import { PdfPreview } from './pdf-preview';
 import { loadReportBrand } from '@/lib/report-brand-data';
 import { brandPdf } from '@/lib/branded-pdf';
+import type { ReportBrand } from '@/lib/report-brand';
 
 export type ExportKind = "sd3" | "hy3" | "results" | "entries";
 
-export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean;clubId?:string|undefined }) {
+export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name: string; prepare: (kind: ExportKind,brand?:ReportBrand) => Promise<File>; entriesOnly?: boolean;clubId?:string|undefined }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExportKind>("sd3");
   const [file, setFile] = useState<File | null>(null);
@@ -33,8 +34,9 @@ export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name
     setZip(null);
     setValidation(null);setHash('');setDelivered(false);
     try {
-      const original = await prepare(kind);
-      const ready=original.type==='application/pdf'?await brandPdf(original,await loadReportBrand(clubId),name):original;
+      const brand=(kind==='results'||kind==='entries')?await loadReportBrand(clubId):undefined;
+      const original = await prepare(kind,brand);
+      const ready=original.type==='application/pdf'&&brand?await brandPdf(original,brand,name):original;
       if(entriesOnly&&kind==='sd3'){
         const bytes=await ready.arrayBuffer();
         const checked=validateEntrySdif(new TextDecoder('ascii').decode(bytes));

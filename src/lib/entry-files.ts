@@ -5,9 +5,10 @@ import { exportFilename } from "@/lib/file-delivery";
 import { entriesPdf, type ReportRow } from "@/lib/reports";
 import { eventLabel, ageAtDec31 } from "@/lib/swim";
 import { exportToHy3 } from '@/lib/swim-io/exporters';
+import type { ReportBrand } from './report-brand';
 
 type CoachData = Awaited<ReturnType<typeof coachQuery.queryFn & {}>>;
-export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "hy3" | "pdf", clubId?: string) {
+export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "hy3" | "pdf", clubId?: string,brand?:ReportBrand) {
   const meet = data.meets.find(m => m.id === meetId);
   if (!meet) throw new Error("Selecciona una competencia.");
   const teams = new Map<string, string>();
@@ -30,5 +31,5 @@ export function prepareEntries(data: CoachData, meetId: string, kind: "sd3" | "h
     return new File([exportToHy3(meet, first, rows.map(r=>({...r,athlete:{...r.athlete,team_code:r.athlete.team_code ?? 'UN'}})), clubs)], exportFilename(meet.name, '_inscripciones.hy3'), { type: 'application/octet-stream' });
   }
   const report: ReportRow[] = rows.map(r => ({ athlete: `${r.athlete.last_name}, ${r.athlete.first_name}`, club: teams.get(r.athlete.team_code ?? "") ?? "Sin equipo", age: ageAtDec31(r.athlete.birth_date, Number(meet.start_date?.slice(0, 4) ?? new Date().getFullYear())), gender: r.athlete.gender, event: eventLabel(r.event.distance, r.event.stroke), seedMs: r.seed_time_ms, finalMs: null, isDq: false, place: null, points: null }));
-  return entriesPdf(meet.name, `${meet.start_date ?? ""} · ${meet.course}`, report);
+  return entriesPdf(meet.name, `${meet.start_date ?? ""} · ${meet.course}`, report,brand);
 }
