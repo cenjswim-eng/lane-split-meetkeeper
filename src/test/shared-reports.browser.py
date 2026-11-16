@@ -53,10 +53,51 @@ async def main():
   res=await viewer.request.get('http://localhost:8080/report-file/'+token)
   assert res.status==200
   (out/'public.pdf').write_bytes(await res.body())
+  for width,height in [(1280,1800),(390,844)]:
+   await page.set_viewport_size({'width':width,'height':height})
+   for theme in ['Piscina','Bosque','Coral']:
+    await page.goto('http://localhost:8080/profile')
+    await page.get_by_role('button',name='Usar colores '+theme,exact=True).click()
+    await page.get_by_role('button',name='Guardar cambios',exact=True).click()
+    await page.get_by_text('Perfil guardado',exact=True).wait_for()
+    await page.goto('http://localhost:8080/reports')
+    for tab,label in [('Atleta','PDF de ficha'),('Competencia','PDF de resultados'),('Ranking','PDF de ranking'),('Ranking','PDF de ranking AQUA')]:
+     await page.get_by_role('tab',name=tab,exact=True).click()
+     await page.get_by_role('button',name=label,exact=True).click()
+     await page.get_by_role('button',name='Preparar PDF',exact=True).click()
+     await page.get_by_role('button',name='Descargar PDF',exact=True).wait_for()
+     await page.wait_for_function('document.querySelector("[role=dialog] canvas")?.width > 300')
+     await page.wait_for_timeout(250)
+     await page.screenshot(path=str(out/f'{width}-{theme}-{label}.png'))
+     async with page.expect_download() as dl:await page.get_by_role('button',name='Descargar PDF',exact=True).click()
+     await (await dl.value).save_as(str(out/f'{width}-{theme}-{label}.pdf'))
+     await page.keyboard.press('Escape')
+     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    print('All report downloads checked',width,theme)
+  await page.set_viewport_size({'width':1280,'height':1800})
+  for tab in ['Competencia','Ranking']:
+   await page.goto('http://localhost:8080/reports')
+   await page.get_by_role('tab',name=tab,exact=True).click()
+   await page.get_by_role('button',name='Compartir reporte',exact=True).last.click()
+   await page.get_by_role('button',name='Preparar vista previa',exact=True).click()
+   await page.get_by_role('button',name='Confirmar y crear enlace',exact=True).click()
+   await page.get_by_role('link',name='Enviar por WhatsApp',exact=True).wait_for()
+   extra=unquote(await page.get_by_role('link',name='Enviar por WhatsApp',exact=True).get_attribute('href')).split('\n')[-1]
+   for width,height in [(1280,1800),(390,844)]:
+    await viewer.set_viewport_size({'width':width,'height':height})
+    await viewer.goto(extra)
+    await viewer.get_by_role('link',name='Descargar PDF',exact=True).wait_for()
+    await viewer.wait_for_function('document.querySelector("canvas")?.width > 300')
+    await viewer.wait_for_timeout(300)
+    await viewer.screenshot(path=str(out/f'public-{tab}-{width}.png'))
+    assert await viewer.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    assert (await viewer.request.get('http://localhost:8080/report-file/'+extra.split('/')[-1])).status==200
   await page.goto('http://localhost:8080/reports')
   await page.get_by_role('heading',name='Enlaces compartidos',exact=True).wait_for()
-  await page.get_by_role('button',name='Revocar enlace',exact=True).click()
-  await page.get_by_text('Enlace revocado.',exact=True).wait_for()
+  while await page.get_by_role('button',name='Revocar enlace',exact=True).count():
+   await page.get_by_role('button',name='Revocar enlace',exact=True).first.click()
+   await page.wait_for_timeout(350)
+  await viewer.goto(share)
   await viewer.reload()
   await viewer.get_by_role('heading',name='Reporte no disponible',exact=True).wait_for()
   assert (await viewer.request.get('http://localhost:8080/report-file/'+token)).status==404

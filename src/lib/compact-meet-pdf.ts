@@ -1,5 +1,4 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { compactCells, compactHeaders, compactKpis, type CompactRow } from "./compact-meet-report";
 import { formatTimeDiff } from "@/utils/timeDiffUtils";
 import { exportFilename } from "./file-delivery";

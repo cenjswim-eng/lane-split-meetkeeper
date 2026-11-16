@@ -9,6 +9,7 @@ import { ageAtDec31, formatTime } from "@/lib/swim";
 import { DemoEntryAssistant } from '@/components/demo-entry-assistant';
 import { demoAchievements } from '@/lib/demo-achievements';
 import { AchievementList } from '@/components/achievement-list';
+import { DemoBrandedReport } from '@/components/demo-branded-report';
 
 export const Route = createFileRoute("/demo")({
   head: () => ({ meta: [
@@ -78,6 +79,7 @@ function PublicDemo() {
       <main className="workspace-content mx-auto max-w-7xl space-y-8 px-4 py-6 pb-28 sm:px-8 lg:pb-12">
         <header className="border-b pb-6"><p className="text-xs font-medium uppercase text-primary">Club Horizonte · Temporada {DEMO_SEASON}</p><h1 className="mt-2">{athlete ? athlete.name : view === "panel" ? "Panel del club" : view === "athletes" ? "Atletas del club" : view === "meets" ? "Competencias y resultados" : view === 'entries' ? 'Inscripciones del club' : view === 'achievements' ? 'Logros del club' : "Reportes y ranking"}</h1><p className="mt-2 text-sm text-muted-foreground">{athlete ? `100 m Libre · Piscina de 50 m · ${ageAtDec31(athlete.birth, DEMO_SEASON)} años al 31 de diciembre` : "Resumen del entrenador · Datos de ejemplo"}</p></header>
         {view === 'entries' && <DemoEntryAssistant/>}
+        {view === 'reports' && <DemoBrandedReport/>}
         {view === 'achievements' && <section className="space-y-4"><h2>Logros del club · Ejemplo</h2><AchievementList rows={demoAchievements()} filters readOnly/></section>}
 
         {view === "panel" && <>

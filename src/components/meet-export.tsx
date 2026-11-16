@@ -8,12 +8,16 @@ import { canShareFile, downloadFile, shareFile, zipExport } from "@/lib/file-del
 import { validateEntrySdif, entryFileFingerprint, type EntryValidation } from '@/lib/hytek/entry-validation';
 import { EntryImportConfirmation } from './entry-import-confirmation';
 import { PdfPreview } from './pdf-preview';
-import { loadReportBrand } from '@/lib/report-brand-data';
+import { loadReportBrand,brandQuery } from '@/lib/report-brand-data';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { brandPdf } from '@/lib/branded-pdf';
+import type { ReportBrand } from '@/lib/report-brand';
 
 export type ExportKind = "sd3" | "hy3" | "results" | "entries";
 
-export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name: string; prepare: (kind: ExportKind) => Promise<File>; entriesOnly?: boolean;clubId?:string|undefined }) {
+export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name: string; prepare: (kind: ExportKind,brand?:ReportBrand) => Promise<File>; entriesOnly?: boolean;clubId?:string|undefined }) {
+  const {data:brands}=useSuspenseQuery(brandQuery);
+  const [brandClub,setBrandClub]=useState(brands.clubs.length===1?brands.clubs[0]?.id??'neutral':'neutral');
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExportKind>("sd3");
   const [file, setFile] = useState<File | null>(null);
@@ -33,8 +37,9 @@ export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name
     setZip(null);
     setValidation(null);setHash('');setDelivered(false);
     try {
-      const original = await prepare(kind);
-      const ready=original.type==='application/pdf'?await brandPdf(original,await loadReportBrand(clubId),name):original;
+      const brand=(kind==='results'||kind==='entries')?await loadReportBrand(clubId??(brandClub==='neutral'?undefined:brandClub)):undefined;
+      const original = await prepare(kind,brand);
+      const ready=original.type==='application/pdf'&&brand?await brandPdf(original,brand,name):original;
       if(entriesOnly&&kind==='sd3'){
         const bytes=await ready.arrayBuffer();
         const checked=validateEntrySdif(new TextDecoder('ascii').decode(bytes));
@@ -75,6 +80,7 @@ export function MeetExport({ name, prepare, entriesOnly = false,clubId }: { name
             <SelectItem value="entries">PDF · Inscripción</SelectItem>
           </SelectContent>
         </Select>
+        {!clubId&&!file&&(kind==='results'||kind==='entries')&&<Select value={brandClub} disabled={busy} onValueChange={setBrandClub}><SelectTrigger aria-label="Marca del PDF"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="neutral">Swim Lane Coach · Neutro</SelectItem>{brands.clubs.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>}
         {!file ? <Button onClick={generate} disabled={busy}>{busy ? <LoaderCircle className="animate-spin" /> : <Download />}{busy ? "Preparando…" : "Preparar archivo"}</Button> : <>
           {zip && <div className="flex gap-2">
             <Button className="flex-1" variant={!packed ? "secondary" : "outline"} disabled={sharing} onClick={() => setPacked(false)}>SD3</Button>
