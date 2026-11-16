@@ -86,7 +86,7 @@ async def main():
    for width,height in [(1280,1800),(390,844)]:
     await viewer.set_viewport_size({'width':width,'height':height})
     await viewer.goto(extra)
-    await viewer.get_by_role('button',name='Descargar PDF',exact=True).wait_for() if False else viewer.get_by_role('link',name='Descargar PDF',exact=True).wait_for()
+    await viewer.get_by_role('link',name='Descargar PDF',exact=True).wait_for()
     await viewer.wait_for_function('document.querySelector("canvas")?.width > 300')
     await viewer.wait_for_timeout(300)
     await viewer.screenshot(path=str(out/f'public-{tab}-{width}.png'))
