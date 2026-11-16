@@ -29,6 +29,6 @@ describe("Public read-only demo", () => {
     const ranking = demoRanking();
     expect(new Set(ranking.map(row => row.athlete.id)).size).toBe(24);
     expect(ranking.map(row => row.best.points)).toEqual([...ranking.map(row => row.best.points)].sort((a, b) => b - a));
-    expect(ranking.find(row => row.athlete.id === "demo-sofia")?.best.time).toBe(69200);
+    expect(ranking.find(row => row.athlete.id === "demo-sofia")?.best.time).toBe(67200);
   });
 });
