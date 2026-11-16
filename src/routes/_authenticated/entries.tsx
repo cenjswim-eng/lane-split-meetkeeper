@@ -21,6 +21,7 @@ import { scopeClubData } from "@/lib/club-management";
 import { MeetEntriesExporter } from '@/components/exports/MeetEntriesExporter';
 import { EntryAssistant } from '@/components/entry-assistant';
 import { assistantDraftQuery } from '@/lib/entry-assistant-data';
+import { AssistantMeetCreate } from '@/components/assistant-meet-create';
 
 export const Route = createFileRoute("/_authenticated/entries")({
  validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined }),
@@ -60,7 +61,7 @@ function Entries() {
  const text = `Swim Lane Coach\nInscripciones · ${meet?.name ?? ""}\n${meet?.start_date ?? ""} · ${meet?.course ?? ""}\n` + entries.map(e => { const a=data.athletes.find(a=>a.id===e.athlete_id), ev=data.events.find(ev=>ev.id===e.event_id); return `${a?.first_name ?? ""} ${a?.last_name ?? ""} · ${ev ? eventLabel(ev.distance,ev.stroke) : ""} · ${formatTime(e.seed_time_ms)}`; }).join("\n");
  return <div className="space-y-6"><h1 className="text-4xl font-bold">Inscripciones</h1><Select value={search.club ?? "all"} onValueChange={v => { setSelected([]); setMeetId(""); setAthleteId(""); void navigate({ search: { club: v === "all" ? undefined : v } }); }}><SelectTrigger aria-label="Club de inscripciones" className="w-full sm:w-80"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos mis clubes</SelectItem>{management.clubs.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><div className="grid gap-3 sm:grid-cols-2"><Select value={meetId} onValueChange={v=>{setMeetId(v);setSelected([]);}}><SelectTrigger aria-label="Competencia"><SelectValue placeholder="Competencia" /></SelectTrigger><SelectContent>{data.meets.map(m=><SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select><Select value={athleteId} onValueChange={v=>{setAthleteId(v);setSelected([]);}}><SelectTrigger aria-label="Atleta"><SelectValue placeholder="Atleta" /></SelectTrigger><SelectContent>{data.athletes.map(a=><SelectItem key={a.id} value={a.id}>{a.first_name} {a.last_name}</SelectItem>)}</SelectContent></Select></div>
  {meet&&<div className="flex flex-wrap items-center gap-3"><TournamentSetup key={meet.id} meet={meet}/><span className="text-sm text-muted-foreground">Edad al 31/12 · {athleteEntries.length+pending.length} pruebas del atleta</span></div>}
- <MeetEntriesExporter meetId={meetId}/>
+ <div className="flex flex-wrap gap-3"><MeetEntriesExporter meetId={meetId}/><AssistantMeetCreate onCreated={id=>{setMeetId(id);setSelected([]);}}/></div>
  {meet&&<EntryAssistant key={`${meetId}-${search.club}`} meetId={meetId} clubId={search.club}/>}
  {warnings.map(w=><p key={w} role="alert" className="text-sm text-destructive">{w}</p>)}
  <section className="border-y"><h2 className="py-4 text-2xl font-semibold">Pruebas de la competencia</h2>{events.length ? events.map(ev=>{
