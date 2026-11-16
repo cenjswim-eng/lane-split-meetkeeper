@@ -1,6 +1,6 @@
 import { it } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY,pub=process.env.SUPABASE_PUBLISHABLE_KEY;
+const url=process.env['SUPABASE_URL'],key=process.env['SUPABASE_SERVICE_ROLE_KEY'],pub=process.env['SUPABASE_PUBLISHABLE_KEY'];
 it.skipIf(!url||!key||!pub)('restricts contact submissions to the owner across two unrelated admin sessions',async()=>{
 if(!url||!key||!pub)return;
 const admin=createClient(url,key,{auth:{persistSession:false}});const ids:string[]=[];let rowId:string|undefined;
