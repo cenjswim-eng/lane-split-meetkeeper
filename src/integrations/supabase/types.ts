@@ -59,6 +59,88 @@ export type Database = {
         }
         Relationships: []
       }
+      athlete_achievements: {
+        Row: {
+          achieved_on: string
+          athlete_id: string
+          course: string
+          created_at: string
+          distance: number
+          id: string
+          improvement_ms: number | null
+          kind: string
+          meet_id: string
+          minimum_ms: number | null
+          owner_id: string
+          previous_ms: number | null
+          result_id: string
+          standard_key: string
+          standard_version_id: string | null
+          stroke: number
+          time_ms: number
+        }
+        Insert: {
+          achieved_on: string
+          athlete_id: string
+          course: string
+          created_at?: string
+          distance: number
+          id?: string
+          improvement_ms?: number | null
+          kind: string
+          meet_id: string
+          minimum_ms?: number | null
+          owner_id: string
+          previous_ms?: number | null
+          result_id: string
+          standard_key?: string
+          standard_version_id?: string | null
+          stroke: number
+          time_ms: number
+        }
+        Update: {
+          achieved_on?: string
+          athlete_id?: string
+          course?: string
+          created_at?: string
+          distance?: number
+          id?: string
+          improvement_ms?: number | null
+          kind?: string
+          meet_id?: string
+          minimum_ms?: number | null
+          owner_id?: string
+          previous_ms?: number | null
+          result_id?: string
+          standard_key?: string
+          standard_version_id?: string | null
+          stroke?: number
+          time_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_achievements_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_achievements_meet_id_fkey"
+            columns: ["meet_id"]
+            isOneToOne: false
+            referencedRelation: "meets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_achievements_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athletes: {
         Row: {
           active_status: boolean
@@ -1272,6 +1354,26 @@ export type Database = {
     Functions: {
       activate_standard_version: { Args: { p_id: string }; Returns: undefined }
       commit_entry_assistant: { Args: { p_draft: string }; Returns: number }
+      compute_athlete_achievements: {
+        Args: { p_owner: string }
+        Returns: {
+          achieved_on: string
+          athlete_id: string
+          course: string
+          distance: number
+          improvement_ms: number
+          kind: string
+          meet_id: string
+          minimum_ms: number
+          owner_id: string
+          previous_ms: number
+          result_id: string
+          standard_key: string
+          standard_version_id: string
+          stroke: number
+          time_ms: number
+        }[]
+      }
       configure_run_points: {
         Args: { p_individual: Json; p_meet: string; p_relay: Json }
         Returns: undefined
