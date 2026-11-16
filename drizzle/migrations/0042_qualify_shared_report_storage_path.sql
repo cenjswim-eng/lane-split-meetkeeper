@@ -1,0 +1,1 @@
+ALTER POLICY "owner report file insert" ON storage.objects WITH CHECK(bucket_id='shared-reports' AND (storage.foldername(objects.name))[1]=auth.uid()::text AND public.has_role(auth.uid(),'admin') AND EXISTS(SELECT 1 FROM public.clubs c WHERE c.id::text=(storage.foldername(objects.name))[2] AND c.owner_id=auth.uid()));
