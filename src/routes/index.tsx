@@ -128,21 +128,33 @@ function Index() {
       <section id="inicio" className="landing-hero relative isolate overflow-hidden">
         <img src={swimmingTraining} alt="Nadadores entrenando estilo libre en carriles de una piscina" width={1920} height={1024} fetchPriority="high" className="landing-hero-photo absolute inset-0 -z-20 h-full w-full object-cover" />
         <div className="landing-hero-shade absolute inset-0 -z-10" aria-hidden="true" />
-        <div className="landing-enter mx-auto max-w-6xl px-6 py-12 sm:px-10 sm:py-16 lg:py-20">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary">Para entrenadores y clubes de natación</p>
-          <h1 className="mt-4 max-w-2xl text-[42px] font-semibold leading-[1.08] sm:text-6xl lg:text-7xl">Swim Lane Coach</h1>
-          <p className="mt-4 max-w-md text-2xl font-medium leading-tight sm:text-3xl">Cada parcial de tus nadadores,<br /><span className="text-primary">sin perder ninguno.</span></p>
-          <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
-          <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <WhatsAppButton label="Solicitar acceso por WhatsApp" />
-            <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
-              <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública</Link>
-            </Button>
+        <div className="landing-enter mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:py-20">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-widest text-primary">Para entrenadores y clubes de natación</p>
+            <h1 className="mt-4 max-w-2xl text-[42px] font-semibold leading-[1.08] sm:text-6xl lg:text-7xl">Swim Lane Coach</h1>
+            <p className="mt-4 max-w-md text-2xl font-medium leading-tight sm:text-3xl">Cada parcial de tus nadadores,<br /><span className="text-primary">sin perder ninguno.</span></p>
+            <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
+            <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <Button asChild size="lg" className="min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none">
+                <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar demo pública<ArrowRight aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
+                <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Solicitar acceso por WhatsApp</a>
+              </Button>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-foreground/80">
+              <span className="mr-1">Compatible con</span>
+              {["HY3", "CL2", "SD3", "ZIP", "MDB"].map((format) => <span key={format} className="rounded border border-border px-2 py-1 font-medium">{format}</span>)}
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-foreground/80">
-            <span className="mr-1">Compatible con</span>
-            {["HY3", "CL2", "SD3", "ZIP", "MDB"].map((format) => <span key={format} className="rounded border border-border px-2 py-1 font-medium">{format}</span>)}
-          </div>
+          <figure className="min-w-0 overflow-hidden rounded-lg border border-border bg-card shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-border px-4 py-2.5" aria-hidden="true">
+              <span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" /><span className="size-2.5 rounded-full bg-muted-foreground/40" />
+              <span className="ml-2 truncate rounded bg-muted px-3 py-1 text-[11px] text-muted-foreground">swimlanecoach.app/demo</span>
+            </div>
+            <img src={demoPanel} alt="Captura del panel del club de ejemplo: 24 atletas, 6 competencias y 11 mínimas alcanzadas" width={1024} height={634} className="w-full" loading="lazy" />
+            <figcaption className="border-t border-border px-4 py-2 text-xs text-muted-foreground">Datos de ejemplo</figcaption>
+          </figure>
         </div>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 border-t border-foreground/20 px-6 py-4 text-xs text-foreground/80 sm:px-10">
           <span className="flex items-center gap-2"><ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />Los registros de tu club son privados</span>
@@ -283,7 +295,7 @@ function Index() {
                   <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
                     {benefits.map((benefit) => <li key={benefit} className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />{benefit}</li>)}
                   </ul>
-                  <WhatsAppButton label="Consultar este plan" className="mt-6 w-full justify-center" />
+                  <WhatsAppButton label={`Consultar plan ${name}`} href={planWhatsAppUrl(name)} className="mt-6 w-full justify-center" />
                 </article>
               ))}
             </div>
@@ -309,7 +321,7 @@ function Index() {
                 </li>
               ))}
             </ol>
-            <p className="mt-8 max-w-2xl rounded-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">Seguridad: nunca compartas contraseñas ni datos de tarjeta por el chat. El pago se coordina por WhatsApp, no en esta página.</p>
+            <p className="mt-8 max-w-2xl rounded-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">Seguridad: nunca compartas contraseñas ni datos de tarjeta por el chat. El pago se coordina por WhatsApp, no en esta página. Los datos de tus atletas son privados: solo los ve el personal autorizado de tu club y nunca se comparten ni se publican.</p>
           </div>
         </section>
       </LandingReveal>
