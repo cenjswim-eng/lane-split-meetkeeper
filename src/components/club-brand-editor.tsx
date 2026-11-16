@@ -20,5 +20,3 @@ function BrandForm({club,initial}:{club:{id:string;name:string;logo_path:string|
   <section className="grid gap-4 border-t pt-5 sm:grid-cols-2">{([['official_name','Nombre oficial'],['location','Ciudad / país'],['motto','Lema'],['contact','Contacto para el pie']] as const).map(([key,label])=><label key={key} className="space-y-2 text-sm">{label}<Input aria-label={label} value={values[key]} maxLength={160} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))}/></label>)}</section><Button disabled={busy} type="submit"><Save/>{busy?'Guardando…':'Guardar marca'}</Button>
  </form>;
 }
-// Type-only helper; never called as a hook.
-function useBrandType(){return {} as import('@/integrations/supabase/types').Tables<'club_brands'>;}

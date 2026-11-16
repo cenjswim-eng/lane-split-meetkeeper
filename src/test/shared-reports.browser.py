@@ -45,6 +45,8 @@ async def main():
   viewer=await public.new_page()
   await viewer.goto(share)
   await viewer.get_by_role('heading',name='Reporte individual',exact=True).wait_for()
+  await viewer.wait_for_function('document.querySelector("canvas")?.width > 300')
+  await viewer.wait_for_timeout(1200)
   assert await viewer.evaluate('document.documentElement.scrollWidth<=innerWidth')
   await viewer.screenshot(path=str(out/'2_publico.png'))
   token=share.split('/')[-1]

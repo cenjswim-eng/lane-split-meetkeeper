@@ -4,7 +4,7 @@ import { privateSurname,contrastInk,type ReportPrivacy,type ReportBrand } from '
 import { brandPdf } from './branded-pdf';
 import { formatTime,eventLabel } from './swim';
 import type { coachQuery } from './coach-data';
-import { internalRanking,aquaRanking } from './entry-rules';
+import { internalRanking } from './entry-rules';
 import { athleteProgressPdf } from './reports';
 import { rankedAthleteRecords } from './athlete-records';
 export type CoachData=Awaited<ReturnType<NonNullable<typeof coachQuery.queryFn>>>;
@@ -23,7 +23,7 @@ export async function shareablePdf(data:CoachData,selection:SharedSelection,priv
  }
  const rows=selection.kind==='ranking'?internalRanking(results):results;
  if(!rows.length)throw Error('No hay resultados de este club para compartir.');
- const doc=new jsPDF({orientation:'landscape'});const title=selection.kind==='athlete'?'Reporte individual':selection.kind==='meet'?'Resultados de competencia':'Ranking del club';
+ const doc=new jsPDF({orientation:'landscape'});const title=selection.kind==='meet'?'Resultados de competencia':'Ranking del club';
  doc.setFontSize(16);doc.text(title,14,16);
  const columns=['Atleta','Prueba','Piscina','Tiempo','Competencia','Fecha',...(privacy.birthDate?['Nacimiento']:[]),...(privacy.aqua?['AQUA']:[])];
  autoTable(doc,{startY:24,head:[columns],body:rows.map(r=>{const a=athletes.find(a=>a.id===r.athlete_id);return [`${a?.first_name??''} ${privateSurname(a?.last_name??'',privacy.fullSurname)}`,r.events?eventLabel(r.events.distance,r.events.stroke):'—',r.course??'—',r.is_dq?'DQ':formatTime(r.final_time_ms),r.meets?.name??'—',r.meets?.start_date??'—',...(privacy.birthDate?[a?.birth_date??'—']:[]),...(privacy.aqua?[(r as {aqua_points?:number|null}).aqua_points??'—']:[])];}),styles:{fontSize:8,lineColor:brand.secondary},headStyles:{fillColor:brand.primary,textColor:contrastInk(brand.primary)},margin:{bottom:16}});
