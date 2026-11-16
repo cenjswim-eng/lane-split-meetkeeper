@@ -6,7 +6,7 @@ const url=process.env['SUPABASE_URL'],key=process.env['SUPABASE_SERVICE_ROLE_KEY
 it.skipIf(!url||!key||!publicKey)('imports, reimports, corrects and deletes achievements privately across two real accounts',async()=>{
  if(!url||!key||!publicKey)return;
  const admin=createClient(url,key,{auth:{persistSession:false}}),users:string[]=[];
- const must=<T>(r:{data:T;error:unknown})=>{if(r.error)throw r.error;return r.data;};
+ const must=<R extends {data:unknown;error:unknown}>(r:R):R['data']=>{if(r.error)throw r.error;return r.data;};
  try {
   const clients=[];
   for(let i=0;i<2;i++){const email=`achievement-${crypto.randomUUID()}@example.com`,password=`${crypto.randomUUID()}Aa1!`;const u=must(await admin.auth.admin.createUser({email,password,email_confirm:true}));if(!u.user)throw Error('Missing user');users.push(u.user.id);must(await admin.from('user_roles').insert({user_id:u.user.id,role:'admin'}));const c=createClient(url,publicKey,{auth:{persistSession:false}});must(await c.auth.signInWithPassword({email,password}));clients.push(c);}
@@ -22,7 +22,8 @@ it.skipIf(!url||!key||!publicKey)('imports, reimports, corrects and deletes achi
   const ids=log?.map(r=>r.id).sort();must(await a.rpc('import_meet_payload',{p_payload:{...second,fileName:'renamed.hy3'}}));expect(must(await a.from('athlete_achievements').select('id'))?.map(r=>r.id).sort()).toEqual(ids);
   expect(must(await b.from('athlete_achievements').select())).toEqual([]);
   expect((await b.from('athlete_achievements').insert({owner_id:users[0],athlete_id:pb?.athlete_id,result_id:pb?.result_id,meet_id:saved.meetId,kind:'pb',distance:100,stroke:1,course:'LCM',time_ms:1,achieved_on:'2026-11-14'})).error).not.toBeNull();
-  expect((await a.from('athlete_achievements').update({time_ms:1}).eq('id',pb?.id)).error).not.toBeNull();
+  await a.from('athlete_achievements').update({time_ms:1}).eq('id',pb?.id);
+  expect(must(await a.from('athlete_achievements').select('time_ms').eq('id',pb?.id).single())).toEqual({time_ms:64000});
   const session=must(await a.auth.getSession()).session;if(!session)throw Error('Missing session');mkdirSync('/tmp/browser/achievements',{recursive:true});writeFileSync('/tmp/browser/achievements/session.json',JSON.stringify({session,athlete:pb?.athlete_id}),{mode:0o600});
   execFileSync('python3',['src/test/achievements.browser.py'],{stdio:'pipe',timeout:90000});
   must(await a.from('results').update({final_time_ms:67000}).eq('id',pb?.result_id));log=must(await a.from('athlete_achievements').select());expect(log).toHaveLength(2);expect(log?.find(r=>r.kind==='pb')).toMatchObject({improvement_ms:1000});
