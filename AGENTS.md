@@ -44,3 +44,7 @@
 - Demo: immutable local fixtures only; no DB calls, for privacy.
 - Achievements are derived transactionally from full result history in owner-scoped deferred database triggers; preserve stable result/type/scope identities on reimport, use best daily swim when exact chronology is unavailable, and keep qualification tied to the active official snapshot and December-31 season/category.
 - Report branding is per club, with private rasterized proportional logos; document-scoped table palettes and PDF framing preserve calculations, while browser-local PDF.js provides mobile previews. Public shares are explicit sanitized club-scoped snapshots in private storage, resolved only by hashed random capabilities with expiry/revocation checks on every read; never expose signed storage URLs or private records. Demo report generation uses local fictional fixtures only.
+
+- Public acquisition content is local and router-indexed with required sitemap decisions; exclude authenticated subtrees and capability reports to keep private records out of discovery.
+- Contact submissions validate on the server, use privileged insert only, and are readable only by the app owner; fixed notifications resolve the owner's address server-side.
+- Analytics uses a public-page allowlist and parameter-free conversion events; never send private paths, capabilities, names or emails to analytics.

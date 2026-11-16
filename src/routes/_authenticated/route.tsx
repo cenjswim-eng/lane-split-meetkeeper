@@ -7,6 +7,8 @@ import { applyTheme } from "@/lib/profile-theme";
 import { profileQuery } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated")({
+  staticData: { sitemap: "exclude-subtree" },
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();

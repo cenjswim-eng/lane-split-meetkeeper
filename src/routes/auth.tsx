@@ -5,11 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { trackEvent } from "@/lib/marketing-analytics";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
+      { name: "robots", content: "noindex" },
       { title: "Acceso — Swim Lane Coach" },
       { name: "description", content: "Acceso de administradores a Swim Lane Coach." },
       { property: "og:title", content: "Acceso — Swim Lane Coach" }, { name: "twitter:title", content: "Acceso — Swim Lane Coach" },
@@ -39,6 +42,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/request-access` } });
         if (error) throw error;
+        trackEvent("sign_up", { method: "email" });
         toast.success("Revisa tu correo para confirmar la cuenta.");
       }
     } catch (err) {
@@ -62,7 +66,7 @@ function AuthPage() {
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-lg border bg-card p-6">
         <div className="lane-line mb-6" />
-        <p className="font-display text-3xl font-bold">Natacion <span className="text-accent">pro</span></p>
+        <p className="font-display text-3xl font-bold">Swim Lane <span className="text-accent">Coach</span></p>
         <p className="mb-6 mt-1 text-sm text-muted-foreground">Compatible con Meet Manager y Team Manager</p>
         <h1 className="text-3xl font-bold uppercase">{mode === "in" ? "Iniciar sesión" : "Crear cuenta"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Acceso privado. Las nuevas cuentas requieren aprobación del dueño.</p>

@@ -15,6 +15,7 @@ import { ResetData } from "@/components/reset-data";
 import { EventSetupPreview } from "@/components/event-setup-preview";
 
 export const Route = createFileRoute("/_authenticated/import")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: "Importar resultados y eventos Hy-Tek — Swim Lane Coach" }, { name: "description", content: "Revisa eventos EV3/HYV, resultados HY3/CL2/SD3, ZIP y Access antes de guardar tus competencias." }, { property: "og:title", content: "Importar resultados y eventos Hy-Tek — Swim Lane Coach" }, { property: "og:description", content: "Carga y revisa pruebas, edades, piscinas y límites de inscripción de Meet Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ImportPage,
 });

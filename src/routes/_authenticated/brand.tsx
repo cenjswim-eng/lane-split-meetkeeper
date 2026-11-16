@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { ClubBrandEditor } from '@/components/club-brand-editor';
 import { brandQuery } from '@/lib/report-brand-data';
-export const Route=createFileRoute('/_authenticated/brand')({head:()=>({meta:[{title:'Marca del club — Swim Lane Coach'},{name:'description',content:'Logo, colores y contacto privados para los reportes del club.'},{property:'og:title',content:'Marca del club — Swim Lane Coach'},{property:'og:description',content:'Identidad del club en sus reportes y enlaces compartidos.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),loader:({context})=>context.queryClient.ensureQueryData(brandQuery),component:Brand});
+export const Route=createFileRoute('/_authenticated/brand')({
+  staticData: { sitemap: false },head:()=>({meta:[{title:'Marca del club — Swim Lane Coach'},{name:'description',content:'Logo, colores y contacto privados para los reportes del club.'},{property:'og:title',content:'Marca del club — Swim Lane Coach'},{property:'og:description',content:'Identidad del club en sus reportes y enlaces compartidos.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),loader:({context})=>context.queryClient.ensureQueryData(brandQuery),component:Brand});
 function Brand(){return <div className="max-w-4xl space-y-6"><header><p className="text-xs text-primary">Club / Marca</p><h1 className="text-4xl font-bold">Marca del club</h1></header><ClubBrandEditor/></div>;}

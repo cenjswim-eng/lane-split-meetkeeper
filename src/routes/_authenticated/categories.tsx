@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/categories")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: "Categorías por edad — Swim Lane Coach" }, { name: "description", content: "Personaliza los nombres y edades de las categorías de tu país." }, { property: "og:title", content: "Categorías por edad — Swim Lane Coach" }, { property: "og:description", content: "Define las categorías por edad para mínimas y reportes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(categoriesQuery),
   component: CategoriesPage,

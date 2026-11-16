@@ -4,6 +4,7 @@ import { achievementsQuery } from '@/lib/achievement-data';
 import { AchievementList } from '@/components/achievement-list';
 
 export const Route=createFileRoute('/_authenticated/achievements')({
+  staticData: { sitemap: false },
   head:()=>({meta:[{title:'Logros del club — Swim Lane Coach'},{name:'description',content:'Mejores marcas personales, primeras marcas y mínimas alcanzadas en el historial privado del club.'},{property:'og:title',content:'Logros del club — Swim Lane Coach'},{property:'og:description',content:'Historial privado de logros de los atletas por prueba, piscina y competencia.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),
   loader:({context})=>context.queryClient.ensureQueryData(achievementsQuery),component:Achievements,
 });

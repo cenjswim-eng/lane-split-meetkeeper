@@ -19,6 +19,7 @@ import { categoriesQuery } from "@/lib/categories";
 import { ClubMerge } from '@/components/team-manager-tools';
 
 export const Route = createFileRoute("/_authenticated/clubs")({
+  staticData: { sitemap: false },
  head: () => ({ meta: [{ title: "Clubes — Swim Lane Coach" }, { name: "description", content: "Gestión privada de atletas, competencias e inscripciones por club." }, { property: "og:title", content: "Clubes — Swim Lane Coach" }, { property: "og:description", content: "Organiza tus clubes sin compartir registros entre cuentas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
  loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(clubManagementQuery), context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(categoriesQuery)]); },
  component: Clubs,

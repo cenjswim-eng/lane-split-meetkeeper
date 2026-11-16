@@ -26,6 +26,7 @@ import { useWorkspaceFilters,matchesAthlete,matchesMeet } from '@/lib/workspace-
 import { useSwimCategories } from '@/lib/categories';
 
 export const Route = createFileRoute("/_authenticated/entries")({
+  staticData: { sitemap: false },
  validateSearch: (s: Record<string, unknown>): { club?: string | undefined; meet?: string | undefined; athlete?:string|undefined } => ({ club: typeof s["club"] === "string" ? s["club"] : undefined, meet: typeof s["meet"] === "string" ? s["meet"] : undefined,athlete:typeof s['athlete']==='string'?s['athlete']:undefined }),
  head: () => ({ meta: [{ title: "Inscripciones — Swim Lane Coach" }, { name: "description", content: "Selecciona nadadores y pruebas, consulta mínimas y exporta inscripciones SD3 para Meet Manager." }, { property: "og:title", content: "Inscripciones — Swim Lane Coach" }, { property: "og:description", content: "Inscripciones privadas del club y exportaciones para Meet Manager y Team Manager." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
  loader: async ({ context }) => { await Promise.all([context.queryClient.ensureQueryData(coachQuery), context.queryClient.ensureQueryData(clubManagementQuery),context.queryClient.ensureQueryData(teamRelayQuery),context.queryClient.ensureQueryData(assistantDraftQuery)]); }, component: Entries,

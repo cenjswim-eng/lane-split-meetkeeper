@@ -1,13 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { publicHead } from "@/lib/public-seo";
 import { Waves } from "lucide-react";
 
 export const Route = createFileRoute("/terminos")({
-  head: () => ({
-    meta: [
-      { title: "Términos de uso | Swim Lane Coach" },
-      { name: "description", content: "Términos de uso de Swim Lane Coach, software para entrenadores y clubes de natación." },
-    ],
-  }),
+  staticData: { sitemap: true },
+  head: () => publicHead("/terminos", "Términos de uso — Swim Lane Coach", "Términos del software de natación, acceso por suscripción y activación del dueño."),
   component: Terminos,
 });
 
@@ -15,7 +12,7 @@ function Terminos() {
   return (
     <main className="landing min-h-screen">
       <div className="mx-auto max-w-3xl px-6 py-12 sm:px-10">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold"><Waves className="size-6 text-primary" aria-hidden="true" />Natación <span className="text-primary">Pro</span></Link>
+        <Link to="/" className="flex items-center gap-2 text-lg font-semibold"><Waves className="size-6 text-primary" aria-hidden="true" />Swim Lane <span className="text-primary">Coach</span></Link>
         <h1 className="mt-8 text-3xl font-semibold">Términos de uso</h1>
         <div className="mt-6 space-y-5 leading-relaxed text-muted-foreground">
           <p>Swim Lane Coach es un software de gestión para entrenadores y clubes de natación, compatible con archivos de Meet Manager y Team Manager.</p>

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { tokenHash } from '@/lib/report-brand';
-export const Route=createFileRoute('/report-file/$token')({server:{handlers:{GET:async({params})=>{
+export const Route=createFileRoute('/report-file/$token')({
+  staticData: { sitemap: false },server:{handlers:{GET:async({params})=>{
  const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'};
  if(!/^[0-9a-f]{64}$/.test(params.token))return new Response('Reporte no disponible',{status:404,headers});
  const hash=await tokenHash(params.token);const {supabaseAdmin}=await import('@/integrations/supabase/client.server');

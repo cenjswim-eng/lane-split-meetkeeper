@@ -1,4 +1,4 @@
-import { PDFDocument,StandardFonts,rgb } from 'pdf-lib';
+import { PDFDocument,StandardFonts,rgb,PDFName,PDFString } from 'pdf-lib';
 import { contrastInk,type ReportBrand } from './report-brand';
 export async function brandPdf(file:File,brand:ReportBrand,title:string):Promise<File>{
  if(file.type!=='application/pdf')return file;
@@ -20,6 +20,7 @@ export async function brandPdf(file:File,brand:ReportBrand,title:string):Promise
   page.drawLine({start:{x:16,y:29},end:{x:width-16,y:29},thickness:1,color:secondary});
   page.drawText(clip([brand.location,brand.motto,brand.contact].filter(Boolean).join(' · '),width-32,7),{x:16,y:19,size:7,font,color:ink});
   page.drawText(`Generado con Swim Lane Coach · ${new Date().toLocaleDateString('es-VE')}`,{x:16,y:8,size:7,font,color:muted});
+  const link=doc.context.obj({Type:'Annot',Subtype:'Link',Rect:[16,5,16+font.widthOfTextAtSize('Generado con Swim Lane Coach',7),15],Border:[0,0,0],A:{S:'URI',URI:PDFString.of('https://swimlanecoach.app/?utm_source=report&utm_medium=referral&utm_campaign=pdf')}});page.node.addAnnot(doc.context.register(link));
   const number=`${i+1} / ${pages.length}`;page.drawText(number,{x:width-16-font.widthOfTextAtSize(number,7),y:8,size:7,font,color:muted});
  });
  doc.setTitle(safe(title));doc.setAuthor(safe(brand.name));doc.setCreator('Swim Lane Coach');
