@@ -10,7 +10,7 @@ const subscribe=(fn:()=>void)=>{listeners.add(fn);return ()=>{listeners.delete(f
 export function useWorkspaceFilters(){
  const {data}=useQuery(profileQuery);const user=data?.userId??'';const [loaded,setLoaded]=useState('');
  const filters=useSyncExternalStore(subscribe,()=>states.get(user)??emptyFilters,()=>emptyFilters);
- useEffect(()=>{if(!user)return;try{const raw=JSON.parse(localStorage.getItem(`swim-filters:${user}`)??'null');if(raw&&['season','category','gender','course'].every(k=>typeof raw[k]==='string'))states.set(user,raw);}catch{}setLoaded(user);listeners.forEach(fn=>fn());},[user]);
+ useEffect(()=>{if(!user)return;try{const raw=JSON.parse(localStorage.getItem(`swim-filters:${user}`)??'null');if(!states.has(user)&&raw&&['season','category','gender','course'].every(k=>typeof raw[k]==='string'))states.set(user,raw);}catch{}setLoaded(user);listeners.forEach(fn=>fn());},[user]);
  function update(next:WorkspaceFilters){if(!user)return;states.set(user,next);listeners.forEach(fn=>fn());}
  function save(){if(user&&loaded===user)localStorage.setItem(`swim-filters:${user}`,JSON.stringify(filters));}
  return {filters,update,save};
