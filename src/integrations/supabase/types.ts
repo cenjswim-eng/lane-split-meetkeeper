@@ -482,6 +482,36 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_submissions: {
+        Row: {
+          campaign: Json
+          club: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          campaign?: Json
+          club: string
+          country: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          campaign?: Json
+          club?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       entry_assistant_drafts: {
         Row: {
           club_id: string | null
