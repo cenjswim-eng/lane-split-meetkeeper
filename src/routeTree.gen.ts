@@ -18,6 +18,7 @@ import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedAchievementsRouteImport } from './routes/_authenticated/achievements'
+import { Route as AuthenticatedBrandRouteImport } from './routes/_authenticated/brand'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedClubsRouteImport } from './routes/_authenticated/clubs'
@@ -81,6 +82,11 @@ const AuthenticatedAchievementsRoute =
     path: '/achievements',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBrandRoute = AuthenticatedBrandRouteImport.update({
+  id: '/brand',
+  path: '/brand',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/achievements': typeof AuthenticatedAchievementsRoute
+  '/brand': typeof AuthenticatedBrandRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/clubs': typeof AuthenticatedClubsRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
   '/achievements': typeof AuthenticatedAchievementsRoute
+  '/brand': typeof AuthenticatedBrandRoute
   '/categories': typeof AuthenticatedCategoriesRoute
   '/club': typeof AuthenticatedClubRoute
   '/clubs': typeof AuthenticatedClubsRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/terminos': typeof TerminosRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/achievements': typeof AuthenticatedAchievementsRoute
+  '/_authenticated/brand': typeof AuthenticatedBrandRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/clubs': typeof AuthenticatedClubsRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/access'
     | '/achievements'
+    | '/brand'
     | '/categories'
     | '/club'
     | '/clubs'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/access'
     | '/achievements'
+    | '/brand'
     | '/categories'
     | '/club'
     | '/clubs'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/_authenticated/access'
     | '/_authenticated/achievements'
+    | '/_authenticated/brand'
     | '/_authenticated/categories'
     | '/_authenticated/club'
     | '/_authenticated/clubs'
@@ -411,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/achievements'
       fullPath: '/achievements'
       preLoaderRoute: typeof AuthenticatedAchievementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/brand': {
+      id: '/_authenticated/brand'
+      path: '/brand'
+      fullPath: '/brand'
+      preLoaderRoute: typeof AuthenticatedBrandRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/categories': {
@@ -538,6 +557,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
   AuthenticatedAchievementsRoute: typeof AuthenticatedAchievementsRoute
+  AuthenticatedBrandRoute: typeof AuthenticatedBrandRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedClubsRoute: typeof AuthenticatedClubsRoute
@@ -559,6 +579,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
   AuthenticatedAchievementsRoute: AuthenticatedAchievementsRoute,
+  AuthenticatedBrandRoute: AuthenticatedBrandRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedClubsRoute: AuthenticatedClubsRoute,

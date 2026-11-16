@@ -43,3 +43,4 @@
 - Age categories: per-account swim_categories (Venezuela fallback) passed to categoryBounds; saving re-links standards by name.
 - Demo: immutable local fixtures only; no DB calls, for privacy.
 - Achievements are derived transactionally from full result history in owner-scoped deferred database triggers; preserve stable result/type/scope identities on reimport, use best daily swim when exact chronology is unavailable, and keep qualification tied to the active official snapshot and December-31 season/category.
+- Report branding is per club, with private rasterized proportional logos; PDF framing preserves the original pages and calculations. Public shares are explicit sanitized club-scoped snapshots in private storage, resolved only by hashed random capabilities with expiry/revocation checks on every read; never expose signed storage URLs or private records.
