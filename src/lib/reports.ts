@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
-import type { ReportBrand } from './report-brand';
+import type { ReportBrand,ReportPrivacy } from './report-brand';
 import { formatTime, eventLabel, ageAtDec31, ageGroup } from "./swim";
 import { MEMBER_ROLES, type MemberRole } from "./club";
 import { exportFilename } from "./file-delivery";
@@ -110,7 +110,7 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand,privacy?:ReportPrivacy) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
   const doc = new jsPDF({ orientation: "landscape" });
@@ -120,7 +120,7 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const age = ageAtDec31(athlete.birth_date, year);
   const category = standards.find(s => age != null && (s.age_min == null || age >= s.age_min) && (s.age_max == null || age <= s.age_max) && s.age_group && (!s.gender || s.gender === athlete.gender))?.age_group ?? ageGroup(age);
   header(doc, "Seguimiento individual — últimos 9 meses", name);
-  autoTable(doc, { startY: 28, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
+  autoTable(doc, { startY: 28, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", privacy&&!privacy.birthDate?'—':athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
   const best = new Map<string, AthleteReportResult>();
   for (const r of ranked) {
     if (!r.events || r.is_dq || r.final_time_ms == null) continue;

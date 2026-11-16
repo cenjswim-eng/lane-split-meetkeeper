@@ -5,6 +5,7 @@ import { Download } from 'lucide-react';
 import { sharedReportInfo } from '@/lib/shared-report.functions';
 import { Button } from '@/components/ui/button';
 import { contrastInk } from '@/lib/report-brand';
+import { PdfPreview } from '@/components/pdf-preview';
 export const Route=createFileRoute('/share/$token')({
  head:()=>({meta:[{title:'Reporte compartido — Swim Lane Coach'},{name:'description',content:'Reporte de solo lectura compartido por el entrenador.'},{property:'og:title',content:'Reporte compartido — Swim Lane Coach'},{property:'og:description',content:'Reporte autorizado del club, disponible durante la vigencia elegida.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'},{name:'robots',content:'noindex, nofollow'}]}),
  loader:({params})=>sharedReportInfo({data:{token:params.token}}),component:SharedReport,
