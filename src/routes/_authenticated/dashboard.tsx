@@ -19,6 +19,7 @@ import { matchesResult,useWorkspaceFilters,matchesMeet } from '@/lib/workspace-f
 import { useSwimCategories } from '@/lib/categories';
 import { RecentAchievements } from '@/components/achievement-list';
 import { achievementsQuery } from '@/lib/achievement-data';
+import { EcosystemGuide } from '@/components/ecosystem-guide';
 
 const dashQuery = queryOptions({
   queryKey: ["dashboard"],
@@ -79,6 +80,7 @@ function Dashboard() {
     <section aria-label="Accesos rápidos" className="border-y py-4"><div className="grid gap-2 sm:flex sm:flex-wrap">
       <Button asChild className="h-11"><Link to="/import"><Upload />Importar competencia</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/entries">Nueva inscripción</Link></Button><Button asChild variant="outline" className="h-11"><Link to="/rankings">Ver ranking</Link></Button><NewAthlete /><Button variant="outline" className="h-11" onClick={() => setExportOpen(true)}><Download />Exportar SD3</Button><ShareSummary text={`Swim Lane Coach\nResumen del club · ${today}\nAtletas: ${data.athletes}\nCompetencias: ${data.meets.length}\nMejores marcas vigentes: ${summary.bestCount}\nMínimas alcanzadas: ${summary.qualifiedCount}\nResultados de los últimos 9 meses: ${summary.recent.length}`} />
     </div></section>
+    <EcosystemGuide />
     <DashboardAttention/>
     <RecentAchievements/>
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
