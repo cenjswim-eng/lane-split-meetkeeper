@@ -9,18 +9,12 @@ import { ageAtDec31, formatTime } from "@/lib/swim";
 import { DemoEntryAssistant } from '@/components/demo-entry-assistant';
 import { demoAchievements } from '@/lib/demo-achievements';
 import { AchievementList } from '@/components/achievement-list';
+import { publicHead } from '@/lib/public-seo';
 import { DemoBrandedReport } from '@/components/demo-branded-report';
 
 export const Route = createFileRoute("/demo")({
   staticData: { sitemap: true },
-  head: () => ({ meta: [
-    { title: "Demo pública del panel — Swim Lane Coach" },
-    { name: "description", content: "Explora el panel de Swim Lane Coach sin iniciar sesión: atletas, competencias, evolución y ranking con datos ficticios de solo lectura." },
-    { property: "og:title", content: "Demo pública del panel — Swim Lane Coach" },
-    { property: "og:description", content: "Conoce el panel del entrenador con datos ficticios, sin registro y sin modificar datos reales." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary_large_image" },
-  ] }),
+  head: () => publicHead('/demo', 'Demo pública del panel — Swim Lane Coach', 'Explora atletas, competencias y reportes con datos ficticios de solo lectura, sin iniciar sesión.', 'website', false),
   component: PublicDemo,
 });
 

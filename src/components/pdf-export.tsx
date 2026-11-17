@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { canShareFile, downloadFile, shareFile } from "@/lib/file-delivery";
+import { trackEvent } from '@/lib/marketing-analytics';
 import { PdfPreview } from './pdf-preview';
 import { loadReportBrand,brandQuery } from '@/lib/report-brand-data';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -24,7 +25,7 @@ export function PdfExport({ title, prepare, label = "Exportar PDF", clubId }: { 
       {!file ? <Button disabled={busy} onClick={async () => { setBusy(true); try { const brand=await loadReportBrand(clubId??(brandClub==='neutral'?undefined:brandClub));const ready=await prepare(brand);setFile(ready.type==='application/pdf'?await brandPdf(ready,brand,title):ready); } catch(e) { toast.error((e as Error).message); } finally { setBusy(false); } }}>{busy ? "Preparando…" : label.includes("Excel") || label === "Exportar" ? "Preparar archivo" : "Preparar PDF"}</Button> : <>
         <p className="break-all text-sm text-muted-foreground">{file.name}</p>
         {file.type==='application/pdf'&&<PdfPreview file={file}/>}
-        {canShareFile(file) && <Button disabled={busy} onClick={async () => { setBusy(true); try { await shareFile(file); } catch(e) { toast.error((e as Error).message); } finally { setBusy(false); } }}><Share2 className="size-4" />Compartir…</Button>}
+        {canShareFile(file) && <Button disabled={busy} onClick={async () => { setBusy(true); try { await shareFile(file); trackEvent("report_shared", {channel: "native_file"}); } catch(e) { toast.error((e as Error).message); } finally { setBusy(false); } }}><Share2 className="size-4" />Compartir…</Button>}
         <Button disabled={busy} variant="outline" onClick={() => downloadFile(file)}><Download className="size-4" />{file.type === "application/pdf" ? "Descargar PDF" : "Descargar archivo"}</Button>
       </>}
     </DialogContent>
