@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
 function WhatsAppButton({ label, className = "", href = plansWhatsAppUrl }: { label: string; className?: string; href?: string }) {
   return (
     <Button asChild size="lg" className={`min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none ${className}`}>
-      <a href={href} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
+      <a href={href} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('cta_click', {placement: 'home_whatsapp'})}><MessageCircle aria-hidden="true" />{label}<ArrowRight aria-hidden="true" /></a>
     </Button>
   );
 }
@@ -129,7 +129,7 @@ function Index() {
             <p className="mt-5 max-w-md text-base leading-relaxed text-foreground/90">Importa tus archivos de Meet Manager y Team Manager y mira la progresión de cada nadador en un solo lugar.</p>
             <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg" className="min-h-12 h-auto max-w-full whitespace-normal px-6 py-3 text-base shadow-none">
-                <Link to="/demo" onClick={() => trackEvent("cta_click", {placement:"home_demo"})}><LayoutDashboard aria-hidden="true" />Explorar demo pública<ArrowRight aria-hidden="true" /></Link>
+                <Link to="/demo" onClick={() => trackEvent("cta_click", {placement:"home_demo"})}><LayoutDashboard aria-hidden="true" />Probar gratis<ArrowRight aria-hidden="true" /></Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="min-h-12 h-auto max-w-full whitespace-normal border-border bg-background px-6 py-3 text-base shadow-none hover:bg-muted hover:text-foreground">
                 <a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />Solicitar acceso por WhatsApp</a>
@@ -186,7 +186,7 @@ function Index() {
             {[
               { icon: FileUp, title: "Importa", text: "Arrastra el archivo de la competencia y se cargan resultados, inscripciones y parciales." },
               { icon: ChartNoAxesCombined, title: "Analiza", text: "Ve la progresión de cada nadador, sus puntos AQUA y quién está cerca de las mínimas." },
-              { icon: FileDown, title: "Exporta", text: "Genera el SD3 listo para cargar en Team Manager." },
+              { icon: FileDown, title: "Comparte", text: "Revisa el PDF y comparte una copia autorizada; exporta inscripciones SD3 para comprobarlas en Meet Manager." },
             ].map(({ icon: Icon, title, text }, index) => (
               <li key={title} className="landing-feature min-w-0 border-t border-border pt-5">
                 <div className="flex items-center justify-between"><span className="time text-sm text-primary">0{index + 1}</span><Icon className="size-5 text-primary" aria-hidden="true" /></div>
