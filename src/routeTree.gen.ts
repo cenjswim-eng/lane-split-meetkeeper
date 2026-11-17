@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as CalculadoraPuntosAquaRouteImport } from './routes/calculadora-puntos-aqua'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -66,6 +67,11 @@ const AuthRoute = AuthRouteImport.update({
 const BlogRoute = BlogRouteImport.update({
   id: '/blog',
   path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalculadoraPuntosAquaRoute = CalculadoraPuntosAquaRouteImport.update({
+  id: '/calculadora-puntos-aqua',
+  path: '/calculadora-puntos-aqua',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
@@ -542,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calculadora-puntos-aqua': {
+      id: '/calculadora-puntos-aqua'
+      path: '/calculadora-puntos-aqua'
+      fullPath: '/calculadora-puntos-aqua'
+      preLoaderRoute: typeof CalculadoraPuntosAquaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/como-funciona': {
       id: '/como-funciona'
       path: '/como-funciona'
@@ -854,6 +867,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
+  CalculadoraPuntosAquaRoute: CalculadoraPuntosAquaRoute,
   ComoFuncionaRoute: ComoFuncionaRoute,
   ContactoRoute: ContactoRoute,
   DemoRoute: DemoRoute,

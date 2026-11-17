@@ -93,6 +93,17 @@ export function aquaPoints(ms: number | null, course: string, gender: string | n
   return Math.round(1000 * Math.pow(base / ms, 3));
 }
 
+export function aquaBaseTime(course: string, gender: string | null, distance: number, stroke: number): number | null {
+  if (!gender || (gender !== "M" && gender !== "F")) return null;
+  return BASE[`${course === "SCY" ? "SCM" : course}-${gender}-${distance}-${stroke}`] ?? null;
+}
+
+export function timeForAquaPoints(points: number, course: string, gender: string | null, distance: number, stroke: number): number | null {
+  const base = aquaBaseTime(course, gender, distance, stroke);
+  if (!base || points <= 0) return null;
+  return Math.round(base / Math.cbrt(points / 1000));
+}
+
 export function ageAt(birth: string | null, at: Date = new Date()): number | null {
   if (!birth) return null;
   const b = new Date(birth);
