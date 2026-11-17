@@ -16,7 +16,7 @@ describe('contact privacy and campaign attribution',()=>{
  it('does not emit private page views or capability URLs',()=>{
   const send=vi.fn();Object.assign(window,{slcGtag:send});
   trackPublicPage('/athletes/private');trackPublicPage('/share/private');trackPublicPage('/auth');expect(send).not.toHaveBeenCalled();
-  trackPublicPage('/funciones');expect(send).toHaveBeenCalledWith('event','page_view',{page_path:'/funciones',page_location:'https://swimlanecoach.app/funciones'});
+  trackPublicPage('/funciones');expect(send).toHaveBeenCalledWith('event','page_view',{page_path:'/funciones',page_location:'https://swimlanecoach.app/funciones',page_referrer:''});
  });
  it('omits lastmod without a page-specific timestamp',()=>{const xml=sitemapXML('https://swimlanecoach.app',[{path:'/funciones'}]);expect(xml).toContain('https://swimlanecoach.app/funciones');expect(xml).not.toContain('lastmod');});
  it('sanitizes page context for shares from private screens',()=>{const send=vi.fn();Object.assign(window,{slcGtag:send});trackEvent('report_shared',{channel:'copy',kind:'athlete'});expect(send).toHaveBeenCalledWith('event','report_shared',{channel:'copy',kind:'athlete',page_location:'https://swimlanecoach.app/',page_path:'/',page_referrer:''});});
