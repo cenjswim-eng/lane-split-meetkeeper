@@ -1,30 +1,38 @@
 @echo off
 title Publicando cambios en SwimLaneCoach...
+set "PATH=%LOCALAPPDATA%\Programs\Git\cmd;%LOCALAPPDATA%\Programs\Git\ucrt64\bin;%PATH%"
+
 echo ========================================================
 echo        PUBLICAR CAMBIOS EN SWIMLANECOACH.APP
 echo ========================================================
 echo.
 cd /d "C:\Users\jjseg\Desktop\SwimLaneCoach"
+
 echo 1. Verificando estado local...
-"%LOCALAPPDATA%\Programs\Git\cmd\git.exe" status --short
+git status --short
 echo.
+
 echo 2. Guardando cambios pendientes...
-"%LOCALAPPDATA%\Programs\Git\cmd\git.exe" add -A
-"%LOCALAPPDATA%\Programs\Git\cmd\git.exe" commit -m "update: sincronizacion automatica hacia swimlanecoach.app" 2>nul
+git add -A
+git commit -m "update: sincronizacion automatica hacia swimlanecoach.app" 2>nul
 echo.
+
 echo 3. Enviando a GitHub y Lovable (swimlanecoach.app)...
-"%LOCALAPPDATA%\Programs\Git\cmd\git.exe" push origin main
+git push origin main
 echo.
+
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
-    echo  LISTO! Los cambios han sido subidos exitosamente.
-    echo  Lovable los compilara y estaran activos en:
+    echo  [EXITO] Los cambios han sido subidos correctamente!
+    echo  Lovable los detectara y los publicara en vivo en:
     echo  https://swimlanecoach.app
     echo ========================================================
 ) else (
     echo ========================================================
-    echo  ATENCION: Si es la primera vez, inicia sesion en la
-    echo  ventana de GitHub que se abrio en tu navegador.
+    echo  [AVISO] Si es la primera vez que subes cambios:
+    echo  Se abrira tu navegador web para que inicies sesion
+    echo  con tu cuenta de GitHub (cenjswim-eng).
+    echo  Una vez iniciada la sesion, vuelve a ejecutar este archivo.
     echo ========================================================
 )
 echo.
