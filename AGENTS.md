@@ -48,3 +48,5 @@
 - Public acquisition content is local and router-indexed with required sitemap decisions; exclude authenticated subtrees and capability reports to keep private records out of discovery.
 - Contact submissions validate on the server, use privileged insert only, and are readable only by the app owner; fixed notifications resolve the owner's address server-side.
 - Analytics uses a public-page allowlist and parameter-free conversion events; never send private paths, capabilities, names or emails to analytics.
+
+- Attendance uses owner-scoped athlete/date/session rows with parent guards and atomic invoker upserts; only explicit statuses count, with optional date-range inclusion in individual PDFs.

@@ -33,6 +33,7 @@ const items = [
   { to: "/clubs", label: "Plantilla del Club", icon: Building2 },
   { to: "/athletes", label: "Fichas de Atletas", icon: Users },
   { to: "/club", label: "Documentos del Club", icon: FileText },
+  { to: "/attendance", label: "Asistencia", icon: ClipboardList },
   // 2. Torneos y Competencias
   { to: "/meets", label: "Calendario de Torneos", icon: CalendarDays },
   { to: "/import", label: "Importar Archivos", icon: Upload },
@@ -54,7 +55,7 @@ const items = [
 
 const groups = [
   { label: "General", paths: ["/dashboard"] },
-  { label: "Mi Club y Atletas", paths: ["/clubs", "/athletes", "/club"] },
+  { label: "Mi Club y Atletas", paths: ["/clubs", "/athletes", "/club", "/attendance"] },
   { label: "Torneos y Competencias", paths: ["/meets", "/import", "/entries", "/relays", "/seeding", "/run"] },
   { label: "Rendimiento y Marcas", paths: ["/rankings", "/standards", "/achievements", "/reports"] },
   { label: "Configuración", paths: ["/brand", "/categories", "/profile", "/access"] },

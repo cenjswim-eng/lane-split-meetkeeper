@@ -68,7 +68,7 @@ export function parseFevedaDirectory(html: string, baseUrl = "https://feveda.org
                     endDate: item.endDate || null,
                     location: loc,
                     url: canonicalUrl,
-                    description: item.description || undefined,
+                    ...(item.description ? { description: item.description } : {}),
                   });
                 }
               }

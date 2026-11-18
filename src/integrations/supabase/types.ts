@@ -1459,6 +1459,47 @@ export type Database = {
         }
         Relationships: []
       }
+      training_attendance: {
+        Row: {
+          athlete_id: string
+          id: string
+          notes: string
+          owner_id: string
+          session: string
+          status: string
+          training_date: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          id?: string
+          notes?: string
+          owner_id?: string
+          session: string
+          status: string
+          training_date: string
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          id?: string
+          notes?: string
+          owner_id?: string
+          session?: string
+          status?: string
+          training_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_attendance_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1633,6 +1674,10 @@ export type Database = {
           p_round: string
           p_rows: Json
         }
+        Returns: number
+      }
+      save_training_attendance: {
+        Args: { p_date: string; p_rows: Json; p_session: string }
         Returns: number
       }
       set_app_access_suspended: {

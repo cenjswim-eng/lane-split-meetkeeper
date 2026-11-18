@@ -1,0 +1,9 @@
+import { describe,it,expect } from 'vitest';
+import {attendanceSummary,attendanceSaveSchema,attendanceDate,type AttendanceRow} from '@/lib/attendance';
+import {athleteProgressPdf} from '@/lib/reports';
+const rows:AttendanceRow[]=['present','late','absent','excused'].map((status,i)=>({athlete_id:'10000000-0000-4000-8000-000000000001',status:status as AttendanceRow['status'],training_date:`2026-11-${10+i}`,session:'afternoon',notes:''}));
+describe('training attendance',()=>{
+ it('counts only explicit registrations and treats late arrivals as attended',()=>{expect(attendanceSummary(rows)).toEqual({present:1,late:1,absent:1,excused:1,total:4,attended:2,percentage:50});expect(attendanceSummary([]).percentage).toBeNull();});
+ it('rejects invalid dates and repeated athlete rows',()=>{expect(attendanceDate.safeParse('2026-02-30').success).toBe(false);expect(attendanceSaveSchema.safeParse({date:'2026-11-18',session:'morning',rows:[rows[0],rows[0]]}).success).toBe(false);});
+ it('adds attendance data without losing per-event evolution charts',async()=>{const athlete={first_name:'Ana',last_name:'Prueba',birth_date:'2010-01-01',federation_id:null,teams:null};const result={final_time_ms:60000,seed_time_ms:null,is_dq:false,course:'LCM',round:'F',place:1,aqua_points:500,events:{distance:100,stroke:1},meets:{name:'Copa',start_date:'2026-11-10'},splits:[]};const file=athleteProgressPdf(athlete,[result],[],null,[],undefined,undefined,{from:'2026-11-01',to:'2026-11-18',rows});const text=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(Buffer.from(reader.result as ArrayBuffer).toString('latin1'));reader.onerror=()=>reject(reader.error);reader.readAsArrayBuffer(file);});expect(text).toContain('Asistencia a entrenamientos');expect(text).toContain('50%');expect(text).toContain('Evolución · 100 Libre · LCM');});
+});

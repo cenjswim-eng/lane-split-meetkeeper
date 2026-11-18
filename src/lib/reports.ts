@@ -1,3 +1,4 @@
+import { attendanceSummary,attendanceStatus,trainingSessions,type AttendanceReport } from './attendance';
 import { jsPDF } from "jspdf";
 import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
 import type { ReportBrand,ReportPrivacy } from './report-brand';
@@ -110,7 +111,7 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
-export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand,privacy?:ReportPrivacy) {
+export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand,privacy?:ReportPrivacy,attendance?:AttendanceReport) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
   const doc = new jsPDF({ orientation: "landscape" });
@@ -155,6 +156,15 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Puntos", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", r.points_scored ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
+  if (attendance) {
+    const summary=attendanceSummary(attendance.rows);
+    doc.addPage();
+    header(doc, "Asistencia a entrenamientos", `${name} · ${attendance.from} a ${attendance.to}`);
+    autoTable(doc,{startY:28,margin:{bottom:25},head:[["Sesiones registradas","Presentes","Tarde","Ausentes","Justificadas","Asistencia"]],body:[[summary.total,summary.present,summary.late,summary.absent,summary.excused,summary.percentage==null?'—':`${summary.percentage}%`]],styles:{fontSize:9}});
+    doc.setFontSize(8);doc.text("Asistencia = (presentes + tarde) / sesiones registradas. Los días sin registrar no se cuentan como ausencia.",14,y()+6);
+    if(attendance.rows.length)autoTable(doc,{startY:y()+12,margin:{bottom:25},head:[["Fecha","Sesión","Estado","Observación"]],body:attendance.rows.map(r=>[r.training_date,trainingSessions[r.session],attendanceStatus[r.status],r.notes||'—']),styles:{fontSize:8}});
+    else doc.text("Sin asistencia registrada en el periodo seleccionado.",14,y()+14);
+  }
   appendAthleteProgressCharts(doc, name, ranked,undefined,brand);
   for (let page = 1; page <= doc.getNumberOfPages(); page++) {
     doc.setPage(page);
