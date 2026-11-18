@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, Trophy, Loader2 } from "lucide-react";
+import { Link2, Trophy, Loader2, ClipboardPaste, AlertTriangle, ExternalLink, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { readPdfLines } from "@/lib/club-document";
 import { parseMeetManagerResults } from "@/lib/pdf-results";
@@ -13,12 +14,16 @@ import { isFevedaDirectoryUrl, parseFevedaDirectory, type FevedaMeet } from "@/l
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
+  const [mode, setMode] = useState<"link" | "paste">("link");
   const [url, setUrl] = useState("");
+  const [pastedText, setPastedText] = useState("");
   const [busy, setBusy] = useState(false);
   const [allowBrowser, setAllowBrowser] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [fevedaMeets, setFevedaMeets] = useState<FevedaMeet[] | null>(null);
+  const [blockedError, setBlockedError] = useState<string | null>(null);
+
   const fetchLink = useServerFn(fetchResultsLink);
   const startBatch = useServerFn(startBrowserBatch);
   const batchStatus = useServerFn(browserBatchStatus);
@@ -43,10 +48,12 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
     setBusy(true);
     setSummary(null);
     setProgress(null);
+    setBlockedError(null);
+
     try {
       const link = /^https?:\/\//i.test(inputUrl) ? inputUrl : `https://${inputUrl}`;
 
-      // Check if it's the FEVEDA results portal directory
+      // 1. Check if it's the FEVEDA results portal directory
       if (isFevedaDirectoryUrl(link)) {
         setProgress("Consultando portal FEVEDA…");
         const res = await fetchLink({ data: { url: link, allowBrowser } });
@@ -60,6 +67,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         }
       }
 
+      // 2. Fetch the meet URL (PDF or Meet Manager HTML)
       const res = await fetchLink({ data: { url: link, allowBrowser } });
       const name = customName || decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Resultados").replace(/\.(pdf|html?)$/i, "") || "Resultados";
       let lines: string[];
@@ -169,89 +177,207 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       }
       await finish(name, parsed);
     } catch (e) {
-      toast.error((e as Error).message);
+      const msg = (e as Error).message || "";
+      if (/403|bloquea/i.test(msg)) {
+        setBlockedError(msg);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
       setProgress(null);
     }
   }
 
+  async function readPasted() {
+    const text = pastedText.trim();
+    if (!text) {
+      toast.error("Pega primero el texto o tabla de resultados copiado de FEVEDA.");
+      return;
+    }
+    setBusy(true);
+    setSummary(null);
+    try {
+      const lines = htmlToLines(text).map(commaTimes);
+      const parsed = parseMeetManagerResults(lines, "Resultados FEVEDA");
+      if (!parsed.results.length) {
+        setSummary("No se reconocieron pruebas ni tiempos en el texto pegado. Asegúrate de copiar la tabla de resultados completa desde tu navegador.");
+        return;
+      }
+      await finish("Resultados FEVEDA", parsed);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold uppercase">Resultados desde un enlace / FEVEDA</h2>
-        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">Meet Manager & FEVEDA</span>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Pega el enlace de resultados de Meet Manager, el enlace de un PDF o el portal de la <strong>Federación Venezolana (FEVEDA)</strong>. 
-        El sistema filtra y toma <strong>únicamente los tiempos de los atletas que ya tienes registrados en tu club</strong>; el resto se ignora automáticamente.
-      </p>
-
-      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); if (url.trim()) read(); }}>
-        <Input
-          type="text"
-          inputMode="url"
-          autoCapitalize="none"
-          autoCorrect="off"
-          placeholder="https://feveda.org/resultados/ o enlace de resultados"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          aria-label="Enlace de resultados"
-          disabled={busy || disabled}
-        />
-        <Button type="submit" disabled={busy || disabled || !url.trim()}>
-          {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Link2 className="mr-2 size-4" />}
-          Extraer mis atletas
-        </Button>
-      </form>
-
-      {/* Quick shortcuts for Venezuelan FEVEDA circuits */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
-        <span className="font-medium">Accesos directos FEVEDA:</span>
-        <button
-          type="button"
-          disabled={busy}
-          className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-          onClick={() => {
-            setUrl("https://feveda.org/resultados/");
-            read("https://feveda.org/resultados/");
-          }}
-        >
-          🇻🇪 Explorar Directorio FEVEDA
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
-          onClick={() => {
-            setUrl("https://natacionvenezuela.com/2026/occidente/");
-            read("https://natacionvenezuela.com/2026/occidente/", "Campeonato Regional Occidente 2026");
-          }}
-        >
-          Regional Occidente 2026
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
-          onClick={() => {
-            setUrl("https://feveda.org/2026/regionalcentro/");
-            read("https://feveda.org/2026/regionalcentro/", "Campeonato Regional Central 2026");
-          }}
-        >
-          Regional Central 2026
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+        <div>
+          <h2 className="text-xl font-semibold uppercase">Extracción de Resultados FEVEDA / Meet Manager</h2>
+          <p className="text-xs text-muted-foreground">
+            Extrae de forma automática <strong>únicamente los tiempos de los atletas registrados en tu club</strong>.
+          </p>
+        </div>
+        {/* Toggle between Link mode and Direct Paste mode */}
+        <div className="flex rounded-lg border bg-muted/60 p-1 text-xs">
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-medium transition-colors ${mode === "link" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("link")}
+          >
+            <Link2 className="size-3.5" />
+            Por Enlace
+          </button>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-medium transition-colors ${mode === "paste" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("paste")}
+          >
+            <ClipboardPaste className="size-3.5" />
+            Pegar Texto (Sin Bloqueos)
+          </button>
+        </div>
       </div>
 
-      <label className="flex items-start gap-2 text-xs text-muted-foreground">
-        <input type="checkbox" checked={allowBrowser} disabled={busy} onChange={(e) => setAllowBrowser(e.target.checked)} />
-        Permitir lectura con créditos solo si el sitio bloquea el acceso. Los PDF se leen localmente sin créditos.
-      </label>
+      {mode === "link" ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Pega el enlace oficial del torneo de <strong>FEVEDA</strong> o de <strong>Meet Manager</strong>.
+          </p>
+
+          <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); if (url.trim()) read(); }}>
+            <Input
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="https://feveda.org/resultados/ o enlace de resultados"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              aria-label="Enlace de resultados"
+              disabled={busy || disabled}
+            />
+            <Button type="submit" disabled={busy || disabled || !url.trim()}>
+              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Link2 className="mr-2 size-4" />}
+              Extraer mis atletas
+            </Button>
+          </form>
+
+          {/* Quick shortcuts for Venezuelan FEVEDA circuits */}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">Accesos directos FEVEDA:</span>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              onClick={() => {
+                setUrl("https://feveda.org/resultados/");
+                read("https://feveda.org/resultados/");
+              }}
+            >
+              🇻🇪 Explorar Directorio FEVEDA
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
+                setUrl("https://natacionvenezuela.com/2026/occidente/");
+                read("https://natacionvenezuela.com/2026/occidente/", "Campeonato Regional Occidente 2026");
+              }}
+            >
+              Regional Occidente 2026
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
+                setUrl("https://feveda.org/2026/regionalcentro/");
+                read("https://feveda.org/2026/regionalcentro/", "Campeonato Regional Central 2026");
+              }}
+            >
+              Regional Central 2026
+            </button>
+          </div>
+
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={allowBrowser} disabled={busy} onChange={(e) => setAllowBrowser(e.target.checked)} />
+            Permitir lectura con navegador emulado si el servidor remoto restringe el acceso directo.
+          </label>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            💡 <strong>100% inmune a bloqueos de Cloudflare:</strong> Abre la página de resultados en tu navegador (FEVEDA, Natación Venezuela o Meet Manager), selecciona el contenido de los resultados con <kbd className="rounded bg-muted px-1 py-0.5 font-mono">Ctrl + A</kbd>, cópialo con <kbd className="rounded bg-muted px-1 py-0.5 font-mono">Ctrl + C</kbd> y pégalo aquí. SwimLaneCoach extraerá en menos de 1 segundo solo las marcas de tus nadadores.
+          </div>
+          <Textarea
+            rows={6}
+            placeholder="Pega aquí el texto o tabla de resultados copiado de FEVEDA..."
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            disabled={busy || disabled}
+            className="font-mono text-xs"
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              disabled={busy || disabled || !pastedText.trim()}
+              onClick={() => readPasted()}
+            >
+              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ClipboardPaste className="mr-2 size-4" />}
+              Extraer marcas de mis atletas
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Cloudflare 403 Solution Banner */}
+      {blockedError && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="space-y-2">
+              <div className="font-semibold">Protección Cloudflare detectada en FEVEDA (Bloqueo 403)</div>
+              <p className="text-xs leading-relaxed opacity-90">
+                El servidor de <code>feveda.org</code> tiene activado un escudo antibot que rechaza las conexiones de servidores en la nube. 
+                Sin embargo, <strong>tu navegador personal sí puede abrirlo con normalidad</strong>.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    setMode("paste");
+                    setBlockedError(null);
+                  }}
+                >
+                  <ClipboardPaste className="mr-1.5 size-3.5" />
+                  Solución rápida: Pegar resultados aquí
+                </Button>
+                {url && (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Abrir enlace en mi navegador <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {busy && (
         <div className="flex items-center gap-2 text-sm text-primary">
           <Loader2 className="size-4 animate-spin" />
-          <span>Leyendo todas las pruebas del enlace{progress ? ` (${progress})` : ""}, puede tardar un minuto…</span>
+          <span>Leyendo y analizando pruebas{progress ? ` (${progress})` : ""}, un momento por favor…</span>
         </div>
       )}
 
