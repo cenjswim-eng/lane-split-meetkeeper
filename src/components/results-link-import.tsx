@@ -17,6 +17,9 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
   const [mode, setMode] = useState<"link" | "paste">("link");
   const [url, setUrl] = useState("");
   const [pastedText, setPastedText] = useState("");
+  const [meetNameInput, setMeetNameInput] = useState("");
+  const [meetDateInput, setMeetDateInput] = useState(new Date().toISOString().slice(0, 10));
+  const [meetCourseInput, setMeetCourseInput] = useState<"LCM" | "SCM" | "SCY">("LCM");
   const [busy, setBusy] = useState(false);
   const [allowBrowser, setAllowBrowser] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -31,14 +34,37 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
   async function finish(name: string, parsed: ParsedFile) {
     const { data, error } = await supabase.from("athletes").select("id, first_name, last_name, birth_date, gender, federation_id, tm_athlete_id");
     if (error) throw new Error("No se pudo leer tu lista de atletas.");
+    const roster = (data ?? []) as RosterAthlete[];
     const total = new Set(parsed.athletes.map((a) => a.key)).size;
-    const r = filterToRoster(parsed, (data ?? []) as RosterAthlete[]);
-    if (!r.parsed.results.length) {
-      setSummary(`Se leyeron ${parsed.results.length} resultados de ${total} nadadores, pero ninguno coincide con tus atletas registrados.`);
+
+    const today = new Date().toISOString().slice(0, 10);
+    parsed.meet.name = parsed.meet.name?.trim() || name || "Torneo FEVEDA";
+    parsed.meet.startDate = parsed.meet.startDate || today;
+    parsed.meet.endDate = parsed.meet.endDate || parsed.meet.startDate;
+    parsed.meet.course = (parsed.meet.course === "LCM" || parsed.meet.course === "SCM" || parsed.meet.course === "SCY") ? parsed.meet.course : "LCM";
+
+    if (roster.length === 0) {
+      setSummary(`Se leyeron ${parsed.results.length} resultados de ${total} nadadores, pero aún no tienes atletas registrados en tu club. Registra primero a tus atletas para poder vincularlos e importar sus tiempos.`);
       return false;
     }
-    setSummary(`¡Éxito! ${r.found} de tus atletas encontrados con ${r.parsed.results.length} resultados oficiales: ${r.names.join(", ")}. Revisa el resumen abajo y pulsa «Importar».`);
-    onParsed(name, r.parsed);
+
+    const r = filterToRoster(parsed, roster);
+    if (!r.parsed.results.length) {
+      const sample = roster.map((a) => `${a.first_name} ${a.last_name}`).slice(0, 4).join(", ");
+      setSummary(`Se leyeron ${parsed.results.length} resultados de ${total} nadadores, pero ninguno coincide con tus atletas registrados (${sample}${roster.length > 4 ? "..." : ""}). Revisa que los nombres estén escritos exactamente igual.`);
+      return false;
+    }
+
+    r.parsed.meet = {
+      ...parsed.meet,
+      name: parsed.meet.name,
+      startDate: parsed.meet.startDate,
+      endDate: parsed.meet.endDate,
+      course: parsed.meet.course,
+    };
+
+    setSummary(`¡Éxito! ${r.found} de tus atletas encontrados con ${r.parsed.results.length} resultados oficiales: ${r.names.join(", ")}. Revisa los datos de competencia abajo y pulsa «Confirmar e importar».`);
+    onParsed(parsed.meet.name, r.parsed);
     return true;
   }
 
@@ -199,12 +225,21 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
     setSummary(null);
     try {
       const lines = htmlToLines(text).map(commaTimes);
-      const parsed = parseMeetManagerResults(lines, "Resultados FEVEDA");
+      const meetTitle = meetNameInput.trim() || "Resultados FEVEDA";
+      const parsed = parseMeetManagerResults(lines, meetTitle, meetCourseInput);
+      if (meetNameInput.trim()) parsed.meet.name = meetNameInput.trim();
+      if (meetDateInput) {
+        parsed.meet.startDate = meetDateInput;
+        parsed.meet.endDate = meetDateInput;
+      }
+      if (meetCourseInput) {
+        parsed.meet.course = meetCourseInput;
+      }
       if (!parsed.results.length) {
         setSummary("No se reconocieron pruebas ni tiempos en el texto pegado. Asegúrate de copiar la tabla de resultados completa desde tu navegador.");
         return;
       }
-      await finish("Resultados FEVEDA", parsed);
+      await finish(parsed.meet.name, parsed);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -313,6 +348,41 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         <div className="space-y-3">
           <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
             💡 <strong>100% inmune a bloqueos de Cloudflare:</strong> Abre la página de resultados en tu navegador (FEVEDA, Natación Venezuela o Meet Manager), selecciona el contenido de los resultados con <kbd className="rounded bg-muted px-1 py-0.5 font-mono">Ctrl + A</kbd>, cópialo con <kbd className="rounded bg-muted px-1 py-0.5 font-mono">Ctrl + C</kbd> y pégalo aquí. SwimLaneCoach extraerá en menos de 1 segundo solo las marcas de tus nadadores.
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Nombre de la competencia</label>
+              <Input
+                placeholder="Ej. Campeonato Nacional FEVEDA"
+                value={meetNameInput}
+                onChange={(e) => setMeetNameInput(e.target.value)}
+                disabled={busy || disabled}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Fecha del torneo</label>
+              <Input
+                type="date"
+                value={meetDateInput}
+                onChange={(e) => setMeetDateInput(e.target.value)}
+                disabled={busy || disabled}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Piscina</label>
+              <select
+                value={meetCourseInput}
+                onChange={(e) => setMeetCourseInput(e.target.value as "LCM" | "SCM" | "SCY")}
+                disabled={busy || disabled}
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="LCM">50 m · LCM (Olímpica)</option>
+                <option value="SCM">25 m · SCM (Corta)</option>
+                <option value="SCY">25 yd · SCY (Yardas)</option>
+              </select>
+            </div>
           </div>
           <Textarea
             rows={6}

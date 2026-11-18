@@ -41,16 +41,30 @@ export function parseEventHeader(line: string) {
 /** Reads a Meet Manager "Results" report from PDF text lines. Lines it cannot recognise are reported, never guessed. */
 export function parseMeetManagerResults(lines: string[], fallbackName: string, defaultCourse = "LCM"): ParsedFile {
   const warnings: string[] = [];
+  const today = new Date().toISOString().slice(0, 10);
   let meetName = "", startDate: string | null = null, endDate: string | null = null;
-  for (const line of lines.slice(0, 12)) {
-    const dates = [...line.matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g)];
-    if (dates.length) {
-      startDate = isoFromMdy(dates[0]![1]!, dates[0]![2]!, dates[0]![3]!);
-      const last = dates[dates.length - 1]!;
+  for (const line of lines.slice(0, 40)) {
+    if (/^\s*(?:#\s*)?(?:event|evento|prueba)\s+/i.test(line)) break;
+    const slashDates = [...line.matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g)];
+    if (slashDates.length) {
+      startDate = isoFromMdy(slashDates[0]![1]!, slashDates[0]![2]!, slashDates[0]![3]!);
+      const last = slashDates[slashDates.length - 1]!;
       endDate = isoFromMdy(last[1]!, last[2]!, last[3]!);
       meetName = line.split(/\s+-\s+|\s{2,}/)[0]!.replace(/(\d{1,2})\/(\d{1,2})\/(\d{4}).*/, "").trim();
       break;
     }
+    const dashDates = [...line.matchAll(/(\d{1,2})-(\d{1,2})-(\d{4})/g)];
+    if (dashDates.length) {
+      startDate = isoFromMdy(dashDates[0]![1]!, dashDates[0]![2]!, dashDates[0]![3]!);
+      const last = dashDates[dashDates.length - 1]!;
+      endDate = isoFromMdy(last[1]!, last[2]!, last[3]!);
+      meetName = line.split(/\s+-\s+|\s{2,}/)[0]!.replace(/(\d{1,2})-(\d{1,2})-(\d{4}).*/, "").trim();
+      break;
+    }
+  }
+  if (!startDate) {
+    startDate = today;
+    endDate = today;
   }
   const teams = new Map<string, ParsedTeam>(), athletes = new Map<string, ParsedAthlete>(), results: ParsedResult[] = [];
   let event: ReturnType<typeof parseEventHeader> = null, skipped = 0, relays = 0;
@@ -89,7 +103,7 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
   if (relays) warnings.push(`${relays} pruebas de relevo omitidas.`);
   if (!results.length) warnings.push("No se reconoció el formato de resultados de Meet Manager en este PDF.");
   warnings.push("Los PDF no incluyen fecha de nacimiento: revisa posibles atletas repetidos.");
-  return { format: "PDF", meet: { name: meetName || fallbackName, location: null, startDate, endDate, course: courses.size === 1 ? [...courses][0]! : defaultCourse }, teams: [...teams.values()], athletes: [...athletes.values()], results, warnings };
+  return { format: "PDF", meet: { name: meetName || fallbackName || "Torneo de Natación", location: null, startDate, endDate: endDate || startDate, course: courses.size === 1 ? [...courses][0]! : (defaultCourse || "LCM") }, teams: [...teams.values()], athletes: [...athletes.values()], results, warnings };
 }
 
 export interface AiSwim {

@@ -7,12 +7,15 @@ import { importParsed, type ImportSummary } from "@/lib/importer";
 import { PdfResultsImport } from "@/components/pdf-results-import";
 import { ResultsLinkImport } from "@/components/results-link-import";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { readAccessFile, normalizeAccess, type AccessDatabase, type AccessTimeUnit } from "@/lib/access";
 import { AccessPreview } from "@/components/access-preview";
 import { formatTime, eventLabel } from "@/lib/swim";
 import { ResetData } from "@/components/reset-data";
 import { EventSetupPreview } from "@/components/event-setup-preview";
+import { Trash2, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/import")({
   staticData: { sitemap: false },
@@ -32,12 +35,33 @@ function ImportPage() {
   const accessFiles = access.flatMap(({ db, unit, course }) => normalizeAccess(db, unit, course).filter((parsed) => parsed.athletes.length > 0).map((parsed) => ({ name: db.name, parsed })));
   const pending = [...files, ...accessFiles];
 
+  function updateFileMeet(fileIndex: number, patch: Partial<ParsedFile["meet"]>) {
+    setFiles(prev => prev.map((item, i) => {
+      if (i !== fileIndex) return item;
+      return {
+        ...item,
+        parsed: {
+          ...item.parsed,
+          meet: {
+            ...item.parsed.meet,
+            ...patch,
+          },
+        },
+      };
+    }));
+  }
+
+  function removeFile(fileIndex: number) {
+    setFiles(prev => prev.filter((_, i) => i !== fileIndex));
+  }
+
   async function onPick(list: FileList | null) {
     if (!list || reading || progress != null) return;
     setReading(true);
     setErrors([]);
     const databases: typeof access = [];
     const all: { name: string; parsed: ParsedFile }[] = [];
+    const today = new Date().toISOString().slice(0, 10);
     for (const f of Array.from(list)) {
       try {
         if (/\.mdb$/i.test(f.name)) {
@@ -46,6 +70,15 @@ function ImportPage() {
         }
         const r = await readHytekFile(f);
         if (!r.length) toast.error(`${f.name}: formato no reconocido`);
+        for (const item of r) {
+          item.parsed.meet = {
+            ...item.parsed.meet,
+            name: item.parsed.meet.name?.trim() || f.name.replace(/\.[^.]+$/, "").trim() || "Competencia",
+            startDate: item.parsed.meet.startDate || today,
+            endDate: item.parsed.meet.endDate || item.parsed.meet.startDate || today,
+            course: (item.parsed.meet.course === "LCM" || item.parsed.meet.course === "SCM" || item.parsed.meet.course === "SCY") ? item.parsed.meet.course : "LCM",
+          };
+        }
         all.push(...r);
       } catch (e) {
         const message = `${f.name}: ${e instanceof Error ? e.message : "No se pudo leer el archivo. Revisa la exportación."}`;
@@ -60,7 +93,30 @@ function ImportPage() {
   }
 
   async function run() {
-    if (pending.some(f => f.parsed.events && (!f.parsed.events.length || !f.parsed.meet.name.trim() || !f.parsed.meet.startDate || !f.parsed.meet.endDate || f.parsed.meet.endDate < f.parsed.meet.startDate))) { toast.error("Revisa el nombre, fechas y selecciona al menos una prueba."); return; }
+    if (pending.some(f => f.parsed.events && (!f.parsed.events.length || !f.parsed.meet.name.trim() || !f.parsed.meet.startDate || !f.parsed.meet.endDate || f.parsed.meet.endDate < f.parsed.meet.startDate))) {
+      toast.error("Revisa el nombre, fechas y selecciona al menos una prueba en la convocatoria.");
+      return;
+    }
+
+    for (const f of pending) {
+      if (!f.parsed.meet.name?.trim()) {
+        toast.error(`Indica el nombre de la competencia para "${f.name}".`);
+        return;
+      }
+      if (!f.parsed.meet.startDate) {
+        toast.error(`Indica la fecha de la competencia para "${f.name}".`);
+        return;
+      }
+      if (!["LCM", "SCM", "SCY"].includes(f.parsed.meet.course)) {
+        toast.error(`Selecciona la piscina (50m o 25m) para "${f.name}".`);
+        return;
+      }
+      if (!f.parsed.athletes.length) {
+        toast.error(`"${f.name}" no tiene atletas seleccionados. Vincula al menos a un atleta.`);
+        return;
+      }
+    }
+
     const summaries: ImportSummary[] = [];
     setProgress(0);
     try {
@@ -71,7 +127,7 @@ function ImportPage() {
       setDone(summaries);
       setFiles([]);
       setAccess([]);
-      toast.success("Importación completada");
+      toast.success("Importación completada con éxito.");
       qc.invalidateQueries();
     } catch (e) {
       toast.error((e as Error).message);
@@ -105,8 +161,42 @@ function ImportPage() {
         <input type="file" aria-label="Elegir archivos para importar" multiple accept=".hy3,.cl2,.sd3,.ev3,.hyv,.zip,.mdb" disabled={reading || progress != null} className="hidden" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
       </label>
 
-      <ResultsLinkImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
-      <PdfResultsImport disabled={reading || progress != null} onParsed={(name, parsed) => { setFiles((prev) => [...prev, { name, parsed }]); setDone([]); }} />
+      <ResultsLinkImport
+        disabled={reading || progress != null}
+        onParsed={(name, parsed) => {
+          const today = new Date().toISOString().slice(0, 10);
+          const safeParsed: ParsedFile = {
+            ...parsed,
+            meet: {
+              ...parsed.meet,
+              name: parsed.meet.name?.trim() || name || "Torneo FEVEDA",
+              startDate: parsed.meet.startDate || today,
+              endDate: parsed.meet.endDate || parsed.meet.startDate || today,
+              course: (parsed.meet.course === "LCM" || parsed.meet.course === "SCM" || parsed.meet.course === "SCY") ? parsed.meet.course : "LCM",
+            },
+          };
+          setFiles((prev) => [...prev, { name: safeParsed.meet.name, parsed: safeParsed }]);
+          setDone([]);
+        }}
+      />
+      <PdfResultsImport
+        disabled={reading || progress != null}
+        onParsed={(name, parsed) => {
+          const today = new Date().toISOString().slice(0, 10);
+          const safeParsed: ParsedFile = {
+            ...parsed,
+            meet: {
+              ...parsed.meet,
+              name: parsed.meet.name?.trim() || name.replace(/\.pdf$/i, "") || "Torneo de Natación",
+              startDate: parsed.meet.startDate || today,
+              endDate: parsed.meet.endDate || parsed.meet.startDate || today,
+              course: (parsed.meet.course === "LCM" || parsed.meet.course === "SCM" || parsed.meet.course === "SCY") ? parsed.meet.course : "LCM",
+            },
+          };
+          setFiles((prev) => [...prev, { name: safeParsed.meet.name, parsed: safeParsed }]);
+          setDone([]);
+        }}
+      />
       {reading && <p role="status" className="text-muted-foreground">Leyendo archivos…</p>}
       {errors.length > 0 && <div role="alert" className="space-y-2 rounded-md border border-destructive p-4 text-sm text-destructive">{errors.map((error, i) => <p className="break-words" key={i}>{error}</p>)}</div>}
       {access.map((a, i) => <div key={`${a.db.name}-${i}`} className="min-w-0 space-y-3">
@@ -116,32 +206,115 @@ function ImportPage() {
       </div>)}
 
       {pending.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold uppercase">Archivos listos para importar ({pending.length})</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setFiles([]); setAccess([]); }}
+              disabled={progress != null}
+            >
+              Limpiar lista
+            </Button>
+          </div>
           {pending.map((f, fileIndex) => {
+            const isFromFiles = fileIndex < files.length;
             const withTimes = f.parsed.results.filter((r) => r.finalMs).length;
             const splits = f.parsed.results.reduce((n, r) => n + r.splits.length, 0);
             return (
-              <div key={`${f.name}-${fileIndex}`} className="rounded-lg border bg-card p-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-display text-xl font-semibold uppercase">{f.parsed.meet.name}</span>
-                  <span className="time break-all text-xs text-muted-foreground">{f.name} · {f.parsed.format} · {f.parsed.meet.course}</span>
+              <div key={`${f.name}-${fileIndex}`} className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                  <div className="min-w-0">
+                    <span className="font-display text-xl font-semibold uppercase">{f.parsed.meet.name || f.name}</span>
+                    <p className="time break-all text-xs text-muted-foreground">{f.name} · {f.parsed.format} · Piscina: {f.parsed.meet.course}</p>
+                  </div>
+                  {isFromFiles && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                      disabled={progress != null}
+                      onClick={() => removeFile(fileIndex)}
+                      aria-label={`Quitar ${f.name}`}
+                    >
+                      <Trash2 className="mr-1.5 size-4" />
+                      Quitar archivo
+                    </Button>
+                  )}
                 </div>
-                <div className="time mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
-                  <span>{f.parsed.teams.length} clubes</span>
-                  <span>{f.parsed.athletes.length} atletas</span>
-                  <span>{f.parsed.results.length} nados</span>
-                  <span>{withTimes} con tiempo</span>
-                  <span>{splits} parciales</span>
+
+                {/* Editable meet details (Name, Date, Pool Course) */}
+                {isFromFiles && (
+                  <div className="grid gap-3 rounded-md border bg-muted/40 p-3 sm:grid-cols-3">
+                    <label className="space-y-1 text-xs font-medium">
+                      Nombre de la competencia
+                      <Input
+                        aria-label="Nombre de la competencia"
+                        value={f.parsed.meet.name}
+                        disabled={progress != null}
+                        onChange={(e) => updateFileMeet(fileIndex, { name: e.target.value })}
+                        placeholder="Ej. Torneo FEVEDA 2026"
+                        className="h-8 text-xs"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-medium">
+                      Fecha de inicio
+                      <Input
+                        aria-label="Fecha de la competencia"
+                        type="date"
+                        value={f.parsed.meet.startDate ?? ""}
+                        disabled={progress != null}
+                        onChange={(e) => updateFileMeet(fileIndex, { startDate: e.target.value, endDate: f.parsed.meet.endDate || e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </label>
+                    <div className="space-y-1 text-xs font-medium">
+                      Piscina
+                      <Select
+                        value={f.parsed.meet.course ?? "LCM"}
+                        disabled={progress != null}
+                        onValueChange={(course) => updateFileMeet(fileIndex, { course })}
+                      >
+                        <SelectTrigger aria-label="Piscina de la competencia" className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LCM">50 m · LCM (Piscina Olímpica)</SelectItem>
+                          <SelectItem value="SCM">25 m · SCM (Piscina Corta)</SelectItem>
+                          <SelectItem value="SCY">25 yd · SCY (Yardas)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="time grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+                  <span className="rounded bg-muted/50 p-1.5 text-center">{f.parsed.teams.length} clubes</span>
+                  <span className="rounded bg-muted/50 p-1.5 text-center font-medium text-primary">{f.parsed.athletes.length} atletas</span>
+                  <span className="rounded bg-muted/50 p-1.5 text-center">{f.parsed.results.length} nados</span>
+                  <span className="rounded bg-muted/50 p-1.5 text-center">{withTimes} con tiempo</span>
+                  <span className="rounded bg-muted/50 p-1.5 text-center">{splits} parciales</span>
                 </div>
+
+                {f.parsed.athletes.length === 0 && (
+                  <div role="alert" className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2.5 text-xs text-destructive">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    <span>No se encontraron atletas vinculados a tu club en este archivo. Revisa que tus atletas estén registrados en la sección «Atletas».</span>
+                  </div>
+                )}
+
                 {f.parsed.events && <EventSetupPreview parsed={f.parsed} disabled={progress != null} onChange={parsed => setFiles(prev => prev.map((file, i) => i === fileIndex ? { ...file, parsed } : file))} />}
-                {!f.parsed.events && withTimes === 0 && <p role="alert" className="mt-2 text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán. Si esperabas resultados, carga el archivo CL2/SD3 de la competencia.</p>}
-                {f.parsed.warnings.map((warning, i) => <p key={i} className="mt-2 break-words text-xs text-destructive">{warning}</p>)}
-                {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="mt-2 text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
+                {!f.parsed.events && withTimes === 0 && <p role="alert" className="text-xs text-accent">No se detectaron tiempos finales. Solo se guardarán atletas e inscripciones; las marcas existentes se conservarán.</p>}
+                {f.parsed.warnings.map((warning, i) => <p key={i} className="break-words text-xs text-destructive">{warning}</p>)}
+                {f.parsed.format === "MDB" && f.parsed.results.slice(0, 3).map((r, i) => <p key={i} className="text-xs text-muted-foreground">{eventLabel(r.distance, r.stroke)} · Sembrado {formatTime(r.seedMs)} · Final {formatTime(r.finalMs)}</p>)}
               </div>
             );
           })}
           {progress != null && <Progress value={progress} />}
-          <Button size="lg" onClick={run} disabled={reading || progress != null || pending.some(f => f.parsed.events?.length === 0)}>Confirmar e importar {pending.length} archivo(s)</Button>
+          <Button size="lg" onClick={run} disabled={reading || progress != null || pending.some(f => f.parsed.events?.length === 0 || f.parsed.athletes.length === 0)}>
+            Confirmar e importar {pending.length} archivo(s)
+          </Button>
         </div>
       )}
 

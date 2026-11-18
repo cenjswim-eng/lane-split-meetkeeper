@@ -26,9 +26,36 @@ export function reconcileSwimmer(a: ParsedAthlete, existing: ExistingSwimmer[]) 
  return { status: candidates.length ? 'possible' as const : 'new' as const, match: undefined, candidates };
 }
 export function prepareImportPayload(file: ParsedFile, fileName: string, hash?: string, clubId?: string, teamCode = 'all', links: Record<string,string> = {}) {
- const athletes = file.athletes.filter(a => teamCode === 'all' || a.teamCode === teamCode).map(a=>({...a, linkedAthleteId: links[a.key] ?? null}));
- const keys = new Set(athletes.map(a=>a.key));
- const results = file.results.filter(r=>keys.has(r.athleteKey)).map(r=>({...r, status: r.status ?? (r.isDq ? 'DQ' : r.finalMs == null ? 'NT' : 'OK'), aquaPoints: r.isDq ? null : aquaPoints(r.finalMs,r.course ?? file.meet.course,athletes.find(a=>a.key===r.athleteKey)?.gender ?? r.gender,r.distance,r.stroke)}));
- if (!athletes.length) throw new Error('No hay atletas seleccionados.');
- return { meet: file.meet, teams: file.teams.filter(t=>teamCode==='all'||t.code===teamCode), athletes, results, fileName, fileHash: hash ?? null, format: file.format, clubId: clubId ?? null };
+ const athletes = file.athletes
+  .filter(a => teamCode === 'all' || a.teamCode === teamCode)
+  .map(a => ({
+    ...a,
+    firstName: (a.firstName || 'Atleta').trim(),
+    lastName: (a.lastName || 'Desconocido').trim(),
+    linkedAthleteId: links[a.key] ?? null
+  }));
+ if (!athletes.length) throw new Error('No hay atletas seleccionados o coincidentes para importar.');
+ const keys = new Set(athletes.map(a => a.key));
+ const today = new Date().toISOString().slice(0, 10);
+ const rawName = (file.meet?.name ?? '').trim();
+ const fallbackName = fileName ? fileName.replace(/\.[^.]+$/, '').trim() : 'Torneo de Natación';
+ const meetName = rawName || fallbackName || 'Torneo de Natación';
+ const meetStartDate = file.meet?.startDate || today;
+ const meetEndDate = file.meet?.endDate || meetStartDate;
+ const meetCourse = (file.meet?.course === 'LCM' || file.meet?.course === 'SCM' || file.meet?.course === 'SCY') ? file.meet.course : 'LCM';
+ const sanitizedMeet = {
+   ...file.meet,
+   name: meetName,
+   startDate: meetStartDate,
+   endDate: meetEndDate,
+   course: meetCourse,
+ };
+ const results = file.results.filter(r => keys.has(r.athleteKey)).map(r => ({
+   ...r,
+   course: (r.course === 'LCM' || r.course === 'SCM' || r.course === 'SCY') ? r.course : sanitizedMeet.course,
+   round: (r.round === 'F' || r.round === 'P' || r.round === 'S') ? r.round : 'F',
+   status: r.status ?? (r.isDq ? 'DQ' : r.finalMs == null ? 'NT' : 'OK'),
+   aquaPoints: r.isDq ? null : aquaPoints(r.finalMs, r.course ?? sanitizedMeet.course, athletes.find(a => a.key === r.athleteKey)?.gender ?? r.gender, r.distance, r.stroke)
+ }));
+ return { meet: sanitizedMeet, teams: file.teams.filter(t => teamCode === 'all' || t.code === teamCode), athletes, results, fileName, fileHash: hash ?? null, format: file.format, clubId: clubId ?? null };
 }
