@@ -60,9 +60,9 @@ const workflowSteps = [
     title: "Resultados y Rendimiento",
     icon: Trophy,
     badge: "Post-torneo",
-    desc: "Carga el archivo de resultados oficiales (.HY3 / .CL2). El sistema calcula puntos World Aquatics, detecta marcas mínimas y genera reportes ejecutivos.",
-    action: { label: "Ver Rankings AQUA", to: "/rankings" },
-    tag: "Puntos AQUA & Mínimas",
+    desc: "Carga resultados oficiales (.HY3 / .CL2) o extrae directamente desde el portal oficial de la federación (FEVEDA / Meet Manager). El sistema extrae automáticamente solo a tus atletas.",
+    action: { label: "Cargar / Extraer Resultados", to: "/import" },
+    tag: "FEVEDA & Puntos AQUA",
   },
 ];
 

@@ -68,8 +68,8 @@ export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
 
 /** Meet Manager web results: a frameset whose index frame links one page per event (e.g. 260813F001.htm). */
 export function indexFrameUrl(html: string, base: string): string | null {
-  const src = html.match(/<(?:i?frame)[^>]+src=["']?([^"' >]*evtindex[^"' >]*)/i)?.[1]
-    ?? html.match(/href=["']([^"']*(?:evtindex|index)\.html?(?:\?[^"']*)?)["']/i)?.[1];
+  const src = html.match(/<(?:i?frame)[^>]+src=["']?([^"' >]*(?:evtindex|index|pruebas|events)[^"' >]*)/i)?.[1]
+    ?? html.match(/href=["']([^"']*(?:evtindex|index|pruebas|events)\.html?(?:\?[^"']*)?)["']/i)?.[1];
   if (!src) return null;
   const url = new URL(src.replace(/&amp;/g, "&"), base).toString();
   return url === base ? null : url;
