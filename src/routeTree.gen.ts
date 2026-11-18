@@ -257,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -296,6 +297,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -338,6 +340,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
+  '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -380,6 +383,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/blog'
+    | '/calculadora-puntos-aqua'
     | '/como-funciona'
     | '/contacto'
     | '/demo'
@@ -419,6 +423,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/calculadora-puntos-aqua'
     | '/como-funciona'
     | '/contacto'
     | '/demo'
@@ -460,6 +465,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/blog'
+    | '/calculadora-puntos-aqua'
     | '/como-funciona'
     | '/contacto'
     | '/demo'
@@ -502,6 +508,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
+  CalculadoraPuntosAquaRoute: typeof CalculadoraPuntosAquaRoute
   ComoFuncionaRoute: typeof ComoFuncionaRoute
   ContactoRoute: typeof ContactoRoute
   DemoRoute: typeof DemoRoute
