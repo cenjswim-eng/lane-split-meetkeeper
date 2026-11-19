@@ -111,6 +111,183 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
+export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, attendance: AttendanceReport, brand?: ReportBrand, startY = 16) {
+  const summary = attendanceSummary(attendance.rows);
+  let textX = 14;
+
+  if (brand?.logo) {
+    try {
+      doc.addImage(brand.logo, "PNG", 14, startY, 20, 20);
+      textX = 38;
+    } catch {}
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(20, 30, 40);
+  doc.text(brand?.name || "Swim Lane Coach", textX, startY + 6);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(80, 90, 100);
+  doc.text("Asistencia a entrenamientos · Reporte Resumido", textX, startY + 12);
+  doc.setFontSize(8);
+  doc.text(`Atleta: ${athleteName} · Período: ${attendance.from} al ${attendance.to}`, textX, startY + 17);
+  doc.setTextColor(0);
+
+  const notesRows = attendance.rows.filter(r => r.notes && r.notes.trim() && r.notes.trim() !== "—");
+  const observationsText = notesRows.length > 0
+    ? notesRows.map(r => `• ${r.training_date} (${trainingSessions[r.session]} · ${attendanceStatus[r.status]}): ${r.notes.trim()}`).join("\n")
+    : "Sin incidencias ni observaciones registradas en el período.";
+
+  const pct = summary.percentage == null ? "—" : `${summary.percentage}%`;
+  const pctDetail = summary.total > 0
+    ? `${pct} (${summary.attended} asistencias de ${summary.total} sesiones registradas · ${summary.present} presentes, ${summary.late} tarde, ${summary.absent} ausentes, ${summary.excused} justificadas)`
+    : "Sin sesiones registradas en este período";
+
+  autoTable(doc, {
+    startY: startY + 23,
+    margin: { left: 14, right: 14, bottom: 25 },
+    head: [[
+      {
+        content: "CUADRO RESUMEN DE ASISTENCIA A ENTRENAMIENTOS",
+        colSpan: 2,
+        styles: {
+          fontSize: 9,
+          fontStyle: "bold",
+          halign: "left",
+          fillColor: brand?.primary ? undefined : [12, 74, 110],
+          textColor: 255
+        }
+      }
+    ]],
+    body: [
+      [
+        { content: "Fechas / Período:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: `Del ${attendance.from} al ${attendance.to} (${summary.total} sesiones programadas)` }
+      ],
+      [
+        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        {
+          content: pctDetail,
+          styles: {
+            fontStyle: "bold",
+            fontSize: 9,
+            textColor: (summary.percentage ?? 0) >= 80 ? [8, 115, 60] : (summary.percentage ?? 0) >= 60 ? [180, 110, 0] : [180, 40, 30]
+          }
+        }
+      ],
+      [
+        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
+      ]
+    ],
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 3, lineColor: [215, 220, 225], lineWidth: 0.2, overflow: "linebreak" },
+  });
+}
+
+export function athleteAttendancePdf(athlete: { first_name: string; last_name: string; teams?: { name: string } | null }, attendance: AttendanceReport, brand?: ReportBrand): File {
+  const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc, brand);
+  const name = `${athlete.first_name} ${athlete.last_name}`;
+  renderAttendanceSummaryBox(doc, name, attendance, brand, 16);
+  return new File([brandedOutput(doc)], exportFilename(name, "_asistencia.pdf"), { type: "application/pdf" });
+}
+
+export function dailyAttendancePdf(options: {
+  date: string;
+  session: keyof typeof trainingSessions;
+  clubName: string;
+  rows: { athleteName: string; status: keyof typeof attendanceStatus | ''; notes: string }[];
+  brand?: ReportBrand;
+}): File {
+  const doc = new jsPDF({ orientation: "landscape" });
+  setReportTableBrand(doc, options.brand);
+  const startY = 16;
+  let textX = 14;
+
+  if (options.brand?.logo) {
+    try {
+      doc.addImage(options.brand.logo, "PNG", 14, startY, 20, 20);
+      textX = 38;
+    } catch {}
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(20, 30, 40);
+  doc.text(options.brand?.name || options.clubName || "Swim Lane Coach", textX, startY + 6);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(80, 90, 100);
+  doc.text("Asistencia a entrenamientos · Reporte Resumido", textX, startY + 12);
+  doc.setFontSize(8);
+  doc.text(`Fecha: ${options.date} · Sesión: ${trainingSessions[options.session]} · Emisión: ${new Date().toLocaleDateString("es-VE")}`, textX, startY + 17);
+  doc.setTextColor(0);
+
+  const registered = options.rows.filter(r => r.status);
+  const counts = { present: 0, late: 0, absent: 0, excused: 0 };
+  for (const r of registered) {
+    if (r.status in counts) counts[r.status as keyof typeof counts]++;
+  }
+  const total = registered.length;
+  const attended = counts.present + counts.late;
+  const percentage = total ? Math.round((attended / total) * 100) : null;
+
+  const notesRows = options.rows.filter(r => r.notes && r.notes.trim() && r.notes.trim() !== "—");
+  const observationsText = notesRows.length > 0
+    ? notesRows.map(r => `• ${r.athleteName} (${r.status ? attendanceStatus[r.status as keyof typeof attendanceStatus] : 'Sin estado'}): ${r.notes.trim()}`).join("\n")
+    : "Sin novedades ni observaciones registradas en esta sesión.";
+
+  const pct = percentage == null ? "—" : `${percentage}%`;
+  const pctDetail = total > 0
+    ? `${pct} (${attended} de ${total} nadadores registrados · ${counts.present} presentes, ${counts.late} tarde, ${counts.absent} ausentes, ${counts.excused} justificadas)`
+    : "Sin asistencia registrada en esta sesión";
+
+  autoTable(doc, {
+    startY: startY + 23,
+    margin: { left: 14, right: 14, bottom: 25 },
+    head: [[
+      {
+        content: "CUADRO RESUMEN DE ASISTENCIA A ENTRENAMIENTOS",
+        colSpan: 2,
+        styles: {
+          fontSize: 9,
+          fontStyle: "bold",
+          halign: "left",
+          fillColor: options.brand?.primary ? undefined : [12, 74, 110],
+          textColor: 255
+        }
+      }
+    ]],
+    body: [
+      [
+        { content: "Fechas / Sesión:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: `${options.date} · Sesión de ${trainingSessions[options.session]} (${total} nadadores registrados)` }
+      ],
+      [
+        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        {
+          content: pctDetail,
+          styles: {
+            fontStyle: "bold",
+            fontSize: 9,
+            textColor: (percentage ?? 0) >= 80 ? [8, 115, 60] : (percentage ?? 0) >= 60 ? [180, 110, 0] : [180, 40, 30]
+          }
+        }
+      ],
+      [
+        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
+      ]
+    ],
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 3, lineColor: [215, 220, 225], lineWidth: 0.2, overflow: "linebreak" },
+  });
+
+  return new File([brandedOutput(doc)], exportFilename(`asistencia_${options.date}_${options.session}`, ".pdf"), { type: "application/pdf" });
+}
+
 export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand,privacy?:ReportPrivacy,attendance?:AttendanceReport) {
   const ranked = rankedAthleteRecords(results);
   const comparisons = athleteComparisons(ranked);
@@ -157,13 +334,8 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
   if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
   if (attendance) {
-    const summary=attendanceSummary(attendance.rows);
     doc.addPage();
-    header(doc, "Asistencia a entrenamientos", `${name} · ${attendance.from} a ${attendance.to}`);
-    autoTable(doc,{startY:28,margin:{bottom:25},head:[["Sesiones registradas","Presentes","Tarde","Ausentes","Justificadas","Asistencia"]],body:[[summary.total,summary.present,summary.late,summary.absent,summary.excused,summary.percentage==null?'—':`${summary.percentage}%`]],styles:{fontSize:9}});
-    doc.setFontSize(8);doc.text("Asistencia = (presentes + tarde) / sesiones registradas. Los días sin registrar no se cuentan como ausencia.",14,y()+6);
-    if(attendance.rows.length)autoTable(doc,{startY:y()+12,margin:{bottom:25},head:[["Fecha","Sesión","Estado","Observación"]],body:attendance.rows.map(r=>[r.training_date,trainingSessions[r.session],attendanceStatus[r.status],r.notes||'—']),styles:{fontSize:8}});
-    else doc.text("Sin asistencia registrada en el periodo seleccionado.",14,y()+14);
+    renderAttendanceSummaryBox(doc, name, attendance, brand, 16);
   }
   appendAthleteProgressCharts(doc, name, ranked,undefined,brand);
   for (let page = 1; page <= doc.getNumberOfPages(); page++) {
