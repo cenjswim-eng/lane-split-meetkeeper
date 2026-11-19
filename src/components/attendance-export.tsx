@@ -1,0 +1,14 @@
+import { useState } from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { attendanceRosterQuery,loadAttendance } from '@/lib/attendance-data';
+import { attendanceDate,localAttendanceDate } from '@/lib/attendance';
+import { attendancePdf } from '@/lib/attendance-pdf';
+import { PdfExport } from './pdf-export';
+import { Input } from './ui/input';
+import { Select,SelectTrigger,SelectValue,SelectContent,SelectItem } from './ui/select';
+export function AttendanceExport(){
+ const {data}=useSuspenseQuery(attendanceRosterQuery);const today=localAttendanceDate();const [from,setFrom]=useState(today.slice(0,7)+'-01');const [to,setTo]=useState(today);const [club,setClub]=useState('all');const [athlete,setAthlete]=useState('all');
+ const athletes=data.athletes.filter(a=>club==='all'||(club==='none'?!a.club_id:a.club_id===club));
+ const valid=attendanceDate.safeParse(from).success&&attendanceDate.safeParse(to).success&&from<=to;
+ return <section className="space-y-4 border-y py-5"><h2 className="text-xl font-semibold">Reporte de solo asistencia</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-sm">Desde<Input aria-label="Reporte asistencia desde" type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label className="text-sm">Hasta<Input aria-label="Reporte asistencia hasta" type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><Select value={club} onValueChange={v=>{setClub(v);setAthlete('all');}}><SelectTrigger aria-label="Club del reporte de asistencia"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">Todos mis clubes</SelectItem><SelectItem value="none">Sin club</SelectItem>{data.clubs.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><Select value={athlete} onValueChange={setAthlete}><SelectTrigger aria-label="Nadador del reporte de asistencia"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">Todos los nadadores</SelectItem>{athletes.map(a=><SelectItem key={a.id} value={a.id}>{a.last_name}, {a.first_name}</SelectItem>)}</SelectContent></Select></div>{!valid&&<p role="alert" className="text-sm text-destructive">Revisa el periodo del reporte.</p>}<PdfExport key={`${from}-${to}-${club}-${athlete}`} title="Reporte de solo asistencia" label="PDF de asistencia" clubId={club==='all'||club==='none'?undefined:club} prepare={async brand=>{if(!valid)throw Error('Revisa el periodo del reporte.');const selected=athletes.filter(a=>athlete==='all'||a.id===athlete);const ids=new Set(selected.map(a=>a.id));const rows=(await loadAttendance(from,to,athlete==='all'?undefined:athlete)).filter(r=>ids.has(r.athlete_id));const name=athlete==='all'?(data.clubs.find(c=>c.id===club)?.name??'Mis nadadores'):selected.map(a=>`${a.first_name} ${a.last_name}`).join('');return attendancePdf(name,from,to,rows,selected,brand);}}/></section>;
+}
