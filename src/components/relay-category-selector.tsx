@@ -1,0 +1,8 @@
+import { useSwimCategories } from '@/lib/categories';
+import type { RelayAgeCategory } from '@/lib/relay-category';
+import { Select,SelectTrigger,SelectValue,SelectContent,SelectItem } from './ui/select';
+import { Input } from './ui/input';
+export function RelayCategorySelector({category,onChange,year,onYearChange}:{category:RelayAgeCategory|null;onChange:(value:RelayAgeCategory|null)=>void;year:number;onYearChange?:((year:number)=>void)|undefined}){
+ const categories=useSwimCategories();
+ return <div className="flex flex-wrap items-center gap-3"><Select value={category?'category':'open'} onValueChange={v=>onChange(v==='open'?null:categories[0]??null)}><SelectTrigger aria-label="Modalidad de edad del relevo" className="w-full sm:w-52"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="open">Abierto · todas las edades</SelectItem><SelectItem value="category">Por categoría</SelectItem></SelectContent></Select>{category&&<Select value={category.name} onValueChange={v=>onChange(categories.find(c=>c.name===v)??null)}><SelectTrigger aria-label="Categoría del relevo" className="w-full sm:w-64"><SelectValue/></SelectTrigger><SelectContent>{categories.map(c=><SelectItem key={c.name} value={c.name}>{c.label}</SelectItem>)}</SelectContent></Select>}{onYearChange?<label className="text-sm">Año de competencia<Input aria-label="Año de competencia del relevo" type="number" min={1900} max={2200} value={year} className="w-28" onChange={e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=1900&&n<=2200)onYearChange(n);}}/></label>:<span className="text-sm text-muted-foreground">Edad al 31/12/{year}</span>}</div>;
+}

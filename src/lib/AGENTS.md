@@ -8,3 +8,5 @@
 - Entry assistant calculations are pure; owner-private drafts commit through an invoker RPC to existing entries, preserving tournament guards. Pool conversion requires an explicit coach-entered factor and remains estimated.
 - Workspace navigation preserves published routes; shared presentation filters are keyed by authenticated account and never authorize data access or modify export/calculation rules.
 - Standalone attendance PDFs reuse attendance rows and summaries with explicit period/club/athlete filters; preserve optional attendance inclusion in individual reports and the prepared-file delivery flow.
+
+- Relay age-scope filtering uses relay-category.ts and account categories at December-31 competition age; open removes only the optional category filter, never official event eligibility.
