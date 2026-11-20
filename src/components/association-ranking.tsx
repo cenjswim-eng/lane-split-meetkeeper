@@ -1,0 +1,392 @@
+import { useState, useMemo } from "react";
+import { Download, FileText, Filter, Layers, Medal, Settings2, Trophy, Users } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  extractDetectedClubs,
+  calculateAssociationRankings,
+  generateAssociationRankingPdf,
+  type AssociationRankingFilters,
+} from "@/lib/association-ranking";
+import { ClubAssociationManager } from "./club-association-manager";
+import { downloadFile } from "@/lib/file-delivery";
+import type { DashboardResult } from "@/lib/dashboard-summary";
+
+export function AssociationRanking({
+  results,
+  athletes,
+  clubs = [],
+  teams = [],
+}: {
+  results: DashboardResult[];
+  athletes: any[];
+  clubs?: any[];
+  teams?: any[];
+}) {
+  // 1. Extract all detected clubs
+  const detectedClubs = useMemo(() => {
+    return extractDetectedClubs(athletes, results, clubs, teams);
+  }, [athletes, results, clubs, teams]);
+
+  // Distinct associations
+  const associationOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of detectedClubs) {
+      const assoc = c.association || "Sin Asociación";
+      counts.set(assoc, (counts.get(assoc) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [detectedClubs]);
+
+  // Filters State
+  const [selectedAssociation, setSelectedAssociation] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string>("LCM");
+  const [selectedGender, setSelectedGender] = useState<string>("all");
+  const [ageMode, setAgeMode] = useState<AssociationRankingFilters["ageMode"]>("libre");
+  const [customMinAge, setCustomMinAge] = useState<number>(13);
+  const [customMaxAge, setCustomMaxAge] = useState<number>(14);
+  const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
+  const [topLimit, setTopLimit] = useState<number>(5);
+
+  // Calculate rankings
+  const rankings = useMemo(() => {
+    return calculateAssociationRankings(results, athletes, detectedClubs, {
+      association: selectedAssociation,
+      course: selectedCourse,
+      gender: selectedGender,
+      ageMode,
+      customMinAge,
+      customMaxAge,
+      strokeFilter: selectedStroke,
+      topN: topLimit,
+    });
+  }, [
+    results,
+    athletes,
+    detectedClubs,
+    selectedAssociation,
+    selectedCourse,
+    selectedGender,
+    ageMode,
+    customMinAge,
+    customMaxAge,
+    selectedStroke,
+    topLimit,
+  ]);
+
+  // Total unique swimmers in the top 5
+  const uniqueSwimmersCount = useMemo(() => {
+    const ids = new Set<string>();
+    rankings.forEach((e) => e.top5.forEach((item) => ids.add(item.athleteId)));
+    return ids.size;
+  }, [rankings]);
+
+  // PDF Export
+  const handleExportPdf = () => {
+    try {
+      if (rankings.length === 0) {
+        toast.warning("No hay resultados para exportar con los filtros seleccionados.");
+        return;
+      }
+
+      const assocName = selectedAssociation === "all" ? "Todas las Asociaciones" : selectedAssociation;
+      const ageLabel =
+        ageMode === "libre"
+          ? "Categoría Libre (Absoluto)"
+          : ageMode === "13-14"
+          ? "Cruce de Edades: 13 - 14 años"
+          : ageMode === "11-12"
+          ? "Cruce de Edades: 11 - 12 años"
+          : ageMode === "15-16"
+          ? "Cruce de Edades: 15 - 16 años"
+          : ageMode === "17+"
+          ? "Categoría: 17 y más años"
+          : `Rango Personalizado: ${customMinAge} a ${customMaxAge} años`;
+
+      const courseLabel = selectedCourse === "LCM" ? "50 m (LCM)" : selectedCourse === "SCM" ? "25 m (SCM)" : "Todas las piscinas";
+      const genderLabel = selectedGender === "M" ? "Masculino" : selectedGender === "F" ? "Femenino" : "Masculino y Femenino";
+
+      const file = generateAssociationRankingPdf(rankings, {
+        associationName: assocName,
+        ageModeLabel: ageLabel,
+        courseLabel,
+        genderLabel,
+      });
+
+      downloadFile(file);
+      toast.success("PDF del Ranking Top 5 generado con éxito.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al generar el PDF del ranking.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header and Controls */}
+      <Card className="border-primary/20 shadow-xs">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Trophy className="size-5 text-primary" />
+                <CardTitle className="text-xl font-bold">Ranking Oficial por Asociación (Top 5)</CardTitle>
+              </div>
+              <CardDescription>
+                Extrae las 5 mejores marcas por prueba y categoría de los clubes afiliados a cada asociación. Regla oficial: 1 mejor tiempo por atleta y edad calculada al 31 de diciembre.
+              </CardDescription>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <ClubAssociationManager clubs={detectedClubs} />
+              <Button onClick={handleExportPdf} className="gap-2 shrink-0">
+                <FileText className="size-4" />
+                Exportar PDF (Top 5)
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4 pt-0">
+          {/* Filter Bar */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t pt-4">
+            {/* Asociación */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                <span>Asociación Regional</span>
+                <span className="text-[10px] text-primary">{detectedClubs.length} clubes</span>
+              </label>
+              <Select value={selectedAssociation} onValueChange={setSelectedAssociation}>
+                <SelectTrigger aria-label="Filtrar por asociación">
+                  <SelectValue placeholder="Seleccionar Asociación" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las asociaciones</SelectItem>
+                  {associationOptions.map(([assoc, count]) => (
+                    <SelectItem key={assoc} value={assoc}>
+                      {assoc} ({count} {count === 1 ? "club" : "clubes"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modalidad de Edad */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Modalidad de Edad</label>
+              <Select
+                value={ageMode}
+                onValueChange={(val: any) => setAgeMode(val)}
+              >
+                <SelectTrigger aria-label="Modalidad de edad">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="libre">Ranking Libre (Absoluto / Todas)</SelectItem>
+                  <SelectItem value="13-14">Cruce 13 - 14 años (Infantil B)</SelectItem>
+                  <SelectItem value="11-12">Cruce 11 - 12 años (Infantil A)</SelectItem>
+                  <SelectItem value="15-16">Cruce 15 - 16 años (Juvenil A)</SelectItem>
+                  <SelectItem value="17+">17 y más años (Máxima)</SelectItem>
+                  <SelectItem value="custom">Rango Personalizado...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Piscina */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Piscina</label>
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <SelectTrigger aria-label="Piscina">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las piscinas</SelectItem>
+                  <SelectItem value="LCM">50 m (Larga / LCM)</SelectItem>
+                  <SelectItem value="SCM">25 m (Corta / SCM)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sexo */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Sexo</label>
+              <Select value={selectedGender} onValueChange={setSelectedGender}>
+                <SelectTrigger aria-label="Sexo">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Ambos sexos (M y F)</SelectItem>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Custom Age Range inputs when 'custom' is active */}
+          {ageMode === "custom" && (
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/40">
+              <span className="text-xs font-semibold">Seleccionar cruce de edades personalizado:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Desde:</span>
+                <Input
+                  type="number"
+                  min={6}
+                  max={99}
+                  value={customMinAge}
+                  onChange={(e) => setCustomMinAge(Math.max(1, Number(e.target.value)))}
+                  className="w-20 h-8 text-xs"
+                />
+                <span className="text-xs">años</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Hasta:</span>
+                <Input
+                  type="number"
+                  min={6}
+                  max={99}
+                  value={customMaxAge}
+                  onChange={(e) => setCustomMaxAge(Math.max(1, Number(e.target.value)))}
+                  className="w-20 h-8 text-xs"
+                />
+                <span className="text-xs">años</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                (Edades al 31 de diciembre del año de competencia)
+              </span>
+            </div>
+          )}
+
+          {/* Quick Stats Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                Pruebas con registros: <strong className="text-foreground">{rankings.length}</strong>
+              </span>
+              <span>•</span>
+              <span>
+                Atletas clasificados en Top 5: <strong className="text-foreground">{uniqueSwimmersCount}</strong>
+              </span>
+              <span>•</span>
+              <span>
+                Asociación activa:{" "}
+                <Badge variant="outline" className="text-primary font-medium ml-1">
+                  {selectedAssociation === "all" ? "Todas" : selectedAssociation}
+                </Badge>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="top-limit-select" className="text-[11px]">Profundidad:</label>
+              <select
+                id="top-limit-select"
+                aria-label="Profundidad de puestos"
+                value={topLimit}
+                onChange={(e) => setTopLimit(Number(e.target.value))}
+                className="h-7 rounded border bg-background px-2 text-xs"
+              >
+                <option value={3}>Top 3 (Podio)</option>
+                <option value={5}>Top 5 Oficial</option>
+                <option value={10}>Top 10</option>
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results View */}
+      {rankings.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-12 text-center space-y-3">
+          <Trophy className="size-10 text-muted-foreground mx-auto" />
+          <h3 className="font-semibold text-base">No hay marcas para los filtros seleccionados</h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Verifica que los clubes de los resultados tengan su asociación configurada pulsando en «Configurar Asociaciones de Clubes», o cambia la piscina o el cruce de edades.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {rankings.map((event) => (
+            <div key={`${event.distance}-${event.stroke}-${event.course}-${event.gender}`} className="rounded-lg border bg-card overflow-hidden shadow-xs">
+              <div className="bg-muted/70 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-foreground">{event.eventLabel}</span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    Top {event.top5.length}
+                  </Badge>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {ageMode === "libre" ? "Absoluto" : ageMode === "13-14" ? "13-14 años" : ageMode === "11-12" ? "11-12 años" : ageMode === "15-16" ? "15-16 años" : ageMode === "17+" ? "17+ años" : `${customMinAge}-${customMaxAge} años`}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b bg-muted/20 text-muted-foreground font-semibold">
+                      <th className="p-2.5 text-center w-12">Pto.</th>
+                      <th className="p-2.5">Atleta</th>
+                      <th className="p-2.5">Club</th>
+                      <th className="p-2.5">Asociación</th>
+                      <th className="p-2.5 text-center">Edad (31/12)</th>
+                      <th className="p-2.5 text-right">Tiempo</th>
+                      <th className="p-2.5">Competencia</th>
+                      <th className="p-2.5 text-center">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {event.top5.map((item) => (
+                      <tr key={item.athleteId} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-2.5 text-center">
+                          <span
+                            className={`inline-flex items-center justify-center size-5 rounded-full text-[11px] font-bold ${
+                              item.rank === 1
+                                ? "bg-amber-400 text-amber-950 font-black shadow-xs"
+                                : item.rank === 2
+                                ? "bg-slate-300 text-slate-900"
+                                : item.rank === 3
+                                ? "bg-amber-600/30 text-amber-700"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {item.rank}
+                          </span>
+                        </td>
+                        <td className="p-2.5 font-semibold text-foreground">
+                          {item.athleteName}
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-[10px] text-primary">{item.clubCode}</span>
+                            <span className="text-muted-foreground truncate max-w-44">{item.clubName}</span>
+                          </div>
+                        </td>
+                        <td className="p-2.5 text-muted-foreground">
+                          {item.association}
+                        </td>
+                        <td className="p-2.5 text-center font-mono">
+                          {item.ageAtDec31 > 0 ? item.ageAtDec31 : "—"}
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-bold text-sm text-primary">
+                          {item.formattedTime}
+                        </td>
+                        <td className="p-2.5 text-muted-foreground truncate max-w-48">
+                          {item.meetName}
+                        </td>
+                        <td className="p-2.5 text-center text-muted-foreground font-mono">
+                          {item.meetDate || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

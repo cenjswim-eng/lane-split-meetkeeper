@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { loadStandardVersions } from "./standard-version-data";
 
 export const coachQuery = queryOptions({ queryKey: ["coach-data"], queryFn: async () => {
-  const [athletes, meets, events, standards, entries] = await Promise.all([
-    supabase.from("athletes").select("*, teams(code, name), clubs(team_code, full_name, is_unattached)").order("last_name"),
+  const [athletes, meets, events, standards, entries, clubs, teams] = await Promise.all([
+    supabase.from("athletes").select("*, teams(id, code, name, lsc), clubs(id, team_code, full_name, name, region_lsc, region, is_unattached)").order("last_name"),
     supabase.from("meets").select("*").order("start_date", { ascending: false }),
     supabase.from("events").select("*").eq("is_relay", false).order("distance"),
     loadStandardVersions(),
     supabase.from("meet_entries").select("*"),
+    supabase.from("clubs").select("*").order("name"),
+    supabase.from("teams").select("*").order("name"),
   ]);
   for (const response of [athletes, meets, events, standards, entries]) if (response.error) throw response.error;
   const results = [];
@@ -18,5 +20,16 @@ export const coachQuery = queryOptions({ queryKey: ["coach-data"], queryFn: asyn
     results.push(...page.data);
     if (page.data.length < 1000) break;
   }
-  return { athletes: athletes.data ?? [], meets: meets.data ?? [], events: events.data ?? [], standards: standards.data, versions: standards.versions, activeVersion: standards.activeVersion, entries: entries.data ?? [], results };
+  return {
+    athletes: athletes.data ?? [],
+    meets: meets.data ?? [],
+    events: events.data ?? [],
+    standards: standards.data,
+    versions: standards.versions,
+    activeVersion: standards.activeVersion,
+    entries: entries.data ?? [],
+    clubs: clubs.data ?? [],
+    teams: teams.data ?? [],
+    results,
+  };
 } });
