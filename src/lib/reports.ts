@@ -155,7 +155,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
           fontSize: 9,
           fontStyle: "bold",
           halign: "left",
-          fillColor: brand?.primary ? undefined : [12, 74, 110],
+          ...(brand?.primary ? {} : { fillColor: [12, 74, 110] as [number,number,number] }),
           textColor: 255
         }
       }
@@ -199,7 +199,7 @@ export function dailyAttendancePdf(options: {
   session: keyof typeof trainingSessions;
   clubName: string;
   rows: { athleteName: string; status: keyof typeof attendanceStatus | ''; notes: string }[];
-  brand?: ReportBrand;
+  brand?: ReportBrand | undefined;
 }): File {
   const doc = new jsPDF({ orientation: "landscape" });
   setReportTableBrand(doc, options.brand);
@@ -255,7 +255,7 @@ export function dailyAttendancePdf(options: {
           fontSize: 9,
           fontStyle: "bold",
           halign: "left",
-          fillColor: options.brand?.primary ? undefined : [12, 74, 110],
+          ...(options.brand?.primary ? {} : { fillColor: [12, 74, 110] as [number,number,number] }),
           textColor: 255
         }
       }

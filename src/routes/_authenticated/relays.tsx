@@ -1,3 +1,5 @@
+import { RelayCategorySelector } from '@/components/relay-category-selector';
+import { relayCategoryEligible,type RelayAgeCategory } from '@/lib/relay-category';
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -13,7 +15,7 @@ const relayQuery = (course: string, distance: number, gender: string) =>
     queryFn: async () => {
       let q = supabase
         .from("results")
-        .select("athlete_id, final_time_ms, is_dq, athletes!inner(first_name, last_name, gender, active_status), events!inner(stroke, distance)")
+        .select("athlete_id, final_time_ms, is_dq, athletes!inner(first_name, last_name, gender, active_status, birth_date), events!inner(stroke, distance)")
         .eq("course", course)
         .eq("events.distance", distance)
         .in("events.stroke", [1, 2, 3, 4])
@@ -42,6 +44,8 @@ export const Route = createFileRoute("/_authenticated/relays")({
 });
 
 function RelaysPage() {
+  const [category,setCategory]=useState<RelayAgeCategory|null>(null);
+  const [year,setYear]=useState(new Date().getFullYear());
   const [course, setCourse] = useState("LCM");
   const [distance, setDistance] = useState(100);
   const [gender, setGender] = useState("all");
@@ -50,7 +54,7 @@ function RelaysPage() {
   const { data } = useSuspenseQuery(relayQuery(course, distance, gender));
 
   const candidates = candidatesFromResults(
-    data.map((r) => ({
+    data.filter(r=>relayCategoryEligible(r.athletes.birth_date,year,category)).map((r) => ({
       athlete_id: r.athlete_id,
       name: `${r.athletes.first_name} ${r.athletes.last_name}`,
       stroke: r.events.stroke,
@@ -69,6 +73,7 @@ function RelaysPage() {
         <p className="text-muted-foreground">Cruza las mejores marcas de los nadadores activos y sugiere la cuarteta más rápida.</p>
       </div>
 
+      <RelayCategorySelector category={category} onChange={setCategory} year={year} onYearChange={setYear}/>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Select value={kind} onValueChange={(v) => setKind(v as "free" | "medley")}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -103,7 +108,7 @@ function RelaysPage() {
 
       <div className="rounded-lg border bg-card p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-2xl font-semibold uppercase">{label} · {course}</h2>
+          <h2 className="font-display text-2xl font-semibold uppercase">{label} · {course} · {category?.name??"Abierto"}</h2>
           {team && <span className="time text-2xl font-semibold text-accent">{formatTime(team.totalMs)}</span>}
         </div>
         {!team ? (
