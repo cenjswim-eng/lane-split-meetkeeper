@@ -19,15 +19,16 @@ import { type DetectedClub, normalizeAssociationName } from "@/lib/association-r
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const COMMON_ASSOCIATIONS = [
-  "Miranda (ADAEL)",
+  "Lara (ADAEL)",
+  "Miranda (ADAEM)",
+  "Táchira (ADAET)",
+  "Mérida (ASODAME)",
   "Distrito Capital (ASDAC)",
   "Carabobo (ASODENA)",
   "Aragua (ASODEA)",
-  "Lara (ADAL)",
   "Zulia (AZUDA)",
   "Bolívar (ADEABOL)",
   "Anzoátegui (ASOEDA)",
-  "Táchira (ASOADET)",
   "Nueva Esparta (ASODAN)",
 ];
 
@@ -206,8 +207,7 @@ export function ClubAssociationManager({
             <DialogTitle>Registro de Clubes y Asociaciones Afiliadas</DialogTitle>
           </div>
           <DialogDescription>
-            Clasifica la asociación a la cual pertenece cada club detectado en los resultados de competencias.
-            Las siglas como «ADAEL», «Miranda» o «MIR» se unifican automáticamente en «Miranda (ADAEL)».
+            Clasifica la asociación a la cual pertenece cada club detectado. Siglas oficiales: «ADAEL» (Lara), «ADAEM» (Miranda), «ADAET» (Táchira) y «ASODAME» (Mérida).
           </DialogDescription>
         </DialogHeader>
 
@@ -228,9 +228,33 @@ export function ClubAssociationManager({
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Miranda (ADAEL)")}
+                onClick={() => handleAssignAllShown("Lara (ADAEL)")}
               >
-                + Miranda (ADAEL)
+                + Lara (ADAEL)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Miranda (ADAEM)")}
+              >
+                + Miranda (ADAEM)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Táchira (ADAET)")}
+              >
+                + Táchira (ADAET)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Mérida (ASODAME)")}
+              >
+                + Mérida (ASODAME)
               </Button>
               <Button
                 variant="outline"
@@ -319,7 +343,7 @@ export function ClubAssociationManager({
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <div className="flex-1 sm:w-64 space-y-1">
                         <Input
-                          placeholder="Escribe la asociación (ej. ADAEL)"
+                          placeholder="Escribe la asociación (ej. ADAEL, ADAEM, ADAET)"
                           value={currentVal}
                           onChange={(e) =>
                             setAssociations((prev) => ({
@@ -359,7 +383,7 @@ export function ClubAssociationManager({
           </div>
 
           <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Consejo:</strong> Cualquier variación como «ADAEL», «Miranda» o «MIR» se unifica automáticamente en «Miranda (ADAEL)». También puedes pulsar «Asignar todos a Miranda (ADAEL)» para clasificar a todos los clubes mostrados y pulsar «Guardar Todos los Cambios».
+            <strong className="text-foreground">Consejo:</strong> «ADAEL» corresponde a Lara, «ADAEM» a Miranda, «ADAET» a Táchira y «ASODAME» a Mérida. Se unifican automáticamente con el nombre oficial del estado. También puedes pulsar los botones de asignación rápida para clasificar a los clubes mostrados y pulsar «Guardar Todos los Cambios».
           </div>
         </div>
       </DialogContent>

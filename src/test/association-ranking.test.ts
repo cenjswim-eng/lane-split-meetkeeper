@@ -8,9 +8,9 @@ import {
 
 describe("Association Ranking Top 5", () => {
   const mockClubs = [
-    { id: "club-1", team_code: "CPMI", full_name: "Centro Portugués", region_lsc: "Miranda (ADAEL)" },
-    { id: "club-2", team_code: "CIV", full_name: "Centro Italo", region_lsc: "Distrito Capital" },
-    { id: "club-3", team_code: "EMIL", full_name: "Emil Friedman", region_lsc: "Miranda (ADAEL)" },
+    { id: "club-1", team_code: "CPMI", full_name: "Centro Portugués", region_lsc: "Miranda (ADAEM)" },
+    { id: "club-2", team_code: "CIV", full_name: "Centro Italo", region_lsc: "Distrito Capital (ASDAC)" },
+    { id: "club-3", team_code: "EMIL", full_name: "Emil Friedman", region_lsc: "Miranda (ADAEM)" },
   ];
 
   const mockAthletes = [
@@ -124,13 +124,13 @@ describe("Association Ranking Top 5", () => {
     expect(detected.length).toBeGreaterThanOrEqual(3);
     const cpmi = detected.find((c) => c.code === "CPMI");
     expect(cpmi).toBeDefined();
-    expect(cpmi?.association).toBe("Miranda (ADAEL)");
+    expect(cpmi?.association).toBe("Miranda (ADAEM)");
     expect(cpmi?.athleteCount).toBe(3);
     expect(cpmi?.resultsCount).toBe(4);
 
     const emil = detected.find((c) => c.code === "EMIL");
     expect(emil).toBeDefined();
-    expect(emil?.association).toBe("Miranda (ADAEL)");
+    expect(emil?.association).toBe("Miranda (ADAEM)");
     expect(emil?.athleteCount).toBe(1);
     expect(emil?.resultsCount).toBe(1);
   });
@@ -142,7 +142,7 @@ describe("Association Ranking Top 5", () => {
       mockAthletes,
       detected,
       {
-        association: "Miranda (ADAEL)",
+        association: "Miranda (ADAEM)",
         course: "LCM",
         gender: "M",
         ageMode: "13-14",
@@ -188,7 +188,7 @@ describe("Association Ranking Top 5", () => {
       mockAthletes,
       detected,
       {
-        association: "Miranda (ADAEL)",
+        association: "Miranda (ADAEM)",
         course: "LCM",
         gender: "M",
         ageMode: "libre",
@@ -223,7 +223,7 @@ describe("Association Ranking Top 5", () => {
       mockAthletes,
       detected,
       {
-        association: "Miranda (ADAEL)",
+        association: "Miranda (ADAEM)",
         course: "LCM",
         gender: "M",
         ageMode: "13-14",
@@ -231,7 +231,7 @@ describe("Association Ranking Top 5", () => {
     );
 
     const pdfFile = generateAssociationRankingPdf(rankings, {
-      associationName: "Miranda (ADAEL)",
+      associationName: "Miranda (ADAEM)",
       ageModeLabel: "13 - 14 años",
       courseLabel: "50 m (LCM)",
       genderLabel: "Masculino",
@@ -244,22 +244,37 @@ describe("Association Ranking Top 5", () => {
     expect(pdfFile.size).toBeGreaterThan(100);
   });
 
-  it("normalizes variations of ADAEL and unifies clubs under Miranda (ADAEL)", () => {
-    expect(normalizeAssociationName("ADAEL")).toBe("Miranda (ADAEL)");
-    expect(normalizeAssociationName("adael")).toBe("Miranda (ADAEL)");
-    expect(normalizeAssociationName("Miranda")).toBe("Miranda (ADAEL)");
-    expect(normalizeAssociationName("MIR")).toBe("Miranda (ADAEL)");
-    expect(normalizeAssociationName("Miranda (ADAEL)")).toBe("Miranda (ADAEL)");
+  it("normalizes official Venezuelan association acronyms (ADAEL = Lara, ADAEM = Miranda, ADAET = Táchira, ASODAME = Mérida)", () => {
+    // ADAEL -> Lara
+    expect(normalizeAssociationName("ADAEL")).toBe("Lara (ADAEL)");
+    expect(normalizeAssociationName("adael")).toBe("Lara (ADAEL)");
+    expect(normalizeAssociationName("Lara")).toBe("Lara (ADAEL)");
+
+    // ADAEM -> Miranda
+    expect(normalizeAssociationName("ADAEM")).toBe("Miranda (ADAEM)");
+    expect(normalizeAssociationName("adaem")).toBe("Miranda (ADAEM)");
+    expect(normalizeAssociationName("Miranda")).toBe("Miranda (ADAEM)");
+    expect(normalizeAssociationName("MIR")).toBe("Miranda (ADAEM)");
+
+    // ADAET -> Táchira
+    expect(normalizeAssociationName("ADAET")).toBe("Táchira (ADAET)");
+    expect(normalizeAssociationName("Táchira")).toBe("Táchira (ADAET)");
+
+    // ASODAME -> Mérida
+    expect(normalizeAssociationName("ASODAME")).toBe("Mérida (ASODAME)");
+    expect(normalizeAssociationName("Mérida")).toBe("Mérida (ASODAME)");
+
+    // Other states
     expect(normalizeAssociationName("ASDAC")).toBe("Distrito Capital (ASDAC)");
     expect(normalizeAssociationName("ASODENA")).toBe("Carabobo (ASODENA)");
 
-    // Club with "ADAEL" and club with "Miranda" both classify under "Miranda (ADAEL)"
+    // Cross-club check for Lara and Miranda
     const clubsWithVariations = [
-      { id: "c1", team_code: "CPMI", full_name: "Centro Portugués", region_lsc: "ADAEL" },
-      { id: "c2", team_code: "EMIL", full_name: "Emil Friedman", region_lsc: "Miranda" },
+      { id: "c1", team_code: "PIS", full_name: "Piscinas Bolivarianas", region_lsc: "ADAEL" },
+      { id: "c2", team_code: "CPMI", full_name: "Centro Portugués", region_lsc: "ADAEM" },
     ];
     const detected = extractDetectedClubs([], [], clubsWithVariations as any);
-    expect(detected[0].association).toBe("Miranda (ADAEL)");
-    expect(detected[1].association).toBe("Miranda (ADAEL)");
+    expect(detected.find((c) => c.code === "PIS")?.association).toBe("Lara (ADAEL)");
+    expect(detected.find((c) => c.code === "CPMI")?.association).toBe("Miranda (ADAEM)");
   });
 });

@@ -74,9 +74,32 @@ export function normalizeAssociationName(name: string | null | undefined): strin
 
   const upper = clean.toUpperCase();
 
-  // Miranda / ADAEL / MIR
-  if (upper.includes("ADAEL") || upper.includes("MIRANDA") || upper === "MIR") {
-    return "Miranda (ADAEL)";
+  // Lara / ADAEL / LAR
+  if (upper.includes("ADAEL") || upper.includes("ADAL") || upper.includes("LARA") || upper === "LAR") {
+    return "Lara (ADAEL)";
+  }
+  // Miranda / ADAEM / MIR
+  if (upper.includes("ADAEM") || upper.includes("MIRANDA") || upper === "MIR") {
+    return "Miranda (ADAEM)";
+  }
+  // Táchira / ADAET / ASOADET / TAC
+  if (
+    upper.includes("ADAET") ||
+    upper.includes("ASOADET") ||
+    upper.includes("TACHIRA") ||
+    upper.includes("TÁCHIRA") ||
+    upper === "TAC"
+  ) {
+    return "Táchira (ADAET)";
+  }
+  // Mérida / ASODAME / MER
+  if (
+    upper.includes("ASODAME") ||
+    upper.includes("MERIDA") ||
+    upper.includes("MÉRIDA") ||
+    upper === "MER"
+  ) {
+    return "Mérida (ASODAME)";
   }
   // Distrito Capital / ASDAC / DC
   if (
@@ -94,10 +117,6 @@ export function normalizeAssociationName(name: string | null | undefined): strin
   // Aragua / ASODEA / ARA
   if (upper.includes("ASODEA") || upper.includes("ARAGUA") || upper === "ARA") {
     return "Aragua (ASODEA)";
-  }
-  // Lara / ADAL / LAR
-  if (upper.includes("ADAL") || upper.includes("LARA") || upper === "LAR") {
-    return "Lara (ADAL)";
   }
   // Zulia / AZUDA / ZUL
   if (upper.includes("AZUDA") || upper.includes("ZULIA") || upper === "ZUL") {
@@ -120,15 +139,6 @@ export function normalizeAssociationName(name: string | null | undefined): strin
     upper === "ANZ"
   ) {
     return "Anzoátegui (ASOEDA)";
-  }
-  // Táchira / ASOADET / TAC
-  if (
-    upper.includes("ASOADET") ||
-    upper.includes("TACHIRA") ||
-    upper.includes("TÁCHIRA") ||
-    upper === "TAC"
-  ) {
-    return "Táchira (ASOADET)";
   }
   // Nueva Esparta / ASODAN / NES
   if (
