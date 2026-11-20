@@ -49,7 +49,7 @@ function Rankings() {
 
         <TabsContent value="association" className="space-y-6 pt-1">
           <AssociationRanking
-            results={results}
+            results={data.results}
             athletes={data.athletes}
             clubs={(data as any).clubs || []}
             teams={(data as any).teams || []}

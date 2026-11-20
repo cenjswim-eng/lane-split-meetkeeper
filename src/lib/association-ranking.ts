@@ -43,7 +43,8 @@ export interface EventTopRanking {
 }
 
 export interface AssociationRankingFilters {
-  association: string; // 'all' or specific association name
+  association: string; // 'all' or specific association name (e.g. "Miranda (ADAEL)")
+  clubFilter?: string; // 'all' or specific club code
   course: string; // 'all' | 'LCM' | 'SCM'
   gender: string; // 'all' | 'M' | 'F'
   ageMode: "libre" | "13-14" | "11-12" | "15-16" | "17+" | "custom";
@@ -56,6 +57,7 @@ export interface AssociationRankingFilters {
 
 /**
  * Extracts and consolidates all clubs and teams detected across imported athletes, results and registries.
+ * Ensures 100% of clubs from imported meets (via origin_team) are captured.
  */
 export function extractDetectedClubs(
   athletes: any[],
@@ -106,7 +108,7 @@ export function extractDetectedClubs(
     const code = (a.clubs?.team_code || a.teams?.code || "UN").toUpperCase().trim();
     athleteClubMap.set(a.id, code);
 
-    if (!map.has(code)) {
+    if (!map.has(code) && code !== "UN") {
       map.set(code, {
         id: a.clubs?.id || a.teams?.id || code,
         code,
@@ -117,15 +119,27 @@ export function extractDetectedClubs(
         resultsCount: 0,
       });
     }
-    const entry = map.get(code)!;
-    entry.athleteCount += 1;
+    if (map.has(code)) {
+      map.get(code)!.athleteCount += 1;
+    }
   }
 
-  // 4. Results
+  // 4. Results (detect all origin_team clubs from meets so NO club is missed)
   for (const r of results) {
-    const code = athleteClubMap.get(r.athlete_id) || "UN";
-    if (map.has(code)) {
-      map.get(code)!.resultsCount += 1;
+    const rawCode = ((r as any).origin_team || athleteClubMap.get(r.athlete_id) || "UN").toUpperCase().trim();
+    if (!map.has(rawCode) && rawCode !== "UN") {
+      map.set(rawCode, {
+        id: rawCode,
+        code: rawCode,
+        name: rawCode,
+        association: "Sin Asociación",
+        isClub: false,
+        athleteCount: 0,
+        resultsCount: 0,
+      });
+    }
+    if (map.has(rawCode)) {
+      map.get(rawCode)!.resultsCount += 1;
     }
   }
 
@@ -134,17 +148,19 @@ export function extractDetectedClubs(
 
 /**
  * Filter results and extract the Top 5 best times per event according to association and age mode.
+ * Evaluates all swimmers from all clubs affiliated to the selected association.
  */
 export function calculateAssociationRankings(
   results: DashboardResult[],
   athletes: any[],
   clubs: DetectedClub[],
   filters: AssociationRankingFilters
-): EventTopRanking[] {
+): { rankings: EventTopRanking[]; participatingClubs: string[] } {
   const clubByCode = new Map(clubs.map((c) => [c.code.toUpperCase(), c]));
   const athleteMap = new Map(athletes.map((a) => [a.id, a]));
 
   const topLimit = filters.topN && filters.topN > 0 ? filters.topN : 5;
+  const matchedClubs = new Set<string>();
 
   // Group valid results by event: distance + stroke + course + gender
   const eventBuckets = new Map<string, DashboardResult[]>();
@@ -161,12 +177,27 @@ export function calculateAssociationRankings(
     const gender = athlete.gender || "M";
     if (filters.gender !== "all" && gender !== filters.gender) continue;
 
-    // Association check
-    const clubCode = (athlete.clubs?.team_code || athlete.teams?.code || "UN").toUpperCase().trim();
-    const clubInfo = clubByCode.get(clubCode);
-    const association = clubInfo?.association || (athlete.clubs?.region_lsc || athlete.teams?.lsc || "").trim() || "Sin Asociación";
+    // Determine the club for this specific swim (origin_team from meet or athlete's club)
+    const clubCode = (
+      (r as any).origin_team ||
+      athlete.clubs?.team_code ||
+      athlete.teams?.code ||
+      "UN"
+    ).toUpperCase().trim();
 
+    const clubInfo = clubByCode.get(clubCode);
+    const association =
+      clubInfo?.association ||
+      (athlete.clubs?.region_lsc || athlete.teams?.lsc || "").trim() ||
+      "Sin Asociación";
+
+    // Association filter (e.g. "Miranda (ADAEL)")
     if (filters.association !== "all" && association.toLowerCase() !== filters.association.toLowerCase()) {
+      continue;
+    }
+
+    // Optional specific club filter
+    if (filters.clubFilter && filters.clubFilter !== "all" && clubCode.toLowerCase() !== filters.clubFilter.toLowerCase()) {
       continue;
     }
 
@@ -174,7 +205,7 @@ export function calculateAssociationRankings(
     const meetYear = Number(r.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
     const athleteAge = ageAtDec31(athlete.birth_date, meetYear);
 
-    // Age Mode check
+    // Age Mode check (Libre vs Cruce de edades)
     if (filters.ageMode === "13-14" && (athleteAge < 13 || athleteAge > 14)) continue;
     if (filters.ageMode === "11-12" && (athleteAge < 11 || athleteAge > 12)) continue;
     if (filters.ageMode === "15-16" && (athleteAge < 15 || athleteAge > 16)) continue;
@@ -185,13 +216,15 @@ export function calculateAssociationRankings(
       if (athleteAge < min || athleteAge > max) continue;
     }
 
+    matchedClubs.add(clubCode);
+
     const eventKey = `${r.events.distance}-${r.events.stroke}-${r.course}-${gender}`;
     const bucket = eventBuckets.get(eventKey) || [];
     bucket.push(r);
     eventBuckets.set(eventKey, bucket);
   }
 
-  const output: EventTopRanking[] = [];
+  const rankings: EventTopRanking[] = [];
 
   for (const [key, swims] of eventBuckets.entries()) {
     const [distanceStr, strokeStr, course, gender] = key.split("-");
@@ -207,7 +240,7 @@ export function calculateAssociationRankings(
       }
     }
 
-    // Sort ascending by final time
+    // Sort ascending by final time (fastest first)
     const sorted = [...athleteBest.values()].sort((a, b) => (a.final_time_ms ?? Infinity) - (b.final_time_ms ?? Infinity));
 
     // Slice to Top N
@@ -218,7 +251,12 @@ export function calculateAssociationRankings(
       const athlete = athleteMap.get(swim.athlete_id);
       const meetYear = Number(swim.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
       const age = ageAtDec31(athlete?.birth_date, meetYear);
-      const clubCode = (athlete?.clubs?.team_code || athlete?.teams?.code || "UN").toUpperCase().trim();
+      const clubCode = (
+        (swim as any).origin_team ||
+        athlete?.clubs?.team_code ||
+        athlete?.teams?.code ||
+        "UN"
+      ).toUpperCase().trim();
       const clubInfo = clubByCode.get(clubCode);
 
       if (index === 0 || swim.final_time_ms !== topSwims[index - 1]?.final_time_ms) {
@@ -246,7 +284,7 @@ export function calculateAssociationRankings(
     });
 
     if (top5.length > 0) {
-      output.push({
+      rankings.push({
         distance,
         stroke,
         course,
@@ -258,15 +296,20 @@ export function calculateAssociationRankings(
   }
 
   // Sort events by stroke and distance
-  return output.sort((a, b) => {
+  const sortedRankings = rankings.sort((a, b) => {
     if (a.gender !== b.gender) return a.gender.localeCompare(b.gender);
     if (a.stroke !== b.stroke) return a.stroke - b.stroke;
     return a.distance - b.distance;
   });
+
+  return {
+    rankings: sortedRankings,
+    participatingClubs: [...matchedClubs].sort(),
+  };
 }
 
 /**
- * Generates an official Association Top 5 Ranking PDF.
+ * Generates an official Association / State Top 5 Ranking PDF including all affiliated clubs.
  */
 export function generateAssociationRankingPdf(
   rankings: EventTopRanking[],
@@ -275,18 +318,19 @@ export function generateAssociationRankingPdf(
     ageModeLabel: string;
     courseLabel: string;
     genderLabel: string;
+    participatingClubs?: string[];
     brand?: ReportBrand;
   }
 ): File {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   setReportTableBrand(doc, options.brand);
 
-  const title = `Ranking Oficial · ${options.associationName}`;
+  const title = `Ranking Oficial por Estado / Asociación · ${options.associationName}`;
   doc.setProperties({
     title,
     author: "Swim Lane Coach",
     creator: "Swim Lane Coach",
-    subject: "Ranking Oficial por Asociación Top 5",
+    subject: "Ranking Oficial por Estado y Asociación Top 5",
   });
 
   // Header
@@ -294,24 +338,33 @@ export function generateAssociationRankingPdf(
   doc.setFont("helvetica", "bold");
   doc.text(title, 14, 15);
 
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
   doc.text(
     `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Extracción: Mejores 5 tiempos`,
     14,
-    22
+    21
   );
+
+  // Participating clubs line
+  if (options.participatingClubs && options.participatingClubs.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setTextColor(60);
+    const clubsStr = `Clubes afiliados participantes (${options.participatingClubs.length}): ${options.participatingClubs.join(", ")}`;
+    doc.text(clubsStr.length > 130 ? clubsStr.slice(0, 127) + "..." : clubsStr, 14, 26);
+    doc.setTextColor(0);
+  }
 
   doc.setFontSize(8);
   doc.setTextColor(120);
-  doc.text(`Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}`, 14, 27);
+  doc.text(`Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}`, 14, 30);
   doc.setTextColor(0);
 
-  let currentY = 32;
+  let currentY = 35;
 
   if (rankings.length === 0) {
     doc.setFontSize(11);
-    doc.text("No se encontraron registros de tiempos con los filtros seleccionados.", 14, 45);
+    doc.text("No se encontraron registros de tiempos con los filtros seleccionados.", 14, 50);
   } else {
     for (const event of rankings) {
       if (currentY > 175) {
@@ -375,6 +428,6 @@ export function generateAssociationRankingPdf(
   }
 
   const cleanAssoc = options.associationName.replace(/[^\w-]/g, "_").toLowerCase();
-  const filename = `Ranking_Top5_${cleanAssoc}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `Ranking_Estadal_${cleanAssoc}_${new Date().toISOString().slice(0, 10)}.pdf`;
   return new File([doc.output("blob")], filename, { type: "application/pdf" });
 }

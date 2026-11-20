@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Download, FileText, Filter, Layers, Medal, Settings2, Trophy, Users } from "lucide-react";
+import { Building2, Download, FileText, Filter, Layers, Medal, Settings2, Trophy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,6 +44,7 @@ export function AssociationRanking({
 
   // Filters State
   const [selectedAssociation, setSelectedAssociation] = useState<string>("all");
+  const [selectedClub, setSelectedClub] = useState<string>("all");
   const [selectedCourse, setSelectedCourse] = useState<string>("LCM");
   const [selectedGender, setSelectedGender] = useState<string>("all");
   const [ageMode, setAgeMode] = useState<AssociationRankingFilters["ageMode"]>("libre");
@@ -52,10 +53,19 @@ export function AssociationRanking({
   const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
   const [topLimit, setTopLimit] = useState<number>(5);
 
+  // Available clubs for current association
+  const availableClubsForAssoc = useMemo(() => {
+    if (selectedAssociation === "all") return detectedClubs;
+    return detectedClubs.filter(
+      (c) => c.association.toLowerCase() === selectedAssociation.toLowerCase()
+    );
+  }, [detectedClubs, selectedAssociation]);
+
   // Calculate rankings
-  const rankings = useMemo(() => {
+  const { rankings, participatingClubs } = useMemo(() => {
     return calculateAssociationRankings(results, athletes, detectedClubs, {
       association: selectedAssociation,
+      clubFilter: selectedClub,
       course: selectedCourse,
       gender: selectedGender,
       ageMode,
@@ -69,6 +79,7 @@ export function AssociationRanking({
     athletes,
     detectedClubs,
     selectedAssociation,
+    selectedClub,
     selectedCourse,
     selectedGender,
     ageMode,
@@ -115,6 +126,7 @@ export function AssociationRanking({
         ageModeLabel: ageLabel,
         courseLabel,
         genderLabel,
+        participatingClubs,
       });
 
       downloadFile(file);
@@ -152,14 +164,20 @@ export function AssociationRanking({
 
         <CardContent className="space-y-4 pt-0">
           {/* Filter Bar */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 border-t pt-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 border-t pt-4">
             {/* Asociación */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                 <span>Asociación Regional</span>
                 <span className="text-[10px] text-primary">{detectedClubs.length} clubes</span>
               </label>
-              <Select value={selectedAssociation} onValueChange={setSelectedAssociation}>
+              <Select
+                value={selectedAssociation}
+                onValueChange={(val) => {
+                  setSelectedAssociation(val);
+                  setSelectedClub("all");
+                }}
+              >
                 <SelectTrigger aria-label="Filtrar por asociación">
                   <SelectValue placeholder="Seleccionar Asociación" />
                 </SelectTrigger>
@@ -168,6 +186,31 @@ export function AssociationRanking({
                   {associationOptions.map(([assoc, count]) => (
                     <SelectItem key={assoc} value={assoc}>
                       {assoc} ({count} {count === 1 ? "club" : "clubes"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Club dentro de la asociación */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                <span>Club (Filtro opcional)</span>
+                <span className="text-[10px] text-primary">{availableClubsForAssoc.length} disp.</span>
+              </label>
+              <Select value={selectedClub} onValueChange={setSelectedClub}>
+                <SelectTrigger aria-label="Filtrar por club">
+                  <SelectValue placeholder="Todos los clubes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {selectedAssociation === "all"
+                      ? "Todos los clubes del estado (Completo)"
+                      : `Todos los clubes de ${selectedAssociation}`}
+                  </SelectItem>
+                  {availableClubsForAssoc.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.code} {c.name && c.name !== c.code ? `- ${c.name}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,6 +266,44 @@ export function AssociationRanking({
                   <SelectItem value="F">Femenino</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Participating affiliated clubs banner */}
+          <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 font-semibold text-foreground">
+                <Building2 className="size-4 text-primary" />
+                <span>
+                  {selectedAssociation === "all"
+                    ? "Clubes clasificados de todas las asociaciones:"
+                    : `Clubes afiliados participantes en ${selectedAssociation}:`}
+                </span>
+                <Badge variant="outline" className="text-[11px] font-mono">
+                  {participatingClubs.length} {participatingClubs.length === 1 ? "club clasificado" : "clubes clasificados"}
+                </Badge>
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                Ranking estadal oficial · Incluye a todos los nadadores de los clubes afiliados
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {participatingClubs.length === 0 ? (
+                <span className="text-muted-foreground italic">No se detectaron clubes con tiempos para estos filtros.</span>
+              ) : (
+                participatingClubs.map((code) => {
+                  const clubObj = detectedClubs.find((c) => c.code.toUpperCase() === code.toUpperCase());
+                  return (
+                    <Badge key={code} variant="secondary" className="text-[11px] font-normal py-0.5 px-2">
+                      <span className="font-bold font-mono text-primary mr-1">{code}</span>
+                      {clubObj?.name && clubObj.name !== code ? (
+                        <span className="text-muted-foreground truncate max-w-44">({clubObj.name})</span>
+                      ) : null}
+                    </Badge>
+                  );
+                })
+              )}
             </div>
           </div>
 
