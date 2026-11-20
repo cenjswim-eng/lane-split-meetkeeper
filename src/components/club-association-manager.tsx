@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Building2, Save, Search, ShieldCheck } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Building2, CheckCheck, Save, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,18 +14,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { DetectedClub } from "@/lib/association-ranking";
+import { type DetectedClub, normalizeAssociationName } from "@/lib/association-ranking";
 
-const COMMON_ASSOCIATIONS = [
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const COMMON_ASSOCIATIONS = [
   "Miranda (ADAEL)",
   "Distrito Capital (ASDAC)",
   "Carabobo (ASODENA)",
   "Aragua (ASODEA)",
   "Lara (ADAL)",
   "Zulia (AZUDA)",
-  "Bolívar",
-  "Anzoátegui",
-  "Táchira",
+  "Bolívar (ADEABOL)",
+  "Anzoátegui (ASOEDA)",
+  "Táchira (ASOADET)",
+  "Nueva Esparta (ASODAN)",
 ];
 
 export function ClubAssociationManager({
@@ -39,6 +42,7 @@ export function ClubAssociationManager({
   const [search, setSearch] = useState("");
   const [associations, setAssociations] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
   const queryClient = useQueryClient();
 
   const handleOpen = () => {
@@ -51,30 +55,52 @@ export function ClubAssociationManager({
   };
 
   const handleSaveAssociation = async (club: DetectedClub) => {
-    const newAssoc = (associations[club.id] ?? "").trim();
+    const rawVal = (associations[club.id] ?? "").trim();
+    const newAssoc = normalizeAssociationName(rawVal);
+    const lscValue = newAssoc === "Sin Asociación" ? null : newAssoc;
     setSavingId(club.id);
 
     try {
-      if (club.isClub) {
-        const { error } = await supabase
-          .from("clubs")
-          .update({ region_lsc: newAssoc || null })
-          .eq("id", club.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("teams")
-          .update({ lsc: newAssoc || null })
-          .eq("id", club.id);
-        if (error) throw error;
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        throw new Error("Debes iniciar sesión para guardar.");
       }
+
+      // 1. If it's a registered club in 'clubs' with a valid UUID
+      if (club.isClub && UUID_REGEX.test(club.id)) {
+        await supabase
+          .from("clubs")
+          .update({ region_lsc: lscValue })
+          .eq("id", club.id);
+      }
+
+      // 2. Persist in 'teams' table by (owner_id, code) - matches all imported meet swimmers!
+      const { error: teamError } = await supabase
+        .from("teams")
+        .upsert(
+          {
+            owner_id: auth.user.id,
+            code: club.code,
+            name: club.name || club.code,
+            lsc: lscValue,
+          },
+          { onConflict: "owner_id,code" }
+        );
+
+      if (teamError) throw teamError;
+
+      // Update local state to the normalized name
+      setAssociations((prev) => ({
+        ...prev,
+        [club.id]: newAssoc === "Sin Asociación" ? "" : newAssoc,
+      }));
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["coach-data"] }),
         queryClient.invalidateQueries({ queryKey: ["club-management"] }),
       ]);
 
-      toast.success(`Asociación actualizada para ${club.name} (${club.code})`);
+      toast.success(`Asociación asignada a ${club.name} (${club.code}): ${newAssoc}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al actualizar la asociación");
     } finally {
@@ -82,12 +108,85 @@ export function ClubAssociationManager({
     }
   };
 
-  const filteredClubs = clubs.filter(
-    (c) =>
-      c.code.toLowerCase().includes(search.toLowerCase()) ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.association.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleSaveAll = async () => {
+    setSavingAll(true);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        throw new Error("Debes iniciar sesión para guardar.");
+      }
+
+      const changedClubs = clubs.filter((c) => {
+        const currentRaw = (associations[c.id] ?? "").trim();
+        const currentNorm = normalizeAssociationName(currentRaw);
+        return currentNorm !== c.association;
+      });
+
+      if (changedClubs.length === 0) {
+        toast.info("No hay cambios pendientes de asociación por guardar.");
+        return;
+      }
+
+      for (const club of changedClubs) {
+        const rawVal = (associations[club.id] ?? "").trim();
+        const newAssoc = normalizeAssociationName(rawVal);
+        const lscValue = newAssoc === "Sin Asociación" ? null : newAssoc;
+
+        if (club.isClub && UUID_REGEX.test(club.id)) {
+          await supabase.from("clubs").update({ region_lsc: lscValue }).eq("id", club.id);
+        }
+
+        await supabase.from("teams").upsert(
+          {
+            owner_id: auth.user.id,
+            code: club.code,
+            name: club.name || club.code,
+            lsc: lscValue,
+          },
+          { onConflict: "owner_id,code" }
+        );
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["coach-data"] }),
+        queryClient.invalidateQueries({ queryKey: ["club-management"] }),
+      ]);
+
+      toast.success(`${changedClubs.length} clubes actualizados con éxito.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al guardar los clubes.");
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
+  const handleAssignAllShown = (assocName: string) => {
+    const updated = { ...associations };
+    filteredClubs.forEach((c) => {
+      updated[c.id] = assocName;
+    });
+    setAssociations(updated);
+    toast.info(
+      `Se asignó "${assocName}" a los ${filteredClubs.length} clubes filtrados. Pulsa «Guardar Todos los Cambios» para confirmar.`
+    );
+  };
+
+  const filteredClubs = useMemo(() => {
+    return clubs.filter(
+      (c) =>
+        c.code.toLowerCase().includes(search.toLowerCase()) ||
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.association.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [clubs, search]);
+
+  const pendingCount = useMemo(() => {
+    return clubs.filter((c) => {
+      const currentRaw = (associations[c.id] ?? "").trim();
+      const currentNorm = normalizeAssociationName(currentRaw);
+      return currentNorm !== c.association;
+    }).length;
+  }, [clubs, associations]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -100,28 +199,83 @@ export function ClubAssociationManager({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-lg">
+      <DialogContent className="max-h-[88dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-lg">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
             <DialogTitle>Registro de Clubes y Asociaciones Afiliadas</DialogTitle>
           </div>
           <DialogDescription>
-            Clasifica la asociación a la cual pertenece cada club detectado en los resultados importados. Esta asignación agrupa correctamente a los nadadores en el Ranking Oficial.
+            Clasifica la asociación a la cual pertenece cada club detectado en los resultados de competencias.
+            Las siglas como «ADAEL», «Miranda» o «MIR» se unifican automáticamente en «Miranda (ADAEL)».
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar club por nombre, código o asociación..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          {/* Quick batch assign actions */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border bg-muted/40">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                <Sparkles className="size-3.5 text-primary" />
+                Asignación rápida en lote:
+              </span>
+              <p className="text-[11px] text-muted-foreground">
+                Asigna la asociación a los {filteredClubs.length} clubes mostrados con un clic
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Miranda (ADAEL)")}
+              >
+                + Miranda (ADAEL)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Distrito Capital (ASDAC)")}
+              >
+                + Dto. Capital (ASDAC)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background"
+                onClick={() => handleAssignAllShown("Carabobo (ASODENA)")}
+              >
+                + Carabobo (ASODENA)
+              </Button>
+            </div>
           </div>
 
+          {/* Search bar and Save All button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar club por nombre, código o asociación..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+            {pendingCount > 0 && (
+              <Button
+                size="sm"
+                disabled={savingAll}
+                onClick={handleSaveAll}
+                className="gap-1.5 bg-primary font-semibold text-xs h-9 shrink-0"
+              >
+                <CheckCheck className="size-4" />
+                Guardar Todos los Cambios ({pendingCount})
+              </Button>
+            )}
+          </div>
+
+          {/* Club list */}
           <div className="rounded-md border divide-y max-h-96 overflow-y-auto">
             {filteredClubs.length === 0 ? (
               <p className="p-4 text-sm text-center text-muted-foreground">
@@ -130,10 +284,14 @@ export function ClubAssociationManager({
             ) : (
               filteredClubs.map((club) => {
                 const currentVal = associations[club.id] ?? (club.association === "Sin Asociación" ? "" : club.association);
-                const hasChanged = currentVal.trim() !== (club.association === "Sin Asociación" ? "" : club.association).trim();
+                const normalizedPreview = normalizeAssociationName(currentVal);
+                const hasChanged = normalizedPreview !== club.association;
 
                 return (
-                  <div key={club.id} className="p-3 sm:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-card hover:bg-muted/40 transition-colors">
+                  <div
+                    key={club.id}
+                    className="p-3 sm:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-card hover:bg-muted/40 transition-colors"
+                  >
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono font-bold text-primary">
@@ -146,8 +304,14 @@ export function ClubAssociationManager({
                         <span>•</span>
                         <span>{club.resultsCount} marcas</span>
                         <span>•</span>
-                        <span className={club.association === "Sin Asociación" ? "text-amber-500 font-medium" : "text-primary"}>
-                          {club.association}
+                        <span
+                          className={
+                            club.association === "Sin Asociación"
+                              ? "text-amber-500 font-medium"
+                              : "text-primary font-medium"
+                          }
+                        >
+                          Actual: {club.association}
                         </span>
                       </div>
                     </div>
@@ -155,7 +319,7 @@ export function ClubAssociationManager({
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <div className="flex-1 sm:w-64 space-y-1">
                         <Input
-                          placeholder="Escribe la asociación (ej. Miranda / ADAEL)"
+                          placeholder="Escribe la asociación (ej. ADAEL)"
                           value={currentVal}
                           onChange={(e) =>
                             setAssociations((prev) => ({
@@ -171,6 +335,11 @@ export function ClubAssociationManager({
                             <option key={assoc} value={assoc} />
                           ))}
                         </datalist>
+                        {hasChanged && normalizedPreview !== "Sin Asociación" && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Se clasificará en: <strong className="text-primary">{normalizedPreview}</strong>
+                          </p>
+                        )}
                       </div>
 
                       <Button
@@ -190,7 +359,7 @@ export function ClubAssociationManager({
           </div>
 
           <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Consejo:</strong> Si un club no tiene asociación asignada, puedes escribir el nombre de su asociación o seleccionar una de las sugerencias predefinidas. Al pulsar «Guardar», todas las marcas de sus atletas se clasificarán instantáneamente en el Ranking.
+            <strong className="text-foreground">Consejo:</strong> Cualquier variación como «ADAEL», «Miranda» o «MIR» se unifica automáticamente en «Miranda (ADAEL)». También puedes pulsar «Asignar todos a Miranda (ADAEL)» para clasificar a todos los clubes mostrados y pulsar «Guardar Todos los Cambios».
           </div>
         </div>
       </DialogContent>

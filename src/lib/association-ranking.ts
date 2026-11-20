@@ -56,6 +56,94 @@ export interface AssociationRankingFilters {
 }
 
 /**
+ * Normalizes state and association variations (e.g. "ADAEL", "Miranda", "MIR", "Miranda (ADAEL)")
+ * to a canonical unified name so all clubs from the same state group together seamlessly.
+ */
+export function normalizeAssociationName(name: string | null | undefined): string {
+  if (!name) return "Sin Asociación";
+  const clean = name.trim();
+  if (
+    !clean ||
+    clean.toLowerCase() === "sin asociación" ||
+    clean.toLowerCase() === "sin asociacion" ||
+    clean.toLowerCase() === "unattached" ||
+    clean.toLowerCase() === "un"
+  ) {
+    return "Sin Asociación";
+  }
+
+  const upper = clean.toUpperCase();
+
+  // Miranda / ADAEL / MIR
+  if (upper.includes("ADAEL") || upper.includes("MIRANDA") || upper === "MIR") {
+    return "Miranda (ADAEL)";
+  }
+  // Distrito Capital / ASDAC / DC
+  if (
+    upper.includes("ASDAC") ||
+    upper.includes("DISTRITO CAPITAL") ||
+    upper.includes("DISTRITO") ||
+    upper === "DC"
+  ) {
+    return "Distrito Capital (ASDAC)";
+  }
+  // Carabobo / ASODENA / CAR
+  if (upper.includes("ASODENA") || upper.includes("CARABOBO") || upper === "CAR") {
+    return "Carabobo (ASODENA)";
+  }
+  // Aragua / ASODEA / ARA
+  if (upper.includes("ASODEA") || upper.includes("ARAGUA") || upper === "ARA") {
+    return "Aragua (ASODEA)";
+  }
+  // Lara / ADAL / LAR
+  if (upper.includes("ADAL") || upper.includes("LARA") || upper === "LAR") {
+    return "Lara (ADAL)";
+  }
+  // Zulia / AZUDA / ZUL
+  if (upper.includes("AZUDA") || upper.includes("ZULIA") || upper === "ZUL") {
+    return "Zulia (AZUDA)";
+  }
+  // Bolívar / ADEABOL / BOL
+  if (
+    upper.includes("ADEABOL") ||
+    upper.includes("BOLIVAR") ||
+    upper.includes("BOLÍVAR") ||
+    upper === "BOL"
+  ) {
+    return "Bolívar (ADEABOL)";
+  }
+  // Anzoátegui / ASOEDA / ANZ
+  if (
+    upper.includes("ASOEDA") ||
+    upper.includes("ANZOATEGUI") ||
+    upper.includes("ANZOÁTEGUI") ||
+    upper === "ANZ"
+  ) {
+    return "Anzoátegui (ASOEDA)";
+  }
+  // Táchira / ASOADET / TAC
+  if (
+    upper.includes("ASOADET") ||
+    upper.includes("TACHIRA") ||
+    upper.includes("TÁCHIRA") ||
+    upper === "TAC"
+  ) {
+    return "Táchira (ASOADET)";
+  }
+  // Nueva Esparta / ASODAN / NES
+  if (
+    upper.includes("ASODAN") ||
+    upper.includes("NUEVA ESPARTA") ||
+    upper.includes("MARGARITA") ||
+    upper === "NES"
+  ) {
+    return "Nueva Esparta (ASODAN)";
+  }
+
+  return clean;
+}
+
+/**
  * Extracts and consolidates all clubs and teams detected across imported athletes, results and registries.
  * Ensures 100% of clubs from imported meets (via origin_team) are captured.
  */
@@ -74,7 +162,7 @@ export function extractDetectedClubs(
       id: c.id,
       code,
       name: c.full_name || c.name,
-      association: (c.region_lsc || c.region || "").trim() || "Sin Asociación",
+      association: normalizeAssociationName(c.region_lsc || c.region),
       isClub: true,
       athleteCount: 0,
       resultsCount: 0,
@@ -84,20 +172,21 @@ export function extractDetectedClubs(
   // 2. Teams from meet import
   for (const t of teams) {
     const code = (t.code || "TEAM").toUpperCase().trim();
+    const assoc = normalizeAssociationName(t.lsc);
     if (!map.has(code)) {
       map.set(code, {
         id: t.id,
         code,
         name: t.name || code,
-        association: (t.lsc || "").trim() || "Sin Asociación",
+        association: assoc,
         isClub: false,
         athleteCount: 0,
         resultsCount: 0,
       });
     } else {
       const existing = map.get(code)!;
-      if (existing.association === "Sin Asociación" && t.lsc?.trim()) {
-        existing.association = t.lsc.trim();
+      if (existing.association === "Sin Asociación" && assoc !== "Sin Asociación") {
+        existing.association = assoc;
       }
     }
   }
@@ -107,13 +196,14 @@ export function extractDetectedClubs(
   for (const a of athletes) {
     const code = (a.clubs?.team_code || a.teams?.code || "UN").toUpperCase().trim();
     athleteClubMap.set(a.id, code);
+    const assoc = normalizeAssociationName(a.clubs?.region_lsc || a.teams?.lsc);
 
     if (!map.has(code) && code !== "UN") {
       map.set(code, {
         id: a.clubs?.id || a.teams?.id || code,
         code,
         name: a.clubs?.full_name || a.clubs?.name || a.teams?.name || code,
-        association: (a.clubs?.region_lsc || a.teams?.lsc || "").trim() || "Sin Asociación",
+        association: assoc,
         isClub: Boolean(a.clubs?.id),
         athleteCount: 0,
         resultsCount: 0,
@@ -121,6 +211,10 @@ export function extractDetectedClubs(
     }
     if (map.has(code)) {
       map.get(code)!.athleteCount += 1;
+      const existing = map.get(code)!;
+      if (existing.association === "Sin Asociación" && assoc !== "Sin Asociación") {
+        existing.association = assoc;
+      }
     }
   }
 
@@ -186,13 +280,17 @@ export function calculateAssociationRankings(
     ).toUpperCase().trim();
 
     const clubInfo = clubByCode.get(clubCode);
-    const association =
+    const association = normalizeAssociationName(
       clubInfo?.association ||
-      (athlete.clubs?.region_lsc || athlete.teams?.lsc || "").trim() ||
-      "Sin Asociación";
+      athlete.clubs?.region_lsc ||
+      athlete.teams?.lsc
+    );
 
     // Association filter (e.g. "Miranda (ADAEL)")
-    if (filters.association !== "all" && association.toLowerCase() !== filters.association.toLowerCase()) {
+    if (
+      filters.association !== "all" &&
+      normalizeAssociationName(filters.association).toLowerCase() !== association.toLowerCase()
+    ) {
       continue;
     }
 
@@ -272,7 +370,7 @@ export function calculateAssociationRankings(
         ageAtDec31: age,
         clubCode,
         clubName: clubInfo?.name || athlete?.clubs?.full_name || athlete?.teams?.name || clubCode,
-        association: clubInfo?.association || "Sin Asociación",
+        association: normalizeAssociationName(clubInfo?.association || athlete?.clubs?.region_lsc || athlete?.teams?.lsc),
         distance,
         stroke,
         course,

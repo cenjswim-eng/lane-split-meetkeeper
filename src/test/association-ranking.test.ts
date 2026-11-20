@@ -3,6 +3,7 @@ import {
   extractDetectedClubs,
   calculateAssociationRankings,
   generateAssociationRankingPdf,
+  normalizeAssociationName,
 } from "@/lib/association-ranking";
 
 describe("Association Ranking Top 5", () => {
@@ -241,5 +242,24 @@ describe("Association Ranking Top 5", () => {
     expect(pdfFile.name).toContain("Ranking_Estadal");
     expect(pdfFile.type).toBe("application/pdf");
     expect(pdfFile.size).toBeGreaterThan(100);
+  });
+
+  it("normalizes variations of ADAEL and unifies clubs under Miranda (ADAEL)", () => {
+    expect(normalizeAssociationName("ADAEL")).toBe("Miranda (ADAEL)");
+    expect(normalizeAssociationName("adael")).toBe("Miranda (ADAEL)");
+    expect(normalizeAssociationName("Miranda")).toBe("Miranda (ADAEL)");
+    expect(normalizeAssociationName("MIR")).toBe("Miranda (ADAEL)");
+    expect(normalizeAssociationName("Miranda (ADAEL)")).toBe("Miranda (ADAEL)");
+    expect(normalizeAssociationName("ASDAC")).toBe("Distrito Capital (ASDAC)");
+    expect(normalizeAssociationName("ASODENA")).toBe("Carabobo (ASODENA)");
+
+    // Club with "ADAEL" and club with "Miranda" both classify under "Miranda (ADAEL)"
+    const clubsWithVariations = [
+      { id: "c1", team_code: "CPMI", full_name: "Centro Portugués", region_lsc: "ADAEL" },
+      { id: "c2", team_code: "EMIL", full_name: "Emil Friedman", region_lsc: "Miranda" },
+    ];
+    const detected = extractDetectedClubs([], [], clubsWithVariations as any);
+    expect(detected[0].association).toBe("Miranda (ADAEL)");
+    expect(detected[1].association).toBe("Miranda (ADAEL)");
   });
 });
