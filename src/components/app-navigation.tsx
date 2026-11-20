@@ -21,6 +21,9 @@ import {
   BarChart3,
   Timer,
   Sliders,
+  CalendarCheck,
+  Target,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
@@ -30,10 +33,10 @@ import { WorkspaceTools } from "./workspace-tools";
 const items = [
   { to: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   // 1. Mi Club y Atletas
-  { to: "/clubs", label: "Plantilla del Club", icon: Building2 },
+  { to: "/clubs", label: "Club y Plantilla", icon: Building2 },
   { to: "/athletes", label: "Fichas de Atletas", icon: Users },
-  { to: "/club", label: "Documentos del Club", icon: FileText },
-  { to: "/attendance", label: "Asistencia", icon: ClipboardList },
+  { to: "/attendance", label: "Control de Asistencia", icon: CalendarCheck },
+  { to: "/club", label: "Documentos y Staff", icon: FileText },
   // 2. Torneos y Competencias
   { to: "/meets", label: "Calendario de Torneos", icon: CalendarDays },
   { to: "/import", label: "Importar Archivos", icon: Upload },
@@ -41,13 +44,13 @@ const items = [
   { to: "/relays", label: "Armador de Relevos", icon: Waves },
   { to: "/seeding", label: "Organizar Torneo", icon: Layers },
   { to: "/run", label: "Torneo en Vivo", icon: Timer },
-  // 3. Rendimiento y Marcas
+  // 3. Rendimiento y Reportes
   { to: "/rankings", label: "Rankings AQUA", icon: Trophy },
-  { to: "/standards", label: "Marcas Mínimas", icon: Medal },
+  { to: "/standards", label: "Marcas Mínimas", icon: Target },
   { to: "/achievements", label: "Logros y Récords", icon: Medal },
-  { to: "/reports", label: "Reportes Oficiales", icon: BarChart3 },
+  { to: "/reports", label: "Centro de Reportes", icon: BarChart3 },
   // 4. Configuración
-  { to: "/brand", label: "Marca del Club", icon: Settings2 },
+  { to: "/brand", label: "Marca del Club", icon: Palette },
   { to: "/categories", label: "Categorías (31/12)", icon: Sliders },
   { to: "/profile", label: "Mi Perfil", icon: UserRound },
   { to: "/access", label: "Control de Accesos", icon: ShieldCheck },
@@ -55,9 +58,9 @@ const items = [
 
 const groups = [
   { label: "General", paths: ["/dashboard"] },
-  { label: "Mi Club y Atletas", paths: ["/clubs", "/athletes", "/club", "/attendance"] },
+  { label: "Mi Club y Atletas", paths: ["/clubs", "/athletes", "/attendance", "/club"] },
   { label: "Torneos y Competencias", paths: ["/meets", "/import", "/entries", "/relays", "/seeding", "/run"] },
-  { label: "Rendimiento y Marcas", paths: ["/rankings", "/standards", "/achievements", "/reports"] },
+  { label: "Rendimiento y Reportes", paths: ["/rankings", "/standards", "/achievements", "/reports"] },
   { label: "Configuración", paths: ["/brand", "/categories", "/profile", "/access"] },
 ];
 
@@ -213,7 +216,7 @@ export function AppNavigation({ name, logoUrl, onSignOut }: { name: string; logo
               <Link to={to} activeProps={{ className: "bg-secondary text-primary" }}>
                 <Icon className="size-5 shrink-0" />
                 <span className="max-w-full truncate">
-                  {label === "Plantilla del Club" ? "Club" : label === "Calendario de Torneos" ? "Torneos" : label === "Rankings AQUA" ? "Rankings" : label}
+                  {label === "Club y Plantilla" ? "Club" : label === "Calendario de Torneos" ? "Torneos" : label === "Rankings AQUA" ? "Rankings" : label}
                 </span>
               </Link>
             </Button>

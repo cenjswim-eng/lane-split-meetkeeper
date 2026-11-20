@@ -22,7 +22,6 @@ function whatsAppUrl(message: string) {
   return `https://wa.me/584128503939?text=${encodeURIComponent(message)}`;
 }
 const plansWhatsAppUrl = whatsAppUrl("Hola, soy entrenador y quiero solicitar acceso a Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer los planes, precios, medios de pago y los pasos para activar mi cuenta.");
-const trialWhatsAppUrl = whatsAppUrl("Hola, quiero pedir una prueba de Swim Lane Coach con el archivo de mi última competencia.\nMi nombre: \nClub: \nPaís: ");
 function planWhatsAppUrl(plan: string) {
   return whatsAppUrl(`Hola, soy entrenador y me interesa el plan ${plan} de Swim Lane Coach.\nMi nombre: \nClub: \nPaís: \nQuisiera conocer el precio, los medios de pago y los pasos para activar mi cuenta.`);
 }
@@ -108,10 +107,10 @@ function Index() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:px-10">
           <a href="#inicio" className="flex min-w-0 items-center gap-2"><Waves className="size-6 shrink-0 text-primary" aria-hidden="true" /><span className="text-base font-semibold leading-tight sm:text-xl">Swim Lane <span className="text-primary">Coach</span></span></a>
           <nav aria-label="Navegación de inicio" className="flex items-center gap-1 sm:gap-2">
-            <Button asChild variant="ghost" className="hidden lg:inline-flex"><Link to="/funciones">Funciones</Link></Button>
-            <Button asChild variant="ghost" className="hidden lg:inline-flex"><Link to="/como-funciona">Cómo funciona</Link></Button>
+            <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#ecosistema">Ecosistema</a></Button>
+            <Button asChild variant="ghost" className="hidden lg:inline-flex"><a href="#como-funciona">Cómo funciona</a></Button>
             <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#planes">Planes</a></Button>
-            <Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/preguntas-frecuentes">Preguntas</Link></Button>
+            <Button asChild variant="ghost" className="hidden sm:inline-flex"><a href="#preguntas">Preguntas</a></Button>
             <Button asChild variant="outline" size="sm" className="min-h-10"><Link to="/dashboard" aria-label="Iniciar sesión"><LogIn aria-hidden="true" /><span className="hidden sm:inline">Iniciar sesión</span></Link></Button>
             <Button asChild size="sm" className="min-h-10 shadow-none"><a href={plansWhatsAppUrl} target="_blank" rel="noopener noreferrer"><span className="hidden sm:inline">Solicitar acceso</span><span className="sm:hidden">Acceso</span></a></Button>
           </nav>
@@ -158,38 +157,17 @@ function Index() {
       <LandingStatistics />
 
       <LandingReveal>
-        <section className="border-y border-border bg-card/40">
-          <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <h2 className="max-w-2xl text-2xl font-semibold sm:text-3xl">Deja de perseguir tiempos entre hojas de cálculo</h2>
-            <div className="mt-8 grid gap-8 md:grid-cols-3 md:gap-10">
-              {[
-                { icon: Table2, title: "Sin hojas de cálculo", text: "Los resultados, parciales e inscripciones se cargan solos desde el archivo de la competencia." },
-                { icon: ChartNoAxesCombined, title: "Parciales y progresión por nadador", text: "Cada atleta tiene su ficha con tiempos, parciales y evolución de los últimos nueve meses." },
-                { icon: Target, title: "Marcas mínimas y puntos AQUA al instante", text: "Compara cada resultado con la mínima de su categoría y conoce su puntuación sin calcular a mano." },
-              ].map(({ icon: Icon, title, text }) => (
-                <div key={title} className="landing-feature min-w-0 border-l-2 border-border pl-5">
-                  <Icon className="size-6 text-primary" aria-hidden="true" />
-                  <h3 className="mt-4 text-xl font-semibold">{title}</h3>
-                  <p className="mt-3 leading-relaxed text-muted-foreground">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </LandingReveal>
-
-      <LandingReveal>
         <section id="como-funciona" className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
           <p className="text-sm font-medium text-primary">Cómo funciona</p>
           <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">De la competencia al análisis en tres pasos</h2>
           <ol className="mt-8 grid gap-8 md:grid-cols-3 md:gap-10">
             {[
-              { icon: FileUp, title: "Importa", text: "Arrastra el archivo de la competencia y se cargan resultados, inscripciones y parciales." },
-              { icon: ChartNoAxesCombined, title: "Analiza", text: "Ve la progresión de cada nadador, sus puntos AQUA y quién está cerca de las mínimas." },
-              { icon: FileDown, title: "Comparte", text: "Revisa el PDF y comparte una copia autorizada; exporta inscripciones SD3 para comprobarlas en Meet Manager." },
-            ].map(({ icon: Icon, title, text }, index) => (
+              { icon: FileUp, title: "01 · Importa sin fricción", text: "Arrastra archivos de Meet Manager y Team Manager (HY3, SD3, CL2, MDB, ZIP). Carga automática sin hojas de cálculo ni errores manuales." },
+              { icon: ChartNoAxesCombined, title: "02 · Analiza y clasifica", text: "Progresión gráfica por nadador, parciales desglosados, puntos World Aquatics (AQUA) y marcas mínimas automáticas por categoría (edad al 31/12)." },
+              { icon: FileDown, title: "03 · Inscribe y comparte", text: "Genera archivos .SD3 listos para torneos, optimiza relevos y descarga fichas ejecutivas en PDF y Excel para el club y padres." },
+            ].map(({ icon: Icon, title, text }) => (
               <li key={title} className="landing-feature min-w-0 border-t border-border pt-5">
-                <div className="flex items-center justify-between"><span className="time text-sm text-primary">0{index + 1}</span><Icon className="size-5 text-primary" aria-hidden="true" /></div>
+                <div className="flex items-center justify-between"><Icon className="size-5 text-primary" aria-hidden="true" /></div>
                 <h3 className="mt-3 text-lg font-semibold">{title}</h3>
                 <p className="mt-3 leading-relaxed text-muted-foreground">{text}</p>
               </li>
@@ -199,16 +177,17 @@ function Index() {
       </LandingReveal>
 
       <LandingReveal>
-        <section id="funciones" className="border-t border-border bg-card/40">
+        <section id="ecosistema" className="border-t border-border bg-card/40">
           <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <p className="text-sm font-medium text-primary">Funciones</p>
-            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Todo lo que el entrenador revisa después de cada competencia</h2>
+            <p className="text-sm font-medium text-primary">Ecosistema Integrado</p>
+            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Todo lo que el entrenador revisa en un solo lugar</h2>
+            <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Unificamos la gestión de marcas, inscripciones y reportes eliminando la duplicación de datos entre programas.</p>
             <div className="mt-10 grid gap-6 sm:grid-cols-2">
               {[
-                { icon: ChartNoAxesCombined, title: "Gráfica de progresión", text: "La evolución de cada prueba y piscina, lista para el reporte en PDF del atleta.", mock: <MockChart /> },
-                { icon: Medal, title: "Comparación entre equipos y temporadas", text: "Ranking interno por puntos AQUA y comparación entre categorías y temporadas.", mock: <MockCompare /> },
-                { icon: Target, title: "Cercanía a marcas mínimas", text: "Cuánto falta para la mínima de cada categoría, por prueba, sexo y piscina. Carga las mínimas de tu federación y actualízalas cuando cambien.", mock: <MockMinimum /> },
-                { icon: FileDown, title: "Exportación SD3", text: "Inscripciones compatibles con Meet Manager y Team Manager, listas para compartir.", mock: <MockSd3 /> },
+                { icon: ChartNoAxesCombined, title: "Gráfica de progresión y parciales", text: "Evolución histórica de cada prueba y piscina de los últimos 9 meses, lista para el reporte en PDF del atleta.", mock: <MockChart /> },
+                { icon: Medal, title: "Puntos World Aquatics (AQUA)", text: "Ranking interno automático por puntuación AQUA oficial y comparación de rendimiento entre categorías y temporadas.", mock: <MockCompare /> },
+                { icon: Target, title: "Control de marcas mínimas por categoría", text: "Diferencia exacta con la mínima oficial por edad al 31 de diciembre. Importa y versiona las mínimas de tu federación.", mock: <MockMinimum /> },
+                { icon: FileDown, title: "Inscripciones y exportación SD3", text: "Inscripciones con mejores tiempos válidos compatibles con Meet Manager y Team Manager, listas para enviar al organizador.", mock: <MockSd3 /> },
               ].map(({ icon: Icon, title, text, mock }) => (
                 <article key={title} className="landing-feature min-w-0 rounded-lg border border-border bg-card p-6">
                   <div className="flex items-center gap-3"><Icon className="size-6 shrink-0 text-primary" aria-hidden="true" /><h3 className="text-lg font-semibold">{title}</h3></div>
@@ -218,64 +197,23 @@ function Index() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
-      </LandingReveal>
-
-      <LandingReveal>
-        <section className="border-t border-border">
-          <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <div className="flex items-center gap-3"><LayoutDashboard className="size-6 text-primary" aria-hidden="true" /><h2 className="text-2xl font-semibold sm:text-3xl">Mira el panel por dentro</h2></div>
-            <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Así se ve el trabajo diario: el resumen del club, la ficha de cada atleta y los reportes listos para compartir.</p>
-            <div className="mt-10 grid gap-6 md:grid-cols-3">
-              <figure className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
-                <div className="border-b border-border px-4 py-3 text-sm font-semibold">Panel principal</div>
-                <div className="space-y-3 p-4" role="img" aria-label="Maqueta de ejemplo del panel principal con totales de atletas y competencias.">
-                  <div className="grid grid-cols-3 gap-2">
-                    {["24 atletas", "6 competencias", "11 mínimas"].map((label) => <span key={label} className="rounded-md border border-border px-2 py-2 text-center text-[11px] text-muted-foreground">{label}</span>)}
-                  </div>
-                  <MockChart />
-                </div>
-                <figcaption className="px-4 pb-4 text-xs text-muted-foreground">Datos de ejemplo</figcaption>
-              </figure>
-              <figure className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
-                <div className="border-b border-border px-4 py-3 text-sm font-semibold">Ficha del atleta</div>
-                <div className="space-y-2 p-4" role="img" aria-label="Maqueta de ejemplo de la ficha del atleta con tiempos y marcas mínimas.">
-                  {[
-                    ["100 m Libre", "1:06.00", "Hizo marca"],
-                    ["200 m CI", "2:28.40", "Faltan 0.90 s"],
-                    ["50 m Espalda", "31.25", "Faltan 0.35 s"],
-                  ].map(([event, time, state]) => (
-                    <div key={event} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[11px]">
-                      <span className="truncate">{event}</span><span className="time shrink-0">{time}</span><span className="shrink-0 text-muted-foreground">{state}</span>
-                    </div>
-                  ))}
-                </div>
-                <figcaption className="px-4 pb-4 text-xs text-muted-foreground">Datos de ejemplo</figcaption>
-              </figure>
-              <figure className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
-                <div className="border-b border-border px-4 py-3 text-sm font-semibold">Reportes</div>
-                <div className="space-y-2 p-4" role="img" aria-label="Maqueta de ejemplo de reportes en PDF y Excel listos para compartir.">
-                  {["Ficha del atleta · PDF", "Resultados de la competencia · PDF", "Ranking del club · Excel"].map((label) => (
-                    <div key={label} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-[11px]"><FileSpreadsheet className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="truncate">{label}</span></div>
-                  ))}
-                </div>
-                <figcaption className="px-4 pb-4 text-xs text-muted-foreground">Datos de ejemplo</figcaption>
-              </figure>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Button asChild size="lg" className="min-h-12 h-auto px-6 py-3 text-base shadow-none">
+                <Link to="/demo"><LayoutDashboard aria-hidden="true" />Explorar la demo interactiva en vivo<ArrowRight aria-hidden="true" /></Link>
+              </Button>
             </div>
           </div>
         </section>
       </LandingReveal>
 
       {testimonials.length > 0 && <section className="mx-auto max-w-6xl px-6 py-12"><h2 className="text-2xl font-semibold">Clubes que comparten su experiencia</h2><div className="mt-8 grid gap-6 sm:grid-cols-2">{testimonials.map(t=><figure key={t.name} className="border-t pt-5">{t.logo&&<img src={t.logo} alt={`Logo de ${t.club}`} loading="lazy" className="h-16 object-contain"/>}<blockquote className="mt-4">{t.quote}</blockquote><figcaption className="mt-3 text-sm text-muted-foreground">{t.name} · {t.club}</figcaption></figure>)}</div></section>}
-      <section className="border-t"><div className="mx-auto max-w-6xl px-6 py-12 sm:px-10"><h2 className="text-2xl font-semibold">Una guía para cada paso</h2><nav aria-label="Guías del entrenador" className="mt-6 flex flex-wrap gap-3">{([['/funciones','Funciones'],['/para-entrenadores','Para entrenadores'],['/para-clubes','Para clubes'],['/como-funciona','Cómo funciona'],['/blog','Recursos']] as const).map(([to,label])=><Button asChild variant="outline" key={to}><Link to={to}>{label}<ArrowRight/></Link></Button>)}</nav><figure className="mt-8 max-w-4xl overflow-hidden rounded-lg border"><img src={preview.url} alt="Panel real de la demo Swim Lane Coach, con datos ficticios" width={1200} height={630} loading="lazy" className="w-full"/><figcaption className="bg-card px-4 py-3 text-xs text-muted-foreground">Panel real de la demo · Datos ficticios</figcaption></figure></div></section>
 
       <LandingReveal>
         <section id="planes" className="border-t border-border bg-card/40">
           <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <p className="text-sm font-medium text-primary">Planes</p>
+            <p className="text-sm font-medium text-primary">Planes y Activación</p>
             <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Elige el plan que se ajusta a tu club</h2>
-            <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Los precios y la duración se confirman por WhatsApp según el tamaño de tu club.</p>
+            <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Precios y activación coordinados directamente por WhatsApp según el tamaño de tu club y país.</p>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {[
                 { name: "Entrenador", text: "Para un entrenador con su grupo de atletas.", benefits: ["Atletas y resultados ilimitados", "Progresión y puntos AQUA", "Marcas mínimas por categoría", "Reportes en PDF y Excel"] },
@@ -293,29 +231,23 @@ function Index() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
-      </LandingReveal>
 
-      <LandingReveal>
-        <section className="border-t border-border">
-          <div className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
-            <p className="text-sm font-medium text-primary">Activación</p>
-            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Cómo activar tu cuenta</h2>
-            <ol className="mt-8 grid gap-8 md:grid-cols-3 md:gap-10">
-              {[
-                { icon: UserRound, title: "Escríbenos por WhatsApp", text: "Envíanos tu nombre, club y país para conocer los planes disponibles." },
-                { icon: CreditCard, title: "Acuerda plan y pago", text: "Confirma el importe y el medio de pago directamente en la conversación." },
-                { icon: ShieldCheck, title: "Crea tu cuenta y te activamos", text: "Regístrate desde «Iniciar sesión» e indica tu correo; el dueño aprueba tu acceso." },
-              ].map(({ icon: Icon, title, text }, index) => (
-                <li key={title} className="landing-feature min-w-0 border-t border-border pt-5">
-                  <div className="flex items-center justify-between"><span className="time text-sm text-primary">0{index + 1}</span><Icon className="size-5 text-primary" aria-hidden="true" /></div>
-                  <h3 className="mt-3 text-lg font-semibold">{title}</h3>
-                  <p className="mt-3 leading-relaxed text-muted-foreground">{text}</p>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-8 max-w-2xl rounded-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">Seguridad: nunca compartas contraseñas ni datos de tarjeta por el chat. El pago se coordina por WhatsApp, no en esta página. Los datos de tus atletas son privados: solo los ve el personal autorizado de tu club y nunca se comparten ni se publican.</p>
+            <div className="mt-12 rounded-xl border border-border bg-background p-6 sm:p-8">
+              <h3 className="text-lg font-semibold sm:text-xl">Activación sencilla en 3 pasos</h3>
+              <ol className="mt-6 grid gap-6 md:grid-cols-3">
+                {[
+                  { icon: UserRound, title: "1. Consulta por WhatsApp", text: "Escríbenos indicando tu nombre, club y país para confirmar el plan adecuado." },
+                  { icon: CreditCard, title: "2. Acuerda medios de pago", text: "Confirma el importe y los medios de pago disponibles según tu país." },
+                  { icon: ShieldCheck, title: "3. Activación inmediata", text: "Crea tu cuenta desde la web e ingresa de inmediato tras la confirmación." },
+                ].map(({ icon: Icon, title, text }) => (
+                  <li key={title} className="flex flex-col gap-2 border-t border-border pt-4">
+                    <div className="flex items-center gap-2"><Icon className="size-4 text-primary" /><span className="font-semibold text-sm">{title}</span></div>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{text}</p>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-6 text-xs text-muted-foreground border-t border-border/60 pt-4">Seguridad: los datos de tus atletas son completamente privados. Solo accede el personal autorizado de tu club.</p>
+            </div>
           </div>
         </section>
       </LandingReveal>
@@ -356,13 +288,6 @@ function Index() {
           </div>
         </section>
       </LandingReveal>
-
-      <section className="border-t border-border bg-muted">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 sm:px-10 md:flex-row md:items-center md:py-16">
-          <h2 className="max-w-xl text-2xl font-semibold sm:text-3xl">Mira cómo quedaría el archivo de tu última competencia</h2>
-          <WhatsAppButton label="Pedir una prueba por WhatsApp" href={trialWhatsAppUrl} className="shrink-0" />
-        </div>
-      </section>
 
       <section className="border-t"><div className="mx-auto max-w-3xl px-6 py-12 sm:px-10"><p className="text-sm text-primary">Contacto</p><h2 className="mt-3 text-2xl font-semibold">Cuéntanos de tu club</h2><p className="mt-3 text-muted-foreground">Consulta el plan y la activación antes de usar tus registros reales.</p><div className="mt-8"><ContactForm/></div></div></section>
       <FloatingWhatsApp/>
