@@ -5,6 +5,7 @@ import {
   generateAssociationRankingPdf,
   normalizeAssociationName,
 } from "@/lib/association-ranking";
+import { getFederation, getAssociationsForFederation } from "@/lib/federations";
 
 describe("Association Ranking Top 5", () => {
   const mockClubs = [
@@ -276,5 +277,35 @@ describe("Association Ranking Top 5", () => {
     const detected = extractDetectedClubs([], [], clubsWithVariations as any);
     expect(detected.find((c) => c.code === "PIS")?.association).toBe("Lara (ADAEL)");
     expect(detected.find((c) => c.code === "CPMI")?.association).toBe("Miranda (ADAEM)");
+  });
+
+  it("supports loading associations by federation for multiple countries", () => {
+    const ven = getFederation("VEN");
+    expect(ven.shortName).toBe("FEVEDA");
+    expect(ven.associations).toContain("Miranda (ADAEM)");
+    expect(ven.associations).toContain("Lara (ADAEL)");
+
+    const col = getFederation("COL");
+    expect(col.shortName).toBe("FECNA");
+    expect(col.associations).toContain("Antioquia (Liga de Natación de Antioquia)");
+    expect(col.associations).toContain("Bogotá (Liga de Natación de Bogotá)");
+
+    const esp = getFederation("ESP");
+    expect(esp.shortName).toBe("RFEN");
+    expect(esp.associations).toContain("Cataluña (FCN)");
+    expect(esp.associations).toContain("Madrid (FMN)");
+
+    const mex = getFederation("MEX");
+    expect(mex.shortName).toBe("FMN");
+    expect(mex.associations).toContain("Estado de México (ANEM)");
+
+    const usa = getFederation("USA");
+    expect(usa.shortName).toBe("USA Swimming");
+    expect(usa.associations).toContain("Florida Gold Coast (FG)");
+
+    // Normalization works across international associations
+    expect(normalizeAssociationName("Antioquia")).toBe("Antioquia (Liga de Natación de Antioquia)");
+    expect(normalizeAssociationName("Cataluña")).toBe("Cataluña (FCN)");
+    expect(normalizeAssociationName("FG")).toBe("Florida Gold Coast (FG)");
   });
 });

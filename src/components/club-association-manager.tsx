@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, CheckCheck, Save, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { Building2, CheckCheck, Globe, Layers, Save, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,23 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type DetectedClub, normalizeAssociationName } from "@/lib/association-ranking";
+import { FEDERATIONS, getFederation } from "@/lib/federations";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const COMMON_ASSOCIATIONS = [
-  "Lara (ADAEL)",
-  "Miranda (ADAEM)",
-  "Táchira (ADAET)",
-  "Mérida (ASODAME)",
-  "Distrito Capital (ASDAC)",
-  "Carabobo (ASODENA)",
-  "Aragua (ASODEA)",
-  "Zulia (AZUDA)",
-  "Bolívar (ADEABOL)",
-  "Anzoátegui (ASOEDA)",
-  "Nueva Esparta (ASODAN)",
-];
 
 export function ClubAssociationManager({
   clubs,
@@ -44,7 +32,13 @@ export function ClubAssociationManager({
   const [associations, setAssociations] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [selectedFederationCode, setSelectedFederationCode] = useState<string>(() => {
+    return localStorage.getItem("slc_preferred_federation") || "VEN";
+  });
+  const [batchAssocChoice, setBatchAssocChoice] = useState<string>("");
+
   const queryClient = useQueryClient();
+  const currentFederation = useMemo(() => getFederation(selectedFederationCode), [selectedFederationCode]);
 
   const handleOpen = () => {
     const initial: Record<string, string> = {};
@@ -53,6 +47,14 @@ export function ClubAssociationManager({
     });
     setAssociations(initial);
     setOpen(true);
+  };
+
+  const handleFederationChange = (code: string) => {
+    setSelectedFederationCode(code);
+    localStorage.setItem("slc_preferred_federation", code);
+    const fed = getFederation(code);
+    setBatchAssocChoice(fed.associations[0] || "");
+    toast.info(`Catálogo de asociaciones de ${fed.country} (${fed.shortName}) cargado.`);
   };
 
   const handleSaveAssociation = async (club: DetectedClub) => {
@@ -200,79 +202,104 @@ export function ClubAssociationManager({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-h-[88dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-lg">
+      <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-lg">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-primary" />
             <DialogTitle>Registro de Clubes y Asociaciones Afiliadas</DialogTitle>
           </div>
           <DialogDescription>
-            Clasifica la asociación a la cual pertenece cada club detectado. Siglas oficiales: «ADAEL» (Lara), «ADAEM» (Miranda), «ADAET» (Táchira) y «ASODAME» (Mérida).
+            Carga y clasifica las asociaciones según la federación nacional de cada país (Venezuela FEVEDA, Colombia FECNA, España RFEN, México FMN, USA Swimming, etc.).
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
-          {/* Quick batch assign actions */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border bg-muted/40">
+        <div className="space-y-4 pt-1">
+          {/* Country / Federation Selector Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg border bg-muted/40 shadow-xs">
             <div className="space-y-0.5">
-              <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                <Sparkles className="size-3.5 text-primary" />
-                Asignación rápida en lote:
-              </span>
+              <label htmlFor="fed-country-select" className="text-xs font-bold flex items-center gap-1.5 text-foreground">
+                <Globe className="size-4 text-primary" />
+                <span>Federación Nacional / País:</span>
+              </label>
               <p className="text-[11px] text-muted-foreground">
-                Asigna la asociación a los {filteredClubs.length} clubes mostrados con un clic
+                Carga el catálogo oficial de {currentFederation.associationLabel.toLowerCase()}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Lara (ADAEL)")}
-              >
-                + Lara (ADAEL)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Miranda (ADAEM)")}
-              >
-                + Miranda (ADAEM)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Táchira (ADAET)")}
-              >
-                + Táchira (ADAET)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Mérida (ASODAME)")}
-              >
-                + Mérida (ASODAME)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Distrito Capital (ASDAC)")}
-              >
-                + Dto. Capital (ASDAC)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs bg-background"
-                onClick={() => handleAssignAllShown("Carabobo (ASODENA)")}
-              >
-                + Carabobo (ASODENA)
-              </Button>
+            <div className="w-full sm:w-72">
+              <Select value={selectedFederationCode} onValueChange={handleFederationChange}>
+                <SelectTrigger id="fed-country-select" aria-label="Seleccionar federación y país">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FEDERATIONS.map((f) => (
+                    <SelectItem key={f.code} value={f.code}>
+                      <span className="mr-1.5">{f.flag}</span>
+                      <span className="font-medium">{f.country}</span>
+                      <span className="text-muted-foreground ml-1">({f.shortName})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+
+          {/* Quick batch assign actions based on the active federation */}
+          <div className="p-3 rounded-lg border bg-card space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Sparkles className="size-3.5 text-primary" />
+                <span>Atajos rápidos · {currentFederation.associationLabel}:</span>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono">
+                {currentFederation.shortName} · {currentFederation.associations.length} disponibles
+              </Badge>
+            </div>
+
+            {/* Quick buttons */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {currentFederation.associations.slice(0, 6).map((assoc) => (
+                <Button
+                  key={assoc}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs bg-background"
+                  onClick={() => handleAssignAllShown(assoc)}
+                >
+                  + {assoc.split("(")[0].trim() || assoc}
+                </Button>
+              ))}
+            </div>
+
+            {/* Batch assign from full federation list */}
+            {currentFederation.associations.length > 6 && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 border-t">
+                <span className="text-xs text-muted-foreground shrink-0">Otras asociaciones de {currentFederation.shortName}:</span>
+                <select
+                  aria-label="Seleccionar asociación para asignar en lote"
+                  value={batchAssocChoice}
+                  onChange={(e) => setBatchAssocChoice(e.target.value)}
+                  className="h-8 rounded border bg-background px-2 text-xs flex-1"
+                >
+                  <option value="">Seleccionar del catálogo de {currentFederation.country}...</option>
+                  {currentFederation.associations.map((assoc) => (
+                    <option key={assoc} value={assoc}>
+                      {assoc}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!batchAssocChoice}
+                  onClick={() => {
+                    if (batchAssocChoice) handleAssignAllShown(batchAssocChoice);
+                  }}
+                  className="h-8 text-xs shrink-0"
+                >
+                  Asignar a los mostrados
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Search bar and Save All button */}
@@ -280,7 +307,7 @@ export function ClubAssociationManager({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar club por nombre, código o asociación..."
+                placeholder="Buscar club por nombre, código o asociación asignada..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9 text-xs"
@@ -291,7 +318,7 @@ export function ClubAssociationManager({
                 size="sm"
                 disabled={savingAll}
                 onClick={handleSaveAll}
-                className="gap-1.5 bg-primary font-semibold text-xs h-9 shrink-0"
+                className="gap-1.5 bg-primary font-semibold text-xs h-9 shrink-0 shadow-xs"
               >
                 <CheckCheck className="size-4" />
                 Guardar Todos los Cambios ({pendingCount})
@@ -343,7 +370,7 @@ export function ClubAssociationManager({
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <div className="flex-1 sm:w-64 space-y-1">
                         <Input
-                          placeholder="Escribe la asociación (ej. ADAEL, ADAEM, ADAET)"
+                          placeholder={`Escribe o selecciona (${currentFederation.shortName})`}
                           value={currentVal}
                           onChange={(e) =>
                             setAssociations((prev) => ({
@@ -355,13 +382,13 @@ export function ClubAssociationManager({
                           list={`assoc-list-${club.id}`}
                         />
                         <datalist id={`assoc-list-${club.id}`}>
-                          {COMMON_ASSOCIATIONS.map((assoc) => (
+                          {currentFederation.associations.map((assoc) => (
                             <option key={assoc} value={assoc} />
                           ))}
                         </datalist>
                         {hasChanged && normalizedPreview !== "Sin Asociación" && (
                           <p className="text-[10px] text-muted-foreground">
-                            Se clasificará en: <strong className="text-primary">{normalizedPreview}</strong>
+                            Se guardará como: <strong className="text-primary">{normalizedPreview}</strong>
                           </p>
                         )}
                       </div>
@@ -383,7 +410,7 @@ export function ClubAssociationManager({
           </div>
 
           <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Consejo:</strong> «ADAEL» corresponde a Lara, «ADAEM» a Miranda, «ADAET» a Táchira y «ASODAME» a Mérida. Se unifican automáticamente con el nombre oficial del estado. También puedes pulsar los botones de asignación rápida para clasificar a los clubes mostrados y pulsar «Guardar Todos los Cambios».
+            <strong className="text-foreground">Consejo multisede:</strong> Cada club puede cambiar de federación nacional en el selector superior para desplegar automáticamente las asociaciones oficiales de su país ({FEDERATIONS.map((f) => f.country).slice(0, 5).join(", ")}, etc.).
           </div>
         </div>
       </DialogContent>

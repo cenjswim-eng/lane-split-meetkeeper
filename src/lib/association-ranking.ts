@@ -150,6 +150,24 @@ export function normalizeAssociationName(name: string | null | undefined): strin
     return "Nueva Esparta (ASODAN)";
   }
 
+  // Colombia (FECNA)
+  if (upper.includes("ANTIOQUIA")) return "Antioquia (Liga de Natación de Antioquia)";
+  if (upper.includes("BOGOTA") || upper.includes("BOGOTÁ")) return "Bogotá (Liga de Natación de Bogotá)";
+  if (upper.includes("VALLE DEL CAUCA") || upper === "VALLE") return "Valle del Cauca (Liga de Natación del Valle)";
+  if (upper.includes("SANTANDER") && !upper.includes("NORTE")) return "Santander (Liga Santandereana de Natación)";
+
+  // España (RFEN)
+  if (upper.includes("CATALUÑA") || upper.includes("CATALUNYA")) return "Cataluña (FCN)";
+  if (upper.includes("ANDALUCIA") || upper.includes("ANDALUCÍA")) return "Andalucía (FAN)";
+  if (upper.includes("MADRID")) return "Madrid (FMN)";
+  if (upper.includes("VALENCIANA") || upper.includes("VALENCIA")) return "Comunidad Valenciana (FNCV)";
+
+  // USA Swimming LSCs
+  if (upper.includes("FLORIDA GOLD COAST") || upper === "FG") return "Florida Gold Coast (FG)";
+  if (upper.includes("FLORIDA SWIMMING") || upper === "FL") return "Florida Swimming (FL)";
+  if (upper.includes("SOUTHERN CALIFORNIA") || upper === "CA") return "Southern California (CA)";
+  if (upper.includes("PACIFIC SWIMMING") || upper === "PC") return "Pacific Swimming (PC)";
+
   return clean;
 }
 
