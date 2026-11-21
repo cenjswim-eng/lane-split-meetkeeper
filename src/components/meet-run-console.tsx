@@ -15,14 +15,55 @@ import {supabase} from '@/integrations/supabase/client';
 import {RunResultExport} from './run-result-export';
 import type {ExportRow} from '@/lib/hytek/sdif';
 import {TechnicalDeskConsole, type HeatLaneSwimmerEntry} from '@/components/meet-engine/technical-desk-console';
+import {LiveResultsPortal, type PortalEvent, type PortalSwimmerResult, type PortalTeamScore} from '@/components/meet-engine/live-results-portal';
+import {EVENT_STATUS_CONFIG, type EventLiveStatus, transitionEventStatus, recordLiveScratch} from '@/lib/meet-engine/live-lifecycle';
+import {enqueueOfflineHeat, getOfflineTimingQueue, drainOfflineQueue, registerNetworkSyncListener} from '@/lib/meet-engine/offline-pool-sync';
+import {Badge} from '@/components/ui/badge';
+import {Wifi, WifiOff, UserMinus, QrCode} from 'lucide-react';
 interface LaneDraft {text:string;status:RunStatus;dqCode:string;splits:{distance:number;timeMs:number}[]}
 export function MeetRunConsole(){
  const {data}=useSuspenseQuery(seedingQuery),{data:results}=useSuspenseQuery(runResultsQuery);const client=useQueryClient();
  const [meetId,setMeetId]=useState(data.meets[0]?.id??''),[session,setSession]=useState(1),[eventId,setEventId]=useState(''),[heat,setHeat]=useState(1),[round,setRound]=useState('F'),[draft,setDraft]=useState<Record<string,LaneDraft>>({}),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false);
  const [running,setRunning]=useState(false),[elapsed,setElapsed]=useState(0);const start=useRef(0);
+ const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+ const [offlineCount, setOfflineCount] = useState(getOfflineTimingQueue().length);
+ const [eventStatuses, setEventStatuses] = useState<Record<string, EventLiveStatus>>({});
+
  useEffect(()=>{const id=setInterval(()=>{void client.invalidateQueries({queryKey:['meet-seeding']});},10000);return()=>clearInterval(id);},[client]);
  useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty||running){e.preventDefault();}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty,running]);
  useEffect(()=>{if(!running)return;const interval=setInterval(()=>setElapsed(Math.round(performance.now()-start.current)),40);return()=>clearInterval(interval);},[running]);
+
+ useEffect(() => {
+   return registerNetworkSyncListener((online) => {
+     setIsOnline(online);
+     if (online) {
+       toast.info('Conexión de red reestablecida. Sincronizando cola local con la nube...');
+       drainOfflineQueue(async (item) => {
+         const { error } = await supabase.rpc('save_run_heat', {
+           p_meet: item.meetId,
+           p_event: item.eventId,
+           p_heat: item.heatNumber,
+           p_round: item.round,
+           p_rows: item.rows.map(r => ({
+             id: '',
+             timeMs: r.timeMs,
+             status: r.status,
+             dqCode: r.dqCode ?? '',
+             dqDescription: r.dqCode ? dqReasons.find(x => x.code === r.dqCode)?.label ?? r.dqCode : '',
+             splits: r.splits ?? [],
+           })),
+         });
+         return !error;
+       }).then(({ syncedCount }) => {
+         setOfflineCount(getOfflineTimingQueue().length);
+         if (syncedCount > 0) toast.success(`Sincronización completa: ${syncedCount} serie(s) subidas.`);
+       });
+     } else {
+       toast.warning('Modo Offline Activado: La captura continuará guardándose localmente sin interrupción.');
+     }
+   });
+ }, []);
+
  const meet=data.meets.find(m=>m.id===meetId),events=data.events.filter(e=>e.meet_id===meetId&&e.session_number===session).sort((a,b)=>String(a.event_number??'').localeCompare(String(b.event_number??''),undefined,{numeric:true})),event=events.find(e=>e.id===eventId)??events[0],entries=organizerEntries(data,meetId,session).filter(e=>e.eventId===event?.id&&e.savedHeat===heat&&e.status!=='SCR').sort((a,b)=>(a.savedLane??0)-(b.savedLane??0));
  const heats=[...new Set(organizerEntries(data,meetId,session).filter(e=>e.eventId===event?.id&&e.savedHeat!=null).map(e=>e.savedHeat??1))].sort((a,b)=>a-b);
  function reset(){setDraft({});setDirty(false);setRunning(false);setElapsed(0);}
@@ -30,7 +71,64 @@ export function MeetRunConsole(){
  function laneValue(id:string):LaneDraft{const local=draft[id];if(local)return local;const e=entries.find(e=>e.id===id),rid=id.split(':')[1],r=results.find(r=>r.run_entry_id===rid&&r.round===round);const relay=data.relays.find(r=>`relay:${r.id}`===id);return {text:formatTime(r?.final_time_ms??(e?.kind==='relay'?relay?.finals_time_ms:null)).replace('—',''),status:r?.is_exhibition||relay?.is_exhibition?'EXH':r?.status==='DQ'||relay?.status==='DQ'?'DQ':r?.status==='NS'||relay?.status==='NS'?'NS':'OK',dqCode:r?.dq_code??relay?.dq_code??'',splits:r?.splits.map(s=>({distance:s.split_distance,timeMs:s.cumulative_time_ms}))??(e?.kind==='relay'?relay?.run_splits as {distance:number;timeMs:number}[]:undefined)??[]};}
  function update(id:string,change:Partial<LaneDraft>){setDraft(prev=>({...prev,[id]:{...laneValue(id),...change}}));setDirty(true);}
  function clockMs(){return Math.round((performance.now()-start.current)/10)*10;}
- async function save(){if(!event||!meet)return;setBusy(true);try{const rows=entries.map(e=>{const v=laneValue(e.id);return {id:e.id.split(':')[1],timeMs:quickTimeMs(v.text),status:v.status,dqCode:v.dqCode,dqDescription:dqReasons.find(x=>x.code===v.dqCode)?.label??v.dqCode,splits:v.splits};});const {error}=await supabase.rpc('save_run_heat',{p_meet:meet.id,p_event:event.id,p_heat:heat,p_round:round,p_rows:rows});if(error)throw error;setRunning(false);await Promise.all([client.invalidateQueries({queryKey:['run-results']}),client.invalidateQueries({queryKey:['meet-seeding']}),client.invalidateQueries({queryKey:['coach-data']})]);setDraft({});setDirty(false);toast.success('Resultados guardados y clasificados');}catch(e){toast.error(e instanceof Error?e.message:'No se pudo guardar');}finally{setBusy(false);}}
+
+ async function save(){
+   if(!event||!meet)return;
+   setBusy(true);
+   const rows=entries.map(e=>{
+     const v=laneValue(e.id);
+     return {
+       id:e.id.split(':')[1],
+       laneNumber: e.savedLane ?? 1,
+       timeMs:quickTimeMs(v.text),
+       status:v.status,
+       dqCode:v.dqCode,
+       dqDescription:dqReasons.find(x=>x.code===v.dqCode)?.label??v.dqCode,
+       splits:v.splits
+     };
+   });
+
+   if (typeof navigator !== 'undefined' && !navigator.onLine) {
+     enqueueOfflineHeat({
+       meetId: meet.id,
+       eventId: event.id,
+       heatNumber: heat,
+       round,
+       capturedBy: 'Mesa Técnica (Offline)',
+       rows,
+     });
+     setOfflineCount(getOfflineTimingQueue().length);
+     setRunning(false);
+     setDraft({});
+     setDirty(false);
+     setBusy(false);
+     toast.info('Modo Offline: Serie guardada en el dispositivo. Se sincronizará automáticamente.');
+     return;
+   }
+
+   try{
+     const {error}=await supabase.rpc('save_run_heat',{p_meet:meet.id,p_event:event.id,p_heat:heat,p_round:round,p_rows:rows.map(r=>({id:r.id,timeMs:r.timeMs,status:r.status,dqCode:r.dqCode,dqDescription:r.dqDescription,splits:r.splits}))});
+     if(error)throw error;
+     setRunning(false);
+     await Promise.all([client.invalidateQueries({queryKey:['run-results']}),client.invalidateQueries({queryKey:['meet-seeding']}),client.invalidateQueries({queryKey:['coach-data']})]);
+     setDraft({});
+     setDirty(false);
+     toast.success('Resultados guardados y clasificados');
+   }catch(e){
+     enqueueOfflineHeat({
+       meetId: meet.id,
+       eventId: event.id,
+       heatNumber: heat,
+       round,
+       capturedBy: 'Mesa Técnica (Falla Red)',
+       rows,
+     });
+     setOfflineCount(getOfflineTimingQueue().length);
+     toast.warning('Falla de conexión: serie guardada en cola local offline.');
+   }finally{
+     setBusy(false);
+   }
+ }
  const meetResults=results.filter(r=>r.meet_id===meetId&&r.run_entry_id!=null&&r.round==='F'),scores=data.clubs.map(c=>{const rows=meetResults.filter(r=>r.scoring_club_id===c.id&&!r.scoring_unattached&&!r.is_exhibition);const female=rows.filter(r=>data.athletes.find(a=>a.id===r.athlete_id)?.gender==='F').reduce((n,r)=>n+(r.points_scored??0),0),male=rows.filter(r=>data.athletes.find(a=>a.id===r.athlete_id)?.gender==='M').reduce((n,r)=>n+(r.points_scored??0),0);const relay=data.relays.filter(r=>r.status==='COMPLETED'&&r.meet_id===meetId&&r.club_id===c.id&&!c.is_unattached&&!r.is_exhibition);const rf=relay.filter(r=>data.events.find(e=>e.id===r.event_id)?.gender==='F').reduce((n,r)=>n+(r.points_scored??0),0),rm=relay.filter(r=>data.events.find(e=>e.id===r.event_id)?.gender==='M').reduce((n,r)=>n+(r.points_scored??0),0);return {id:c.id,name:c.full_name??c.name,female:female+rf,male:male+rm,total:female+male+relay.reduce((n,r)=>n+(r.points_scored??0),0),medals:[1,2,3].map(p=>rows.filter(r=>r.place===p&&r.status==='OK').length+relay.filter(r=>{const competitors=data.relays.filter(x=>x.event_id===r.event_id&&x.status==='COMPLETED'&&!x.is_exhibition).sort((a,b)=>(a.finals_time_ms??Infinity)-(b.finals_time_ms??Infinity));const place=competitors.findIndex(x=>x.finals_time_ms===r.finals_time_ms)+1;return place===p;}).length)};}).sort((a,b)=>b.total-a.total);
  const high=data.athletes.flatMap(a=>{const rows=meetResults.filter(r=>r.athlete_id===a.id&&!r.is_exhibition&&!r.scoring_unattached&&r.status==='OK');if(!rows.length)return [];return [{id:a.id,name:`${a.last_name}, ${a.first_name}`,gender:a.gender,category:rows[0]?.scoring_category,points:rows.reduce((n,r)=>n+(r.points_scored??0),0)}];}).sort((a,b)=>String(a.category).localeCompare(String(b.category))||String(a.gender).localeCompare(String(b.gender))||b.points-a.points);
  const deskEntries: HeatLaneSwimmerEntry[] = entries.map((e) => {
@@ -48,10 +146,570 @@ export function MeetRunConsole(){
      officialTimeMs: ms,
    };
  });
- return <div className="space-y-5"><div className="flex flex-wrap justify-between gap-3"><div><p className="text-sm text-primary">Modo Meet Manager · Privado</p><h1 className="text-3xl font-bold">Ejecución del torneo</h1></div>{meet&&<RunResultExport prepare={async kind=>{
- if(data.relays.some(r=>r.meet_id===meetId&&r.finals_time_ms!=null))throw new Error('Exportación de relevos pendiente de validación externa; no se omitirán equipos.');
- const rows:ExportRow[]=results.filter(r=>r.meet_id===meetId).map(r=>{const a=data.athletes.find(a=>a.id===r.athlete_id),ev=data.events.find(e=>e.id===r.event_id),club=data.clubs.find(c=>c.id===(r.scoring_club_id??a?.club_id));if(!a||!ev)throw new Error('Resultado sin identidad o prueba');if(r.is_exhibition)throw new Error('La exportación de EXH requiere validación externa; no se exportará como resultado puntuable.');return {...r,athlete:{...a,team_code:club?.team_code??'UN'},event:ev,splits:r.splits};});
- if(!rows.length)throw new Error('Sin resultados guardados');const codes=[...new Set(rows.map(r=>r.athlete.team_code??'UN'))];const teams=codes.map(code=>({code,name:data.clubs.find(c=>c.team_code===code)?.full_name??code}));const {officialRunFile}=await import('@/lib/hytek/run-results-export');return officialRunFile(meet,rows,teams,kind);
- }}/>}</div><div className="grid gap-3 sm:grid-cols-3"><Select value={meetId} onValueChange={v=>navigate(()=>{setMeetId(v);setSession(data.events.find(e=>e.meet_id===v)?.session_number??1);setEventId('');setHeat(1);})}><SelectTrigger aria-label="Competencia"><SelectValue/></SelectTrigger><SelectContent>{data.meets.map(m=><SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select><Select value={String(session)} onValueChange={v=>navigate(()=>{setSession(Number(v));setEventId('');setHeat(1);})}><SelectTrigger aria-label="Sesión"><SelectValue/></SelectTrigger><SelectContent>{[...new Set(data.events.filter(e=>e.meet_id===meetId).map(e=>e.session_number))].map(s=><SelectItem key={s} value={String(s)}>Sesión {s}</SelectItem>)}</SelectContent></Select><Select value={event?.id??''} onValueChange={v=>navigate(()=>{setEventId(v);setHeat(1);})}><SelectTrigger aria-label="Prueba" className="h-auto min-h-10 [&_span]:whitespace-normal"><SelectValue placeholder="Prueba"/></SelectTrigger><SelectContent>{events.map(e=><SelectItem key={e.id} value={e.id}>{organizerEventLabel(e)}</SelectItem>)}</SelectContent></Select></div><Tabs defaultValue="run"><TabsList className="flex h-auto flex-wrap"><TabsTrigger value="run">Cronometraje</TabsTrigger><TabsTrigger value="tech_desk">Mesa Técnica (WA)</TabsTrigger><TabsTrigger value="teams">Puntos de clubes</TabsTrigger><TabsTrigger value="individual">Campeón individual</TabsTrigger></TabsList><TabsContent value="run" className="space-y-4"><div className="flex flex-wrap items-center gap-2 border-y py-4"><Button variant="outline" size="icon" aria-label="Serie anterior" disabled={heats.indexOf(heat)<=0} onClick={()=>navigate(()=>setHeat(heats[heats.indexOf(heat)-1]??1))}><ChevronLeft/></Button><Select value={String(heat)} onValueChange={v=>navigate(()=>setHeat(Number(v)))}><SelectTrigger aria-label="Serie" className="w-32"><SelectValue/></SelectTrigger><SelectContent>{heats.map(h=><SelectItem key={h} value={String(h)}>Serie {h}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" aria-label="Serie siguiente" disabled={heats.indexOf(heat)<0||heats.indexOf(heat)>=heats.length-1} onClick={()=>navigate(()=>setHeat(heats[heats.indexOf(heat)+1]??1))}><ChevronRight/></Button><Select value={round} onValueChange={v=>navigate(()=>setRound(v))}><SelectTrigger aria-label="Ronda" className="w-40"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="F">Final</SelectItem>{!event?.is_relay&&<><SelectItem value="P">Preliminar</SelectItem><SelectItem value="S">Semifinal</SelectItem></>}</SelectContent></Select><span className="time ml-auto text-3xl font-semibold">{formatTime(elapsed)}</span><Button disabled={running||!entries.length} onClick={()=>{start.current=performance.now();setElapsed(0);setRunning(true);}}><Play/>Iniciar</Button><Button variant="outline" aria-label="Detener cronómetro" disabled={!running} onClick={()=>{setElapsed(clockMs());setRunning(false);}}><Square/></Button><Button variant="outline" aria-label="Reiniciar cronómetro" disabled={running} onClick={()=>setElapsed(0)}><RotateCcw/></Button></div>{dirty&&<p className="text-sm text-primary">Tiempos sin guardar</p>}{!entries.length&&<p className="py-8 text-muted-foreground">Esta serie no tiene inscripciones sembradas.</p>}<div className="grid gap-3 xl:grid-cols-2">{entries.map(e=>{const v=laneValue(e.id);let ms:number|null=null;try{ms=quickTimeMs(v.text);}catch{}const athleteId=data.entries.find(x=>`individual:${x.id}`===e.id)?.athlete_id;const pb=rankedAthleteRecords(results.filter(r=>r.athlete_id===athleteId&&r.meet_id!==meetId&&r.events?.distance===event?.distance&&r.events?.stroke===event?.stroke&&r.course===(event?.course??meet?.course)&&!r.is_exhibition)).at(0)?.final_time_ms??null;const delta=v.status==='OK'?personalBestDelta(ms,pb):null;return <section key={e.id} className="rounded-lg border bg-card p-4"><div className="flex items-start gap-3"><span className="time text-3xl text-primary">{e.savedLane}</span><div className="min-w-0 flex-1"><h2 className="break-words font-semibold">{e.name}</h2><p className="text-xs text-muted-foreground">{e.club} · {e.age??'—'} años · Siembra {formatTime(e.savedTimeMs??e.seedTimeMs)}</p></div>{delta&&<span className="text-xs font-semibold text-primary">{delta}</span>}</div><div className="mt-4 flex flex-wrap gap-2"><Input aria-label={`Tiempo carril ${e.savedLane}`} inputMode="decimal" value={v.text} disabled={busy} onChange={x=>update(e.id,{text:x.target.value})} onBlur={()=>{try{const time=quickTimeMs(v.text);if(time!=null)update(e.id,{text:formatTime(time)});}catch(x){toast.error((x as Error).message);}}} className="time min-w-0 flex-1 text-lg"/><Button variant="outline" disabled={!running||busy} aria-label={`Final carril ${e.savedLane}`} onClick={()=>update(e.id,{text:formatTime(clockMs())})}><Flag/>Final</Button>{<Button variant="outline" disabled={!running||busy||(v.splits.at(-1)?.distance??0)>=(event?.distance??0)} aria-label={`Parcial carril ${e.savedLane}`} onClick={()=>{const distance=(v.splits.at(-1)?.distance??0)+((event?.course??meet?.course)==='LCM'?50:25);if(distance<=(event?.distance??0))update(e.id,{splits:[...v.splits,{distance,timeMs:clockMs()}]});}}><Timer/>Parcial</Button>}</div><div className="mt-3 flex flex-wrap gap-1">{(['OK','DQ','NS','EXH'] as const).map(s=><Button key={s} size="sm" variant={v.status===s?'secondary':'ghost'} disabled={busy} onClick={()=>update(e.id,{status:s})}>{s}</Button>)}</div>{v.status==='DQ'&&<div className="mt-3 grid gap-2"><Select value={dqReasons.some(r=>r.code===v.dqCode)?v.dqCode:'OTHER'} onValueChange={code=>update(e.id,{dqCode:code})}><SelectTrigger aria-label={`Infracción carril ${e.savedLane}`}><SelectValue/></SelectTrigger><SelectContent>{dqReasons.filter(r=>r.strokes.includes(event?.stroke??1)).map(r=><SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>)}</SelectContent></Select><Input aria-label={`Código juez carril ${e.savedLane}`} placeholder="Código oficial del juez" value={v.dqCode} onChange={x=>update(e.id,{dqCode:x.target.value})}/></div>}{v.splits.map((s,i)=><div key={i} className="mt-2 flex items-center justify-between gap-2 text-xs"><span>{s.distance} m · {formatTime(s.timeMs)}</span><Button variant="ghost" size="sm" onClick={()=>update(e.id,{splits:v.splits.filter((_,j)=>j!==i)})}>Quitar</Button></div>)}</section>;})}</div><Button disabled={busy||!entries.length||running} onClick={()=>void save()}><Save/>{busy?'Guardando…':'Guardar serie y clasificar'}</Button></TabsContent><TabsContent value="tech_desk"><TechnicalDeskConsole eventName={event ? organizerEventLabel(event) : 'Prueba'} heatNumber={heat} entries={deskEntries} onSaveHeatResults={res => { for (const r of res) { const match = entries.find(e => (e.savedLane ?? 1) === r.laneNumber); if (!match) continue; if (r.status === 'DQ') { update(match.id, { status: 'DQ', dqCode: r.dqCode ?? '' }); } else if (r.officialTimeMs != null) { update(match.id, { text: formatTime(r.officialTimeMs), status: 'OK' }); } } toast.success('Tiempos oficiales aplicados a la serie.'); }} /></TabsContent><TabsContent value="teams"><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left">{['Club','Femenino','Masculino','Combinado','Oro','Plata','Bronce'].map(x=><th key={x} className="p-3">{x}</th>)}</tr></thead><tbody>{scores.map(s=><tr key={s.id} className="border-b"><td className="p-3">{s.name}</td>{[s.female,s.male,s.total,...s.medals].map((n,i)=><td key={i} className="p-3 time">{Number(n.toFixed(3))}</td>)}</tr>)}</tbody></table></div></TabsContent><TabsContent value="individual"><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="p-3">Atleta</th><th>Categoría</th><th>Sexo</th><th>Puntos</th></tr></thead><tbody>{high.map(a=><tr key={a.id} className="border-b"><td className="p-3">{a.name}</td><td>{a.category}</td><td>{a.gender}</td><td className="time">{Number(a.points.toFixed(3))}</td></tr>)}</tbody></table></div></TabsContent></Tabs>{meet&&<ScoringEditor key={meet.id} meet={meet}/>}</div>;
+   const [currentLiveStatus, setCurrentLiveStatus] = useState<EventLiveStatus>('SCHEDULED');
+
+  useEffect(() => {
+    if (event) {
+      const raw = (event as any).live_status;
+      if (raw && ['SCHEDULED', 'CALL_ROOM', 'IN_WATER', 'UNDER_REVIEW', 'OFFICIAL'].includes(raw)) {
+        setCurrentLiveStatus(raw);
+      } else {
+        setCurrentLiveStatus('SCHEDULED');
+      }
+    }
+  }, [event?.id]);
+
+  const handleSetEventStatus = async (newStatus: EventLiveStatus) => {
+    if (!event) return;
+    const old = currentLiveStatus;
+    setCurrentLiveStatus(newStatus);
+    logLiveAuditEvent({
+      meetId,
+      eventId: event.id,
+      heatNumber: heat,
+      actorName: 'Mesa Técnica',
+      actionType: 'STATUS_CHANGE',
+      description: `Estado cambiado de ${EVENT_STATUS_CONFIG[old].label} a ${EVENT_STATUS_CONFIG[newStatus].label}`,
+    });
+    toast.info(`Estado en vivo: ${EVENT_STATUS_CONFIG[newStatus].label}`);
+    try {
+      await (supabase as any).from('events').update({ live_status: newStatus }).eq('id', event.id);
+    } catch {}
+  };
+
+  const handleQuickScratch = (entryId: string, swimmerName: string) => {
+    if (!confirm(`¿Confirmar baja (Scratch) de ${swimmerName}?`)) return;
+    update(entryId, { status: 'NS' });
+    recordLiveScratch({
+      meetId,
+      eventId: event?.id ?? '',
+      heatNumber: heat,
+      laneNumber: entries.find(e => e.id === entryId)?.savedLane ?? 1,
+      swimmerName,
+      actorName: 'Mesa Técnica',
+      reason: 'Baja voluntaria o médica en piscina',
+    });
+    toast.warning(`Baja (Scratch) registrada para ${swimmerName}`);
+  };
+
+  const portalTeamScores: PortalTeamScore[] = scores.map(s => {
+    const club = data.clubs.find(c => c.id === s.id);
+    return {
+      clubId: s.id,
+      name: s.name,
+      code: club?.team_code ?? 'UN',
+      totalPoints: s.total,
+      femalePoints: s.female,
+      malePoints: s.male,
+      golds: s.medals[0] ?? 0,
+      silvers: s.medals[1] ?? 0,
+      bronzes: s.medals[2] ?? 0,
+    };
+  });
+
+  const portalEvents: PortalEvent[] = data.events
+    .filter(e => e.meet_id === meetId)
+    .map(ev => {
+      const isCurrent = ev.id === event?.id;
+      const evStatus: EventLiveStatus = isCurrent
+        ? currentLiveStatus
+        : ((ev as any).live_status ?? 'SCHEDULED');
+
+      const evResults: PortalSwimmerResult[] = meetResults
+        .filter(r => r.event_id === ev.id)
+        .map(r => {
+          const athlete = data.athletes.find(a => a.id === r.athlete_id);
+          const club = data.clubs.find(c => c.id === (r.scoring_club_id ?? athlete?.club_id));
+          return {
+            place: r.place ?? null,
+            lane: r.lane ?? 1,
+            heat: r.heat ?? 1,
+            swimmerName: athlete ? `${athlete.last_name}, ${athlete.first_name}` : 'Atleta',
+            clubCode: club?.team_code ?? 'UN',
+            clubName: club?.full_name ?? club?.name ?? 'Club',
+            seedTimeMs: r.seed_time_ms ?? null,
+            finalTimeMs: r.final_time_ms ?? null,
+            status: (r.status === 'EXH' ? 'OK' : r.status) as any,
+            dqCode: r.dq_code ?? undefined,
+            dqReason: dqReasons.find(d => d.code === r.dq_code)?.label,
+            isPb: false,
+            splits: (r.splits ?? []).map(s => ({ distance: s.distance, timeMs: s.timeMs })),
+          };
+        });
+
+      return {
+        id: ev.id,
+        eventNumber: String(ev.event_number ?? ''),
+        name: organizerEventLabel(ev),
+        sessionNumber: ev.session_number ?? 1,
+        gender: ev.gender ?? 'X',
+        distance: ev.distance ?? 50,
+        stroke: ev.stroke ?? 1,
+        liveStatus: evStatus,
+        results: evResults,
+      };
+    });
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-primary">Modo Meet Manager · Privado</p>
+            {offlineCount > 0 ? (
+              <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+                <CloudOff className="w-3 h-3" />
+                {offlineCount} offline
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs text-emerald-600 border-emerald-300">
+                <Cloud className="w-3 h-3" />
+                Online
+              </Badge>
+            )}
+          </div>
+          <h1 className="text-3xl font-bold">Ejecución del torneo</h1>
+        </div>
+        {meet && (
+          <RunResultExport
+            prepare={async (kind) => {
+              if (data.relays.some((r) => r.meet_id === meetId && r.finals_time_ms != null)) {
+                throw new Error('Exportación de relevos pendiente de validación externa; no se omitirán equipos.');
+              }
+              const rows: ExportRow[] = results
+                .filter((r) => r.meet_id === meetId)
+                .map((r) => {
+                  const a = data.athletes.find((a) => a.id === r.athlete_id);
+                  const ev = data.events.find((e) => e.id === r.event_id);
+                  const club = data.clubs.find((c) => c.id === (r.scoring_club_id ?? a?.club_id));
+                  if (!a || !ev) throw new Error('Resultado sin identidad o prueba');
+                  if (r.is_exhibition) throw new Error('La exportación de EXH requiere validación externa; no se exportará como resultado puntuable.');
+                  return { ...r, athlete: { ...a, team_code: club?.team_code ?? 'UN' }, event: ev, splits: r.splits };
+                });
+              if (!rows.length) throw new Error('Sin resultados guardados');
+              const codes = [...new Set(rows.map((r) => r.athlete.team_code ?? 'UN'))];
+              const teams = codes.map((code) => ({ code, name: data.clubs.find((c) => c.team_code === code)?.full_name ?? code }));
+              const { officialRunFile } = await import('@/lib/hytek/run-results-export');
+              return officialRunFile(meet, rows, teams, kind);
+            }}
+          />
+        )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Select
+          value={meetId}
+          onValueChange={(v) =>
+            navigate(() => {
+              setMeetId(v);
+              setSession(data.events.find((e) => e.meet_id === v)?.session_number ?? 1);
+              setEventId('');
+              setHeat(1);
+            })
+          }
+        >
+          <SelectTrigger aria-label="Competencia">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {data.meets.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={String(session)}
+          onValueChange={(v) =>
+            navigate(() => {
+              setSession(Number(v));
+              setEventId('');
+              setHeat(1);
+            })
+          }
+        >
+          <SelectTrigger aria-label="Sesión">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[...new Set(data.events.filter((e) => e.meet_id === meetId).map((e) => e.session_number))].map((s) => (
+              <SelectItem key={s} value={String(s)}>
+                Sesión {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={event?.id ?? ''}
+          onValueChange={(v) =>
+            navigate(() => {
+              setEventId(v);
+              setHeat(1);
+            })
+          }
+        >
+          <SelectTrigger aria-label="Prueba" className="h-auto min-h-10 [&_span]:whitespace-normal">
+            <SelectValue placeholder="Prueba" />
+          </SelectTrigger>
+          <SelectContent>
+            {events.map((e) => (
+              <SelectItem key={e.id} value={e.id}>
+                {organizerEventLabel(e)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs defaultValue="run">
+        <TabsList className="flex h-auto flex-wrap">
+          <TabsTrigger value="run">Cronometraje</TabsTrigger>
+          <TabsTrigger value="tech_desk">Mesa Técnica (WA)</TabsTrigger>
+          <TabsTrigger value="teams">Puntos de clubes</TabsTrigger>
+          <TabsTrigger value="individual">Campeón individual</TabsTrigger>
+          <TabsTrigger value="live_portal" className="text-primary font-semibold flex items-center gap-1.5">
+            <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
+            Portal Live Results
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="run" className="space-y-4">
+          {event && (
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase text-muted-foreground">Estado en vivo:</span>
+                <Badge className={EVENT_STATUS_CONFIG[currentLiveStatus].color}>
+                  {EVENT_STATUS_CONFIG[currentLiveStatus].label}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {(['SCHEDULED', 'CALL_ROOM', 'IN_WATER', 'UNDER_REVIEW', 'OFFICIAL'] as EventLiveStatus[]).map((st) => (
+                  <Button
+                    key={st}
+                    size="sm"
+                    variant={currentLiveStatus === st ? 'default' : 'outline'}
+                    className="text-xs h-7 px-2"
+                    onClick={() => void handleSetEventStatus(st)}
+                  >
+                    {EVENT_STATUS_CONFIG[st].label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 border-y py-4">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Serie anterior"
+              disabled={heats.indexOf(heat) <= 0}
+              onClick={() => navigate(() => setHeat(heats[heats.indexOf(heat) - 1] ?? 1))}
+            >
+              <ChevronLeft />
+            </Button>
+            <Select value={String(heat)} onValueChange={(v) => navigate(() => setHeat(Number(v)))}>
+              <SelectTrigger aria-label="Serie" className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {heats.map((h) => (
+                  <SelectItem key={h} value={String(h)}>
+                    Serie {h}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Serie siguiente"
+              disabled={heats.indexOf(heat) < 0 || heats.indexOf(heat) >= heats.length - 1}
+              onClick={() => navigate(() => setHeat(heats[heats.indexOf(heat) + 1] ?? 1))}
+            >
+              <ChevronRight />
+            </Button>
+            <Select value={round} onValueChange={(v) => navigate(() => setRound(v))}>
+              <SelectTrigger aria-label="Ronda" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="F">Final</SelectItem>
+                {!event?.is_relay && (
+                  <>
+                    <SelectItem value="P">Preliminar</SelectItem>
+                    <SelectItem value="S">Semifinal</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+            <span className="time ml-auto text-3xl font-semibold">{formatTime(elapsed)}</span>
+            <Button
+              disabled={running || !entries.length}
+              onClick={() => {
+                start.current = performance.now();
+                setElapsed(0);
+                setRunning(true);
+              }}
+            >
+              <Play /> Iniciar
+            </Button>
+            <Button
+              variant="outline"
+              aria-label="Detener cronómetro"
+              disabled={!running}
+              onClick={() => {
+                setElapsed(clockMs());
+                setRunning(false);
+              }}
+            >
+              <Square />
+            </Button>
+            <Button variant="outline" aria-label="Reiniciar cronómetro" disabled={running} onClick={() => setElapsed(0)}>
+              <RotateCcw />
+            </Button>
+          </div>
+
+          {dirty && <p className="text-sm text-primary">Tiempos sin guardar</p>}
+          {!entries.length && <p className="py-8 text-muted-foreground">Esta serie no tiene inscripciones sembradas.</p>}
+
+          <div className="grid gap-3 xl:grid-cols-2">
+            {entries.map((e) => {
+              const v = laneValue(e.id);
+              let ms: number | null = null;
+              try {
+                ms = quickTimeMs(v.text);
+              } catch {}
+              const athleteId = data.entries.find((x) => `individual:${x.id}` === e.id)?.athlete_id;
+              const pb =
+                rankedAthleteRecords(
+                  results.filter(
+                    (r) =>
+                      r.athlete_id === athleteId &&
+                      r.meet_id !== meetId &&
+                      r.events?.distance === event?.distance &&
+                      r.events?.stroke === event?.stroke &&
+                      r.course === (event?.course ?? meet?.course) &&
+                      !r.is_exhibition
+                  )
+                ).at(0)?.final_time_ms ?? null;
+              const delta = v.status === 'OK' ? personalBestDelta(ms, pb) : null;
+              return (
+                <section key={e.id} className="rounded-lg border bg-card p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="time text-3xl text-primary">{e.savedLane}</span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="break-words font-semibold">{e.name}</h2>
+                      <p className="text-xs text-muted-foreground">
+                        {e.club} · {e.age ?? '—'} años · Siembra {formatTime(e.savedTimeMs ?? e.seedTimeMs)}
+                      </p>
+                    </div>
+                    {delta && <span className="text-xs font-semibold text-primary">{delta}</span>}
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Input
+                      aria-label={`Tiempo carril ${e.savedLane}`}
+                      inputMode="decimal"
+                      value={v.text}
+                      disabled={busy}
+                      onChange={(x) => update(e.id, { text: x.target.value })}
+                      onBlur={() => {
+                        try {
+                          const time = quickTimeMs(v.text);
+                          if (time != null) update(e.id, { text: formatTime(time) });
+                        } catch (x) {
+                          toast.error((x as Error).message);
+                        }
+                      }}
+                      className="time min-w-0 flex-1 text-lg"
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={!running || busy}
+                      aria-label={`Final carril ${e.savedLane}`}
+                      onClick={() => update(e.id, { text: formatTime(clockMs()) })}
+                    >
+                      <Flag /> Final
+                    </Button>
+                    {
+                      <Button
+                        variant="outline"
+                        disabled={!running || busy || (v.splits.at(-1)?.distance ?? 0) >= (event?.distance ?? 0)}
+                        aria-label={`Parcial carril ${e.savedLane}`}
+                        onClick={() => {
+                          const distance =
+                            (v.splits.at(-1)?.distance ?? 0) +
+                            ((event?.course ?? meet?.course) === 'LCM' ? 50 : 25);
+                          if (distance <= (event?.distance ?? 0))
+                            update(e.id, { splits: [...v.splits, { distance, timeMs: clockMs() }] });
+                        }}
+                      >
+                        <Timer /> Parcial
+                      </Button>
+                    }
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {(['OK', 'DQ', 'NS', 'EXH'] as const).map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={v.status === s ? 'secondary' : 'ghost'}
+                        disabled={busy}
+                        onClick={() => update(e.id, { status: s })}
+                      >
+                        {s}
+                      </Button>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 text-rose-600 hover:bg-rose-50 border-rose-200"
+                      disabled={busy}
+                      onClick={() => handleQuickScratch(e.id, e.name)}
+                    >
+                      Baja (Scratch)
+                    </Button>
+                  </div>
+                  {v.status === 'DQ' && (
+                    <div className="mt-3 grid gap-2">
+                      <Select
+                        value={dqReasons.some((r) => r.code === v.dqCode) ? v.dqCode : 'OTHER'}
+                        onValueChange={(code) => update(e.id, { dqCode: code })}
+                      >
+                        <SelectTrigger aria-label={`Infracción carril ${e.savedLane}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dqReasons
+                            .filter((r) => r.strokes.includes(event?.stroke ?? 1))
+                            .map((r) => (
+                              <SelectItem key={r.code} value={r.code}>
+                                {r.label}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        aria-label={`Código juez carril ${e.savedLane}`}
+                        placeholder="Código oficial del juez"
+                        value={v.dqCode}
+                        onChange={(x) => update(e.id, { dqCode: x.target.value })}
+                      />
+                    </div>
+                  )}
+                  {v.splits.map((s, i) => (
+                    <div key={i} className="mt-2 flex items-center justify-between gap-2 text-xs">
+                      <span>
+                        {s.distance} m · {formatTime(s.timeMs)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => update(e.id, { splits: v.splits.filter((_, j) => j !== i) })}
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  ))}
+                </section>
+              );
+            })}
+          </div>
+          <Button disabled={busy || !entries.length || running} onClick={() => void save()}>
+            <Save />
+            {busy ? 'Guardando…' : 'Guardar serie y clasificar'}
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="tech_desk">
+          <TechnicalDeskConsole
+            eventName={event ? organizerEventLabel(event) : 'Prueba'}
+            heatNumber={heat}
+            entries={deskEntries}
+            onSaveHeatResults={(res) => {
+              for (const r of res) {
+                const match = entries.find((e) => (e.savedLane ?? 1) === r.laneNumber);
+                if (!match) continue;
+                if (r.status === 'DQ') {
+                  update(match.id, { status: 'DQ', dqCode: r.dqCode ?? '' });
+                } else if (r.officialTimeMs != null) {
+                  update(match.id, { text: formatTime(r.officialTimeMs), status: 'OK' });
+                }
+              }
+              toast.success('Tiempos oficiales aplicados a la serie.');
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="teams">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  {['Club', 'Femenino', 'Masculino', 'Combinado', 'Oro', 'Plata', 'Bronce'].map((x) => (
+                    <th key={x} className="p-3">
+                      {x}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {scores.map((s) => (
+                  <tr key={s.id} className="border-b">
+                    <td className="p-3">{s.name}</td>
+                    {[s.female, s.male, s.total, ...s.medals].map((n, i) => (
+                      <td key={i} className="p-3 time">
+                        {Number(n.toFixed(3))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="individual">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="p-3">Atleta</th>
+                  <th>Categoría</th>
+                  <th>Sexo</th>
+                  <th>Puntos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {high.map((a) => (
+                  <tr key={a.id} className="border-b">
+                    <td className="p-3">{a.name}</td>
+                    <td>{a.category}</td>
+                    <td>{a.gender}</td>
+                    <td className="time">{Number(a.points.toFixed(3))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="live_portal">
+          <LiveResultsPortal
+            meetName={meet?.name ?? 'Torneo de Natación'}
+            location={meet?.location}
+            meetDate={meet?.start_date}
+            events={portalEvents}
+            teamScores={portalTeamScores}
+          />
+        </TabsContent>
+      </Tabs>
+      {meet && <ScoringEditor key={meet.id} meet={meet} />}
+    </div>
+  );
 }
+
 function ScoringEditor({meet}:{meet:{id:string;scoring_system:unknown}}){const client=useQueryClient();const cfg=meet.scoring_system as {individual?:number[];relay?:number[]};const [individual,setIndividual]=useState((cfg?.individual??[]).join(',')),[relay,setRelay]=useState((cfg?.relay??[]).join(','));return <details className="border-t pt-4"><summary className="cursor-pointer text-sm font-medium">Puntos por puesto</summary><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm">Individual<Input aria-label="Puntos individuales" value={individual} onChange={e=>setIndividual(e.target.value)}/></label><label className="text-sm">Relevos<Input aria-label="Puntos relevos" value={relay} onChange={e=>setRelay(e.target.value)}/></label><Button variant="outline" onClick={async()=>{try{const parse=(s:string)=>s.trim()?s.split(',').map(x=>{const n=Number(x.trim());if(!Number.isFinite(n)||n<0)throw new Error('Puntos inválidos');return n;}):[];const {error}=await supabase.rpc('configure_run_points',{p_meet:meet.id,p_individual:parse(individual),p_relay:parse(relay)});if(error)throw error;await Promise.all([client.invalidateQueries({queryKey:['meet-seeding']}),client.invalidateQueries({queryKey:['run-results']})]);toast.success('Puntos actualizados y recalculados.');}catch(e){toast.error((e as Error).message);}}}><Save/>Guardar puntos</Button></div></details>;}

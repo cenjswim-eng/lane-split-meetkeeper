@@ -28,6 +28,20 @@ import {
   verifyRecordsBroken,
   type MeetRecord,
 } from '@/lib/meet-engine/technical-console';
+import {
+  transitionEventStatus,
+  recordLiveScratch,
+  recordLiveRelaySub,
+  getLiveAuditLog,
+  EVENT_STATUS_CONFIG,
+} from '@/lib/meet-engine/live-lifecycle';
+import {
+  enqueueOfflineHeat,
+  getOfflineTimingQueue,
+  markOfflineHeatSynced,
+  drainOfflineQueue,
+  exportOfflineQueueBackupJson,
+} from '@/lib/meet-engine/offline-pool-sync';
 
 describe('Hito 1: Normalización de Datos y Deduplicación Fuzzy', () => {
   it('normalizes times with comma (,) or dot (.) decimal into exact integer milliseconds', () => {
@@ -364,5 +378,124 @@ describe('Hito 4: Módulo meet-engine (Siembra en Cascada y Consola Mesa Técnic
     expect(check.isRecordBroken).toBe(true);
     expect(check.brokenRecords[0]?.recordType).toBe('NR');
     expect(check.brokenRecords[0]?.differenceMs).toBe(-300);
+  });
+});
+
+describe('Hito 5: Sincronización Bidireccional Reactiva y Trazabilidad en Vivo', () => {
+  it('transitions event states through the official live lifecycle with audit trail', () => {
+    const meetId = 'meet_test_01';
+    const eventId = 'ev_101';
+    const eventNumber = '12';
+
+    // Transition SCHEDULED -> CALL_ROOM
+    const log1 = transitionEventStatus(meetId, eventId, eventNumber, 'CALL_ROOM', 'SCHEDULED', 'Juez de Cámara');
+    expect(log1.action).toBe('STATUS_CHANGE');
+    expect(log1.previousState).toBe('SCHEDULED');
+    expect(log1.newState).toBe('CALL_ROOM');
+
+    // Transition CALL_ROOM -> IN_WATER
+    const log2 = transitionEventStatus(meetId, eventId, eventNumber, 'IN_WATER', 'CALL_ROOM', 'Juez de Salida');
+    expect(log2.action).toBe('STATUS_CHANGE');
+    expect(log2.newState).toBe('IN_WATER');
+
+    // Transition IN_WATER -> UNDER_REVIEW
+    const log3 = transitionEventStatus(meetId, eventId, eventNumber, 'UNDER_REVIEW', 'IN_WATER', 'Mesa Técnica');
+    expect(log3.newState).toBe('UNDER_REVIEW');
+
+    // Transition UNDER_REVIEW -> OFFICIAL
+    const log4 = transitionEventStatus(meetId, eventId, eventNumber, 'OFFICIAL', 'UNDER_REVIEW', 'Juez Árbitro');
+    expect(log4.newState).toBe('OFFICIAL');
+
+    // Audit log should contain all transitions
+    const history = getLiveAuditLog(meetId);
+    expect(history.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('records last-minute scratches with audit details and reasons', () => {
+    const meetId = 'meet_test_scratch';
+    const entry = recordLiveScratch({
+      meetId,
+      eventId: 'ev_50free',
+      swimmerName: 'Alejandro Gonzalez',
+      heatNumber: 3,
+      laneNumber: 4,
+      reason: 'Lesión muscular previa a la prueba',
+      performedBy: 'Entrenador / Juez Árbitro',
+    });
+
+    expect(entry.action).toBe('SCRATCH');
+    expect(entry.previousState).toBe('ACTIVE');
+    expect(entry.newState).toBe('SCRATCHED');
+    expect(entry.details).toContain('Alejandro Gonzalez');
+    expect(entry.details).toContain('Serie 3, Carril 4');
+  });
+
+  it('records last-minute relay leg substitutions with full traceability', () => {
+    const meetId = 'meet_test_sub';
+    const entry = recordLiveRelaySub({
+      meetId,
+      eventId: 'ev_relay_medley',
+      relayId: 'relay_club_a',
+      legNumber: 2, // Pecho
+      outgoingSwimmerName: 'Carlos Ramirez',
+      incomingSwimmerName: 'Manuel Torrealba',
+      reason: 'Fiebre reportada en cámara de llamadas',
+      performedBy: 'Mesa Técnica',
+    });
+
+    expect(entry.action).toBe('RELAY_SUB');
+    expect(entry.previousState).toBe('Carlos Ramirez');
+    expect(entry.newState).toBe('Manuel Torrealba');
+    expect(entry.details).toContain('posta #2');
+  });
+});
+
+describe('Hito 6: Resiliencia Offline-First para Piscina', () => {
+  it('enqueues heat times, splits and DQs into local offline queue', () => {
+    const item = enqueueOfflineHeat({
+      meetId: 'meet_pool_offline',
+      eventId: 'ev_200free',
+      heatNumber: 2,
+      round: 'F',
+      capturedBy: 'Cronometrador Carril 3',
+      rows: [
+        { laneNumber: 3, timeMs: 122450, status: 'OK', splits: [{ distance: 50, timeMs: 28100 }] },
+        { laneNumber: 4, timeMs: 119800, status: 'OK' },
+        { laneNumber: 5, timeMs: null, status: 'DQ', dqCode: '1A' },
+      ],
+    });
+
+    expect(item.queueId).toBeDefined();
+    expect(item.synced).toBe(false);
+
+    const queue = getOfflineTimingQueue();
+    expect(queue.some(q => q.queueId === item.queueId)).toBe(true);
+  });
+
+  it('drains offline queue by syncing items and clearing them upon success', async () => {
+    const syncedIds: string[] = [];
+    const drainResult = await drainOfflineQueue(async (item) => {
+      syncedIds.push(item.queueId);
+      return true; // simulated remote cloud sync success
+    });
+
+    expect(drainResult.syncedCount).toBeGreaterThanOrEqual(1);
+    expect(drainResult.remainingCount).toBe(0);
+  });
+
+  it('exports offline queue backup as a valid JSON string', () => {
+    enqueueOfflineHeat({
+      meetId: 'meet_backup_test',
+      eventId: 'ev_100fly',
+      heatNumber: 1,
+      round: 'F',
+      capturedBy: 'Juez Crono',
+      rows: [{ laneNumber: 4, timeMs: 55400, status: 'OK' }],
+    });
+
+    const json = exportOfflineQueueBackupJson();
+    const parsed = JSON.parse(json);
+    expect(parsed.totalHeats).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(parsed.heats)).toBe(true);
   });
 });
