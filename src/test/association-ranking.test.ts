@@ -13,6 +13,8 @@ import {
   getAssociationsForFederation,
   findKnownClubAssociation,
   KNOWN_FEDERATION_CLUBS,
+  getKnownClubsForFederation,
+  loadFederationAffiliatedClubs,
 } from "@/lib/federations";
 
 describe("Association Ranking Top 5", () => {
@@ -497,5 +499,104 @@ describe("Association Ranking Top 5", () => {
     expect(findKnownClubAssociation("SAB", "Natació Sabadell", "ESP")).toBe("Cataluña (FCN)");
 
     expect(KNOWN_FEDERATION_CLUBS.length).toBeGreaterThan(20);
+  });
+
+  it("retrieves official affiliated clubs by federation via getKnownClubsForFederation", () => {
+    const venClubs = getKnownClubsForFederation("VEN");
+    expect(venClubs.length).toBeGreaterThan(15);
+    expect(venClubs.some((c) => c.association === "Lara (ADAEL)")).toBe(true);
+    expect(venClubs.some((c) => c.association === "Miranda (ADAEM)")).toBe(true);
+    expect(venClubs.some((c) => c.association === "Táchira (ADAET)")).toBe(true);
+    expect(venClubs.some((c) => c.association === "Mérida (ASODAME)")).toBe(true);
+
+    const colClubs = getKnownClubsForFederation("COL");
+    expect(colClubs.some((c) => c.association.includes("Antioquia"))).toBe(true);
+
+    const espClubs = getKnownClubsForFederation("ESP");
+    expect(espClubs.some((c) => c.association.includes("Cataluña"))).toBe(true);
+  });
+
+  it("supports bulk loading federation affiliated clubs into teams table", async () => {
+    const upsertedRecords: any[] = [];
+    const mockSupabase = {
+      from: (table: string) => ({
+        upsert: async (records: any[], options: any) => {
+          if (table === "teams") {
+            upsertedRecords.push(...records);
+          }
+          return { error: null };
+        },
+      }),
+    };
+
+    const res = await loadFederationAffiliatedClubs(mockSupabase, "user-test-123", "VEN");
+    expect(res.count).toBeGreaterThan(15);
+    expect(res.federation.shortName).toBe("FEVEDA");
+    expect(upsertedRecords.length).toBe(res.count);
+    expect(upsertedRecords[0].owner_id).toBe("user-test-123");
+    expect(upsertedRecords.some((r) => r.lsc === "Lara (ADAEL)")).toBe(true);
+  });
+
+  it("filters ranking by onlyAffiliatedClubs, excluding swimmers from unattached or unaffiliated clubs", () => {
+    const unattachedClub = { id: "club-un", team_code: "UNA", full_name: "Unattached Swimmer", region_lsc: null };
+    const clubsWithUnattached = [...mockClubs, unattachedClub];
+
+    const unattachedAthlete = {
+      id: "ath-un",
+      first_name: "Nadador",
+      last_name: "Libre",
+      gender: "M",
+      birth_date: "2012-01-01",
+      clubs: unattachedClub,
+    };
+    const allAthletes = [...mockAthletes, unattachedAthlete];
+
+    const resultsWithUnattached = [
+      ...mockResults,
+      {
+        id: "res-un",
+        athlete_id: "ath-un",
+        final_time_ms: 50000, // Very fast time, but unaffiliated
+        course: "LCM",
+        is_dq: false,
+        meets: { name: "Estadal 2026", start_date: "2026-06-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+      },
+    ];
+
+    const detected = extractDetectedClubs(allAthletes, resultsWithUnattached, clubsWithUnattached);
+
+    // 1. Without onlyAffiliatedClubs (all clubs included when association is 'all')
+    const resAll = calculateAssociationRankings(
+      resultsWithUnattached as any,
+      allAthletes,
+      detected,
+      {
+        association: "all",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        onlyAffiliatedClubs: false,
+      }
+    );
+    const topSwimmerAll = resAll.rankings[0].top5[0];
+    expect(topSwimmerAll.athleteId).toBe("ath-un");
+
+    // 2. With onlyAffiliatedClubs = true (unaffiliated swimmer excluded)
+    const resAffiliated = calculateAssociationRankings(
+      resultsWithUnattached as any,
+      allAthletes,
+      detected,
+      {
+        association: "all",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        onlyAffiliatedClubs: true,
+      }
+    );
+    const topSwimmerAffiliated = resAffiliated.rankings[0].top5[0];
+    expect(topSwimmerAffiliated.athleteId).not.toBe("ath-un");
+    expect(topSwimmerAffiliated.athleteId).toBe("ath-1");
   });
 });

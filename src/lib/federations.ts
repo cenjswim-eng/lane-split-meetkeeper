@@ -303,20 +303,70 @@ export const KNOWN_FEDERATION_CLUBS: KnownClubCatalogItem[] = [
   { code: "MDZ", name: "Maracaibo Deporte Zulia", association: "Zulia (AZUDA)", federationCode: "VEN" },
   { code: "CPZ", name: "Casa D'Italia Maracaibo", association: "Zulia (AZUDA)", federationCode: "VEN" },
   { code: "CSZ", name: "Club San Francisco Zulia", association: "Zulia (AZUDA)", federationCode: "VEN" },
+  { code: "CRZ", name: "Club Rafael Urdaneta", association: "Zulia (AZUDA)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Bolívar (ADEABOL)
+  { code: "CIB", name: "Centro Ítalo Venezolano de Guayana", association: "Bolívar (ADEABOL)", federationCode: "VEN" },
+  { code: "CVG", name: "CVG Ferrominera", association: "Bolívar (ADEABOL)", federationCode: "VEN" },
+  { code: "AQUB", name: "Aquática Bolívar", association: "Bolívar (ADEABOL)", federationCode: "VEN" },
+  { code: "PBO", name: "Piscinas Puerto Ordaz", association: "Bolívar (ADEABOL)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Anzoátegui (ASOEDA)
+  { code: "CNA", name: "Club Natación Anzoátegui", association: "Anzoátegui (ASOEDA)", federationCode: "VEN" },
+  { code: "CIA", name: "Centro Ítalo de Oriente", association: "Anzoátegui (ASOEDA)", federationCode: "VEN" },
+  { code: "PEL", name: "Los Pelaos de Puerto La Cruz", association: "Anzoátegui (ASOEDA)", federationCode: "VEN" },
+  { code: "MORR", name: "Morro Swimming Club", association: "Anzoátegui (ASOEDA)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Nueva Esparta (ASODAN)
+  { code: "MGA", name: "Club Margarita Aquatics", association: "Nueva Esparta (ASODAN)", federationCode: "VEN" },
+  { code: "PPM", name: "Playa El Ángel Pampatar", association: "Nueva Esparta (ASODAN)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Trujillo (ASODAT)
+  { code: "TRU", name: "Club Valera Trujillo", association: "Trujillo (ASODAT)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Falcón (ASODAF)
+  { code: "CORO", name: "Club Coro Falcón", association: "Falcón (ASODAF)", federationCode: "VEN" },
+  { code: "PFI", name: "Punto Fijo Swimming", association: "Falcón (ASODAF)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Yaracuy (ASODAYA)
+  { code: "SAN", name: "San Felipe Aquatics", association: "Yaracuy (ASODAYA)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Portuguesa (ASODAP)
+  { code: "ACAR", name: "Acarigua Swimming Club", association: "Portuguesa (ASODAP)", federationCode: "VEN" },
+  { code: "GUA", name: "Guanare Natación", association: "Portuguesa (ASODAP)", federationCode: "VEN" },
 
   // Colombia (FECNA)
   { code: "ANT", name: "Club Huracanes Antioquia", association: "Antioquia (Liga de Natación de Antioquia)", federationCode: "COL" },
+  { code: "CAL", name: "Club Calamares Antioquia", association: "Antioquia (Liga de Natación de Antioquia)", federationCode: "COL" },
   { code: "BOG", name: "Club Compensar Bogotá", association: "Bogotá (Liga de Natación de Bogotá)", federationCode: "COL" },
+  { code: "ALB", name: "Club Albatros Bogotá", association: "Bogotá (Liga de Natación de Bogotá)", federationCode: "COL" },
   { code: "VAL", name: "Club Astros del Valle", association: "Valle del Cauca (Liga de Natación del Valle)", federationCode: "COL" },
+  { code: "CRU", name: "Club Críspulo Quintana", association: "Valle del Cauca (Liga de Natación del Valle)", federationCode: "COL" },
+  { code: "SAN", name: "Club Poseidón Santander", association: "Santander (Liga Santandereana de Natación)", federationCode: "COL" },
+  { code: "ATL", name: "Tiburones de Barranquilla", association: "Atlántico (Liga de Natación del Atlántico)", federationCode: "COL" },
 
   // España (RFEN)
   { code: "SAB", name: "Club Natació Sabadell", association: "Cataluña (FCN)", federationCode: "ESP" },
+  { code: "TER", name: "Club Natació Terrassa", association: "Cataluña (FCN)", federationCode: "ESP" },
+  { code: "SANT", name: "Club Natació Sant Andreu", association: "Cataluña (FCN)", federationCode: "ESP" },
   { code: "CANO", name: "Real Canoe N.C.", association: "Madrid (FMN)", federationCode: "ESP" },
+  { code: "GRED", name: "C.D. Gredos San Diego", association: "Madrid (FMN)", federationCode: "ESP" },
   { code: "SEV", name: "Club Natación Sevilla", association: "Andalucía (FAN)", federationCode: "ESP" },
+  { code: "MAI", name: "Club Natación Mairena del Aljarafe", association: "Andalucía (FAN)", federationCode: "ESP" },
+  { code: "VAL", name: "C.N. Ferca-San José", association: "Comunidad Valenciana (FNCV)", federationCode: "ESP" },
+
+  // México (FMN)
+  { code: "ANEM", name: "Acuática Nelson Vargas EdoMex", association: "Estado de México (ANEM)", federationCode: "MEX" },
+  { code: "CDMX", name: "Acuática Nelson Vargas CDMX", association: "Ciudad de México (ADDF)", federationCode: "MEX" },
+  { code: "JAL", name: "Club Atlas Colomos", association: "Jalisco (AJN)", federationCode: "MEX" },
+  { code: "NL", name: "Tigres UANL", association: "Nuevo León (ANL)", federationCode: "MEX" },
 
   // USA Swimming
   { code: "AZFL", name: "Azura Florida Aquatics", association: "Florida Gold Coast (FG)", federationCode: "USA" },
   { code: "PST", name: "Pine Crest Swimming", association: "Florida Gold Coast (FG)", federationCode: "USA" },
+  { code: "SOFL", name: "South Florida Aquatic Club", association: "Florida Gold Coast (FG)", federationCode: "USA" },
+  { code: "NOVA", name: "Irvine Novaquatics", association: "Southern California (CA)", federationCode: "USA" },
+  { code: "MVN", name: "Mission Viejo Nadadores", association: "Southern California (CA)", federationCode: "USA" },
 ];
 
 /**
@@ -359,4 +409,46 @@ export function getFederation(codeOrCountry: string = "VEN"): FederationInfo {
  */
 export function getAssociationsForFederation(codeOrCountry: string = "VEN"): string[] {
   return getFederation(codeOrCountry).associations;
+}
+
+/**
+ * Returns all preloaded affiliated clubs for a given federation.
+ */
+export function getKnownClubsForFederation(federationCode: string = "VEN"): KnownClubCatalogItem[] {
+  const fed = getFederation(federationCode);
+  return KNOWN_FEDERATION_CLUBS.filter(
+    (c) => c.federationCode.toUpperCase() === fed.code.toUpperCase()
+  );
+}
+
+/**
+ * Bulk loads / upserts all official affiliated clubs of the selected federation into Supabase teams.
+ * Ensures the clubs exist in the system and are linked to their respective regional associations.
+ */
+export async function loadFederationAffiliatedClubs(
+  supabaseClient: any,
+  ownerId: string,
+  federationCode: string
+): Promise<{ count: number; federation: FederationInfo; clubs: KnownClubCatalogItem[] }> {
+  const fed = getFederation(federationCode);
+  const clubs = getKnownClubsForFederation(fed.code);
+
+  if (clubs.length === 0) {
+    return { count: 0, federation: fed, clubs: [] };
+  }
+
+  const records = clubs.map((c) => ({
+    owner_id: ownerId,
+    code: c.code,
+    name: c.name,
+    lsc: c.association,
+  }));
+
+  const { error } = await supabaseClient
+    .from("teams")
+    .upsert(records, { onConflict: "owner_id,code" });
+
+  if (error) throw error;
+
+  return { count: clubs.length, federation: fed, clubs };
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, CheckCheck, FileText, Globe, Layers, Save, Search, ShieldCheck, Sparkles, Upload } from "lucide-react";
+import { Building2, CheckCheck, Download, FileText, Globe, Layers, Save, Search, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { type DetectedClub, normalizeAssociationName } from "@/lib/association-ranking";
-import { FEDERATIONS, getFederation, findKnownClubAssociation } from "@/lib/federations";
+import {
+  FEDERATIONS,
+  getFederation,
+  findKnownClubAssociation,
+  getKnownClubsForFederation,
+  loadFederationAffiliatedClubs,
+} from "@/lib/federations";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,6 +39,7 @@ export function ClubAssociationManager({
   const [associations, setAssociations] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [loadingFederationClubs, setLoadingFederationClubs] = useState(false);
   const [selectedFederationCode, setSelectedFederationCode] = useState<string>(() => {
     return localStorage.getItem("slc_preferred_federation") || "VEN";
   });
@@ -42,6 +49,7 @@ export function ClubAssociationManager({
 
   const queryClient = useQueryClient();
   const currentFederation = useMemo(() => getFederation(selectedFederationCode), [selectedFederationCode]);
+  const knownFederationClubs = useMemo(() => getKnownClubsForFederation(selectedFederationCode), [selectedFederationCode]);
 
   const handleOpen = () => {
     const initial: Record<string, string> = {};
@@ -50,6 +58,45 @@ export function ClubAssociationManager({
     });
     setAssociations(initial);
     setOpen(true);
+  };
+
+  const handleLoadAllFederationClubs = async () => {
+    setLoadingFederationClubs(true);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        throw new Error("Debes iniciar sesión para registrar los clubes.");
+      }
+
+      const res = await loadFederationAffiliatedClubs(
+        supabase,
+        auth.user.id,
+        selectedFederationCode
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["coach-data"] }),
+        queryClient.invalidateQueries({ queryKey: ["club-management"] }),
+      ]);
+
+      // Update local draft associations
+      const updated = { ...associations };
+      res.clubs.forEach((c) => {
+        const matched = clubs.find((dc) => dc.code.toUpperCase() === c.code.toUpperCase());
+        if (matched) {
+          updated[matched.id] = c.association;
+        }
+      });
+      setAssociations(updated);
+
+      toast.success(
+        `¡Padrón cargado! Se registraron ${res.count} clubes afiliados a ${res.federation.name} (${res.federation.shortName}) organizados por su asociación estadal/regional.`
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al cargar los clubes de la federación.");
+    } finally {
+      setLoadingFederationClubs(false);
+    }
   };
 
   const handleAutoClassify = () => {
@@ -290,31 +337,63 @@ export function ClubAssociationManager({
 
         <div className="space-y-4 pt-1">
           {/* Country / Federation Selector Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg border bg-muted/40 shadow-xs">
-            <div className="space-y-0.5">
-              <label htmlFor="fed-country-select" className="text-xs font-bold flex items-center gap-1.5 text-foreground">
-                <Globe className="size-4 text-primary" />
-                <span>Federación Nacional / País:</span>
-              </label>
-              <p className="text-[11px] text-muted-foreground">
-                Carga el catálogo oficial de {currentFederation.associationLabel.toLowerCase()}
-              </p>
+          <div className="flex flex-col gap-3 p-3.5 rounded-lg border bg-muted/40 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <label htmlFor="fed-country-select" className="text-xs font-bold flex items-center gap-1.5 text-foreground">
+                  <Globe className="size-4 text-primary" />
+                  <span>Federación Nacional / País:</span>
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Carga el catálogo oficial de {currentFederation.associationLabel.toLowerCase()}
+                </p>
+              </div>
+              <div className="w-full sm:w-72">
+                <Select value={selectedFederationCode} onValueChange={handleFederationChange}>
+                  <SelectTrigger id="fed-country-select" aria-label="Seleccionar federación y país">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEDERATIONS.map((f) => (
+                      <SelectItem key={f.code} value={f.code}>
+                        <span className="mr-1.5">{f.flag}</span>
+                        <span className="font-medium">{f.country}</span>
+                        <span className="text-muted-foreground ml-1">({f.shortName})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="w-full sm:w-72">
-              <Select value={selectedFederationCode} onValueChange={handleFederationChange}>
-                <SelectTrigger id="fed-country-select" aria-label="Seleccionar federación y país">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FEDERATIONS.map((f) => (
-                    <SelectItem key={f.code} value={f.code}>
-                      <span className="mr-1.5">{f.flag}</span>
-                      <span className="font-medium">{f.country}</span>
-                      <span className="text-muted-foreground ml-1">({f.shortName})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Federation Bulk Load Action Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                <Building2 className="size-4 text-primary shrink-0" />
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">
+                    Padrón de clubes afiliados a {currentFederation.name} ({currentFederation.shortName})
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Carga todos los clubes oficiales de esta federación organizados por su asociación estadal para armar los rankings.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="outline" className="font-mono text-xs">
+                  {knownFederationClubs.length} clubes oficiales
+                </Badge>
+                <Button
+                  size="sm"
+                  disabled={loadingFederationClubs || knownFederationClubs.length === 0}
+                  onClick={handleLoadAllFederationClubs}
+                  className="gap-1.5 bg-primary text-primary-foreground font-semibold text-xs h-8 shadow-xs"
+                >
+                  <Download className="size-3.5" />
+                  <span>Cargar Todos los Clubes Afiliados ({knownFederationClubs.length})</span>
+                </Button>
+              </div>
             </div>
           </div>
 

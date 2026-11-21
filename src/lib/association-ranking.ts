@@ -57,6 +57,7 @@ export interface AssociationRankingFilters {
   topN?: number; // default 5
   affiliationYear?: number | "all"; // Season / Year of annual federation affiliation (e.g. 2026, 2025)
   selectedMeetIds?: string[] | "all"; // Specific meet IDs to include in the ranking
+  onlyAffiliatedClubs?: boolean; // When true, only official affiliated clubs (association !== "Sin Asociación")
 }
 
 /**
@@ -437,6 +438,11 @@ export function calculateAssociationRankings(
       continue;
     }
 
+    // Only officially affiliated clubs check (excludes clubs with "Sin Asociación" or unattached)
+    if (filters.onlyAffiliatedClubs && association === "Sin Asociación") {
+      continue;
+    }
+
     // Specific meets selection filter (allows choosing which imported results form the ranking)
     if (
       filters.selectedMeetIds &&
@@ -586,6 +592,7 @@ export function generateAssociationRankingPdf(
     affiliationYearLabel?: string;
     federationName?: string;
     participatingClubs?: string[];
+    onlyAffiliatedClubs?: boolean;
     brand?: ReportBrand;
   }
 ): File {
@@ -615,8 +622,11 @@ export function generateAssociationRankingPdf(
 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
+  const criteriaText = options.onlyAffiliatedClubs
+    ? "Solo Clubes Afiliados Oficiales"
+    : "Todos los Clubes Participantes";
   doc.text(
-    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Extracción: Mejores 5 tiempos de la temporada`,
+    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Padrón: ${criteriaText}`,
     14,
     23
   );

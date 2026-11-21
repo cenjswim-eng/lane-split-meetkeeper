@@ -120,6 +120,7 @@ export function AssociationRanking({
   const [customMaxAge, setCustomMaxAge] = useState<number>(14);
   const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
   const [topLimit, setTopLimit] = useState<number>(5);
+  const [onlyAffiliatedClubs, setOnlyAffiliatedClubs] = useState<boolean>(false);
 
   // Selected meets filter state
   const [selectedMeetIds, setSelectedMeetIds] = useState<string[] | "all">("all");
@@ -181,6 +182,7 @@ export function AssociationRanking({
       topN: topLimit,
       affiliationYear: selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear),
       selectedMeetIds,
+      onlyAffiliatedClubs,
     });
   }, [
     results,
@@ -197,6 +199,7 @@ export function AssociationRanking({
     topLimit,
     selectedAffiliationYear,
     selectedMeetIds,
+    onlyAffiliatedClubs,
   ]);
 
   // Total unique swimmers in the top 5
@@ -243,6 +246,7 @@ export function AssociationRanking({
         genderLabel,
         affiliationYearLabel: seasonLabel,
         participatingClubs,
+        onlyAffiliatedClubs,
       });
 
       downloadFile(file);
@@ -292,7 +296,7 @@ export function AssociationRanking({
 
         <CardContent className="space-y-4 pt-0">
           {/* Filter Bar */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 border-t pt-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 border-t pt-4">
             {/* Temporada de Afiliación Anual */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
@@ -315,6 +319,31 @@ export function AssociationRanking({
                       Temporada {yr} {yr === new Date().getFullYear() ? "· (Actual)" : ""}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Padrón de Clubes Afiliados */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="size-3.5 text-primary" />
+                  <span>Padrón de Clubes</span>
+                </span>
+                <span className="text-[10px] text-primary">
+                  {onlyAffiliatedClubs ? "Oficiales" : "Todos"}
+                </span>
+              </label>
+              <Select
+                value={onlyAffiliatedClubs ? "affiliated" : "all"}
+                onValueChange={(val) => setOnlyAffiliatedClubs(val === "affiliated")}
+              >
+                <SelectTrigger aria-label="Filtrar por padrón oficial de clubes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los clubes del torneo</SelectItem>
+                  <SelectItem value="affiliated">Solo clubes afiliados oficiales</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -565,6 +594,11 @@ export function AssociationRanking({
                 <Badge variant="outline" className="text-[11px] font-mono">
                   {participatingClubs.length} {participatingClubs.length === 1 ? "club clasificado" : "clubes clasificados"}
                 </Badge>
+                {onlyAffiliatedClubs && (
+                  <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                    Solo Clubes Afiliados
+                  </Badge>
+                )}
               </div>
               <span className="text-[11px] text-muted-foreground">
                 Ranking estadal oficial · Incluye a todos los nadadores de los clubes afiliados

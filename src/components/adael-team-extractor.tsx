@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, CheckCheck, Copy, ExternalLink, HelpCircle, Layers, Plus, Save, Search, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { Building2, CheckCheck, Copy, Download, ExternalLink, HelpCircle, Layers, Plus, Save, Search, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { extractAdaelClubs, isLikelyAdaelClub, type DetectedClub } from "@/lib/association-ranking";
+import { KNOWN_FEDERATION_CLUBS } from "@/lib/federations";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -38,6 +39,46 @@ export function AdaelTeamExtractor({
   const { affiliated, candidates } = useMemo(() => {
     return extractAdaelClubs(clubs);
   }, [clubs]);
+
+  // Load all known official ADAEL clubs from the federation catalog into the database
+  const handleLoadOfficialAdaelClubs = async () => {
+    const adaelCatalog = KNOWN_FEDERATION_CLUBS.filter(
+      (c) => c.association === "Lara (ADAEL)"
+    );
+    setSaving(true);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        throw new Error("Debes iniciar sesión para guardar.");
+      }
+
+      const records = adaelCatalog.map((c) => ({
+        owner_id: auth.user.id,
+        code: c.code,
+        name: c.name,
+        lsc: "Lara (ADAEL)",
+      }));
+
+      const { error } = await supabase
+        .from("teams")
+        .upsert(records, { onConflict: "owner_id,code" });
+
+      if (error) throw error;
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["coach-data"] }),
+        queryClient.invalidateQueries({ queryKey: ["club-management"] }),
+      ]);
+
+      toast.success(
+        `Se registraron ${adaelCatalog.length} clubes oficiales de ADAEL (Lara) en el sistema.`
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al registrar clubes de ADAEL.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Filtered affiliated list
   const filteredAffiliated = useMemo(() => {
@@ -313,7 +354,19 @@ export function AdaelTeamExtractor({
                 />
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleLoadOfficialAdaelClubs}
+                  disabled={saving}
+                  className="h-9 text-xs gap-1.5 border-amber-500/40 hover:bg-amber-500/10"
+                  title="Carga todos los clubes oficiales de Lara según el padrón FEVEDA en la base de datos"
+                >
+                  <Download className="size-3.5 text-amber-500" />
+                  Cargar Padrón ADAEL ({KNOWN_FEDERATION_CLUBS.filter((c) => c.association === "Lara (ADAEL)").length})
+                </Button>
+
                 <Button size="sm" variant="outline" onClick={handleCopyRoster} className="h-9 text-xs gap-1.5">
                   <Copy className="size-3.5" />
                   Copiar Listado
