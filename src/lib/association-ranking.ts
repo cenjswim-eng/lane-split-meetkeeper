@@ -21,7 +21,7 @@ export interface AssociationTopItem {
   athleteName: string;
   gender: string;
   birthDate: string | null;
-  ageAtDec31: number;
+  ageAtDec31: number | null;
   affiliationYear: number;
   clubCode: string;
   clubName: string;
@@ -468,16 +468,17 @@ export function calculateAssociationRankings(
         ? Number(filters.affiliationYear)
         : meetYear;
     const athleteAge = ageAtDec31(athlete.birth_date, evalYear);
+    if (athleteAge == null && filters.ageMode !== "libre") continue;
 
     // Age Mode check (Libre vs Cruce de edades)
-    if (filters.ageMode === "13-14" && (athleteAge < 13 || athleteAge > 14)) continue;
-    if (filters.ageMode === "11-12" && (athleteAge < 11 || athleteAge > 12)) continue;
-    if (filters.ageMode === "15-16" && (athleteAge < 15 || athleteAge > 16)) continue;
-    if (filters.ageMode === "17+" && athleteAge < 17) continue;
+    if (filters.ageMode === "13-14" && ((athleteAge ?? 0) < 13 || (athleteAge ?? 0) > 14)) continue;
+    if (filters.ageMode === "11-12" && ((athleteAge ?? 0) < 11 || (athleteAge ?? 0) > 12)) continue;
+    if (filters.ageMode === "15-16" && ((athleteAge ?? 0) < 15 || (athleteAge ?? 0) > 16)) continue;
+    if (filters.ageMode === "17+" && (athleteAge ?? 0) < 17) continue;
     if (filters.ageMode === "custom") {
       const min = filters.customMinAge ?? 0;
       const max = filters.customMaxAge ?? 99;
-      if (athleteAge < min || athleteAge > max) continue;
+      if ((athleteAge ?? 0) < min || (athleteAge ?? 0) > max) continue;
     }
 
     matchedClubs.add(clubCode);
@@ -492,6 +493,7 @@ export function calculateAssociationRankings(
 
   for (const [key, swims] of eventBuckets.entries()) {
     const [distanceStr, strokeStr, course, gender] = key.split("-");
+    if (!course || !gender) continue;
     const distance = Number(distanceStr);
     const stroke = Number(strokeStr);
 

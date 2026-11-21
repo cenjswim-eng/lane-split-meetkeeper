@@ -50,3 +50,5 @@
 - Analytics uses a public-page allowlist and parameter-free conversion events; never send private paths, capabilities, names or emails to analytics.
 
 - Attendance uses owner-scoped athlete/date/session rows with parent guards and atomic invoker upserts; only explicit statuses count, with optional date-range inclusion in individual PDFs.
+
+- Athlete and attendance PDFs share native editorial report-layout helpers and a metadata marker; branded-pdf preserves these finished pages instead of scaling or framing them twice.

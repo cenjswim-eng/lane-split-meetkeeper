@@ -8,7 +8,7 @@ export interface FederationInfo {
   associations: string[];
 }
 
-export const FEDERATIONS: FederationInfo[] = [
+export const FEDERATIONS: [FederationInfo, ...FederationInfo[]] = [
   {
     code: "VEN",
     country: "Venezuela",

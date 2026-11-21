@@ -160,6 +160,7 @@ describe("Association Ranking Top 5", () => {
 
     expect(rankings.length).toBe(1);
     const event = rankings[0];
+    if (!event) throw new Error("Expected a ranked event");
     expect(event.distance).toBe(100);
     expect(event.stroke).toBe(1);
     // Athlete 3 is age 16 so excluded.
@@ -169,20 +170,20 @@ describe("Association Ranking Top 5", () => {
     // Athlete 2 (CPMI) has 59.00 -> Rank 3.
     // All swimmers from both clubs in Miranda are in the ranking!
     expect(event.top5.length).toBe(3);
-    expect(event.top5[0].athleteName).toBe("Andrés Díaz");
-    expect(event.top5[0].clubCode).toBe("EMIL");
-    expect(event.top5[0].finalTimeMs).toBe(56000);
-    expect(event.top5[0].rank).toBe(1);
+    expect(event.top5[0]?.athleteName).toBe("Andrés Díaz");
+    expect(event.top5[0]?.clubCode).toBe("EMIL");
+    expect(event.top5[0]?.finalTimeMs).toBe(56000);
+    expect(event.top5[0]?.rank).toBe(1);
 
-    expect(event.top5[1].athleteName).toBe("Pedro Pérez");
-    expect(event.top5[1].clubCode).toBe("CPMI");
-    expect(event.top5[1].finalTimeMs).toBe(58000);
-    expect(event.top5[1].rank).toBe(2);
+    expect(event.top5[1]?.athleteName).toBe("Pedro Pérez");
+    expect(event.top5[1]?.clubCode).toBe("CPMI");
+    expect(event.top5[1]?.finalTimeMs).toBe(58000);
+    expect(event.top5[1]?.rank).toBe(2);
 
-    expect(event.top5[2].athleteName).toBe("Juan Gómez");
-    expect(event.top5[2].clubCode).toBe("CPMI");
-    expect(event.top5[2].finalTimeMs).toBe(59000);
-    expect(event.top5[2].rank).toBe(3);
+    expect(event.top5[2]?.athleteName).toBe("Juan Gómez");
+    expect(event.top5[2]?.clubCode).toBe("CPMI");
+    expect(event.top5[2]?.finalTimeMs).toBe(59000);
+    expect(event.top5[2]?.rank).toBe(3);
 
     // Participating clubs includes both CPMI and EMIL
     expect(participatingClubs).toContain("CPMI");
@@ -206,21 +207,22 @@ describe("Association Ranking Top 5", () => {
 
     expect(rankings.length).toBe(1);
     const event = rankings[0];
+    if (!event) throw new Error("Expected a ranked event");
     // In Libre mode:
     // Athlete 3 (CPMI, age 16, 55.00) -> Rank 1
     // Athlete 5 (EMIL, age 14, 56.00) -> Rank 2
     // Athlete 1 (CPMI, age 14, 58.00) -> Rank 3
     // Athlete 2 (CPMI, age 13, 59.00) -> Rank 4
     expect(event.top5.length).toBe(4);
-    expect(event.top5[0].athleteName).toBe("Luis Martínez");
-    expect(event.top5[0].clubCode).toBe("CPMI");
-    expect(event.top5[0].finalTimeMs).toBe(55000);
-    expect(event.top5[0].rank).toBe(1);
+    expect(event.top5[0]?.athleteName).toBe("Luis Martínez");
+    expect(event.top5[0]?.clubCode).toBe("CPMI");
+    expect(event.top5[0]?.finalTimeMs).toBe(55000);
+    expect(event.top5[0]?.rank).toBe(1);
 
-    expect(event.top5[1].athleteName).toBe("Andrés Díaz");
-    expect(event.top5[1].clubCode).toBe("EMIL");
-    expect(event.top5[1].finalTimeMs).toBe(56000);
-    expect(event.top5[1].rank).toBe(2);
+    expect(event.top5[1]?.athleteName).toBe("Andrés Díaz");
+    expect(event.top5[1]?.clubCode).toBe("EMIL");
+    expect(event.top5[1]?.finalTimeMs).toBe(56000);
+    expect(event.top5[1]?.rank).toBe(2);
 
     expect(participatingClubs).toEqual(["CPMI", "EMIL"]);
   });
@@ -363,6 +365,7 @@ describe("Association Ranking Top 5", () => {
     );
 
     const event2026 = res2026.rankings[0];
+    if (!event2026) throw new Error("Expected a ranked event");
     const ath1In2026 = event2026.top5.find((item) => item.athleteName === "Pedro Pérez");
     // Pedro's time in 2026 season was 58.00s (not 57.00s which was 2025)
     expect(ath1In2026?.finalTimeMs).toBe(58000);
@@ -382,6 +385,7 @@ describe("Association Ranking Top 5", () => {
       }
     );
     const event2025 = res2025.rankings[0];
+    if (!event2025) throw new Error("Expected a ranked event");
     const ath1In2025 = event2025.top5.find((item) => item.athleteName === "Pedro Pérez");
     expect(ath1In2025?.finalTimeMs).toBe(57000);
     expect(ath1In2025?.affiliationYear).toBe(2025);
@@ -400,6 +404,7 @@ describe("Association Ranking Top 5", () => {
       }
     );
     const eventAll = resAll.rankings[0];
+    if (!eventAll) throw new Error("Expected a ranked event");
     const ath1All = eventAll.top5.find((item) => item.athleteName === "Pedro Pérez");
     expect(ath1All?.finalTimeMs).toBe(57000); // 57.00 is historic best across both seasons
 
@@ -426,11 +431,11 @@ describe("Association Ranking Top 5", () => {
       { id: "c-5", code: "CPMI", name: "Centro Portugués", association: "Miranda (ADAEM)", isClub: true, athleteCount: 14, resultsCount: 35 },
     ];
 
-    expect(isLikelyAdaelClub(clubsPool[0])).toBe(true);
-    expect(isLikelyAdaelClub(clubsPool[1])).toBe(true);
-    expect(isLikelyAdaelClub(clubsPool[2])).toBe(true);
-    expect(isLikelyAdaelClub(clubsPool[3])).toBe(false);
-    expect(isLikelyAdaelClub(clubsPool[4])).toBe(false);
+    expect(isLikelyAdaelClub(clubsPool[0] ?? {})).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[1] ?? {})).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[2] ?? {})).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[3] ?? {})).toBe(false);
+    expect(isLikelyAdaelClub(clubsPool[4] ?? {})).toBe(false);
 
     const { affiliated, candidates } = extractAdaelClubs(clubsPool as any);
     expect(affiliated.map((c) => c.code)).toEqual(["PIS"]);
@@ -476,8 +481,9 @@ describe("Association Ranking Top 5", () => {
     );
 
     const event = resFiltered.rankings[0];
-    expect(event.top5[0].finalTimeMs).toBe(58000);
-    expect(event.top5[0].meetName).toBe("I Estadal ADAEL 2026");
+    if (!event) throw new Error("Expected a ranked event");
+    expect(event.top5[0]?.finalTimeMs).toBe(58000);
+    expect(event.top5[0]?.meetName).toBe("I Estadal ADAEL 2026");
   });
 
   it("identifies known official clubs from FEVEDA and other national federations", () => {

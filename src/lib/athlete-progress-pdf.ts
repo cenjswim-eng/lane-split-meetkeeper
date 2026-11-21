@@ -32,7 +32,7 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
       doc.setTextColor(brand?.primary??print.ink);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.text(`Evolución · ${eventLabel(group.distance, group.stroke)} · ${group.course ?? "Piscina sin especificar"}`, 14, 16);
+      doc.text(doc.splitTextToSize(`Evolución · ${eventLabel(group.distance, group.stroke)} · ${group.course ?? "Piscina sin especificar"}`, 225), 14, 16);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.text(doc.splitTextToSize(`${name} | ${dateLabel(from)} – ${dateLabel(to)} | Nados ${offset + 1}–${offset + records.length} de ${group.records.length}`, 267), 14, 24);
