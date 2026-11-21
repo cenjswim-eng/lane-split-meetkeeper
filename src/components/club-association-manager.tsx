@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, CheckCheck, Globe, Layers, Save, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { Building2, CheckCheck, FileText, Globe, Layers, Save, Search, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { type DetectedClub, normalizeAssociationName } from "@/lib/association-ranking";
-import { FEDERATIONS, getFederation } from "@/lib/federations";
+import { FEDERATIONS, getFederation, findKnownClubAssociation } from "@/lib/federations";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,8 @@ export function ClubAssociationManager({
     return localStorage.getItem("slc_preferred_federation") || "VEN";
   });
   const [batchAssocChoice, setBatchAssocChoice] = useState<string>("");
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
 
   const queryClient = useQueryClient();
   const currentFederation = useMemo(() => getFederation(selectedFederationCode), [selectedFederationCode]);
@@ -47,6 +50,78 @@ export function ClubAssociationManager({
     });
     setAssociations(initial);
     setOpen(true);
+  };
+
+  const handleAutoClassify = () => {
+    let updatedCount = 0;
+    const updated = { ...associations };
+
+    for (const c of clubs) {
+      const current = (associations[c.id] ?? (c.association === "Sin Asociación" ? "" : c.association)).trim();
+      if (!current) {
+        const match = findKnownClubAssociation(c.code, c.name, selectedFederationCode);
+        if (match) {
+          updated[c.id] = match;
+          updatedCount += 1;
+        }
+      }
+    }
+
+    if (updatedCount > 0) {
+      setAssociations(updated);
+      toast.success(
+        `${updatedCount} clubes clasificados automáticamente según el padrón de ${currentFederation.shortName}. Pulsa «Guardar Todos los Cambios» para confirmar.`
+      );
+    } else {
+      toast.info(
+        `No se encontraron nuevos clubes pendientes que coincidan con el padrón oficial de ${currentFederation.shortName}.`
+      );
+    }
+  };
+
+  const handleParsePastedRoster = () => {
+    if (!pasteText.trim()) return;
+    const lines = pasteText.split("\n");
+    let matchedCount = 0;
+    const updated = { ...associations };
+
+    for (const line of lines) {
+      const clean = line.trim();
+      if (!clean) continue;
+
+      const parts = clean.includes("\t")
+        ? clean.split("\t")
+        : clean.includes("|")
+        ? clean.split("|")
+        : clean.split(",");
+
+      if (parts.length >= 2) {
+        const rawCode = parts[0].trim().toUpperCase();
+        const rawAssoc = normalizeAssociationName(parts[parts.length - 1].trim());
+
+        const targetClub = clubs.find(
+          (c) => c.code.toUpperCase() === rawCode || c.name.toLowerCase().includes(parts[0].trim().toLowerCase())
+        );
+
+        if (targetClub && rawAssoc !== "Sin Asociación") {
+          updated[targetClub.id] = rawAssoc;
+          matchedCount += 1;
+        }
+      }
+    }
+
+    if (matchedCount > 0) {
+      setAssociations(updated);
+      setPasteOpen(false);
+      setPasteText("");
+      toast.success(
+        `${matchedCount} clubes vinculados desde el texto pegado. Pulsa «Guardar Todos los Cambios» para guardar.`
+      );
+    } else {
+      toast.warning(
+        "No se encontraron coincidencias de clubes en el texto ingresado. Formato sugerido: Código, Nombre del Club, Asociación."
+      );
+    }
   };
 
   const handleFederationChange = (code: string) => {
@@ -250,9 +325,54 @@ export function ClubAssociationManager({
                 <Sparkles className="size-3.5 text-primary" />
                 <span>Atajos rápidos · {currentFederation.associationLabel}:</span>
               </div>
-              <Badge variant="outline" className="text-[10px] font-mono">
-                {currentFederation.shortName} · {currentFederation.associations.length} disponibles
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleAutoClassify}
+                  className="h-7 text-xs gap-1.5 bg-primary text-primary-foreground font-semibold"
+                >
+                  <Sparkles className="size-3.5" />
+                  Auto-clasificar por Padrón {currentFederation.shortName}
+                </Button>
+
+                <Dialog open={pasteOpen} onOpenChange={setPasteOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 bg-background">
+                      <Upload className="size-3.5 text-primary" />
+                      Pegar Padrón (Texto / Web)
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                      <DialogTitle>Importar Padrón de Clubes por Texto o Web</DialogTitle>
+                      <DialogDescription>
+                        Pega aquí el listado de clubes y asociaciones copiado de la página oficial de {currentFederation.shortName} ({currentFederation.country}) o de un archivo Excel.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Formato admitido: <code>Código, Nombre del Club, Asociación</code> (separado por comas, tabulaciones o plecas |).
+                      </p>
+                      <Textarea
+                        placeholder={`Ejemplo:\nPIS, Piscinas Bolivarianas, Lara (ADAEL)\nCPMI, Centro Portugués, Miranda (ADAEM)\nCIV, Centro Ítalo, Distrito Capital (ASDAC)`}
+                        rows={7}
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                        className="text-xs font-mono"
+                      />
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => setPasteOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" disabled={!pasteText.trim()} onClick={handleParsePastedRoster}>
+                          Vincular Clubes
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             {/* Quick buttons */}

@@ -235,6 +235,112 @@ export const FEDERATIONS: FederationInfo[] = [
 ];
 
 /**
+ * Preloaded catalog of known competitive swimming clubs organized by federation and association.
+ * Allows instant auto-classification of clubs for FEVEDA and other national federations.
+ */
+export interface KnownClubCatalogItem {
+  code: string;
+  name: string;
+  association: string;
+  federationCode: string;
+}
+
+export const KNOWN_FEDERATION_CLUBS: KnownClubCatalogItem[] = [
+  // Venezuela (FEVEDA) - Lara (ADAEL)
+  { code: "PIS", name: "Piscinas Bolivarianas", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "PBOL", name: "Piscinas Bolivarianas de Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "HISP", name: "Hogar Hispano de Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "CBL", name: "Club Barquisimeto", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "CDL", name: "Club Deportivo Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "AQU", name: "Aqua Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "TRIL", name: "Triatlón y Natación Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "ADAL", name: "Selección Lara (ADAEL)", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "CSL", name: "Centro Social Larense", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "CVM", name: "Club Victoria Morita Cabudare", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "PALM", name: "Las Palmas Carora", association: "Lara (ADAEL)", federationCode: "VEN" },
+  { code: "TAR", name: "Tarzanes de Lara", association: "Lara (ADAEL)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Miranda (ADAEM)
+  { code: "CPMI", name: "Centro Portugués del Estado Miranda", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "EMIL", name: "Emil Friedman", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "CIVM", name: "Centro Ítalo Venezolano Miranda", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "SCLN", name: "Sport Center Los Naranjos", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "SAL", name: "Club Los Salias", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "HUM", name: "Humboldt Miranda", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "STPO", name: "Santa Paula", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "CLAR", name: "Club La Lagunita", association: "Miranda (ADAEM)", federationCode: "VEN" },
+  { code: "VMA", name: "Valle Arriba Athletic Club", association: "Miranda (ADAEM)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Distrito Capital (ASDAC)
+  { code: "CIV", name: "Centro Ítalo Venezolano Caracas", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "PNU", name: "Parque Naciones Unidas", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "TEO", name: "Teo Capriles", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "YMCA", name: "YMCA Caracas", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "UCV", name: "Universidad Central de Venezuela", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "HEB", name: "Hebraica Caracas", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+  { code: "HGC", name: "Hermandad Gallega de Caracas", association: "Distrito Capital (ASDAC)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Carabobo (ASODENA)
+  { code: "HGV", name: "Hermandad Gallega de Valencia", association: "Carabobo (ASODENA)", federationCode: "VEN" },
+  { code: "CSIV", name: "Centro Social Ítalo Venezolano Valencia", association: "Carabobo (ASODENA)", federationCode: "VEN" },
+  { code: "HHV", name: "Hogar Hispano de Valencia", association: "Carabobo (ASODENA)", federationCode: "VEN" },
+  { code: "CVP", name: "Club Valles de Camoruco", association: "Carabobo (ASODENA)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Aragua (ASODEA)
+  { code: "CPA", name: "Casa Portuguesa de Aragua", association: "Aragua (ASODEA)", federationCode: "VEN" },
+  { code: "HHA", name: "Hogar Hispano de Aragua", association: "Aragua (ASODEA)", federationCode: "VEN" },
+  { code: "CSIA", name: "Centro Social Ítalo de Aragua", association: "Aragua (ASODEA)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Táchira (ADAET)
+  { code: "DSC", name: "Demócrata Sport Club", association: "Táchira (ADAET)", federationCode: "VEN" },
+  { code: "CSC", name: "Club San Cristóbal", association: "Táchira (ADAET)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Mérida (ASODAME)
+  { code: "MER", name: "Club Natación Mérida", association: "Mérida (ASODAME)", federationCode: "VEN" },
+  { code: "HUMM", name: "Humboldt Mérida", association: "Mérida (ASODAME)", federationCode: "VEN" },
+
+  // Venezuela (FEVEDA) - Zulia (AZUDA)
+  { code: "MDZ", name: "Maracaibo Deporte Zulia", association: "Zulia (AZUDA)", federationCode: "VEN" },
+  { code: "CPZ", name: "Casa D'Italia Maracaibo", association: "Zulia (AZUDA)", federationCode: "VEN" },
+  { code: "CSZ", name: "Club San Francisco Zulia", association: "Zulia (AZUDA)", federationCode: "VEN" },
+
+  // Colombia (FECNA)
+  { code: "ANT", name: "Club Huracanes Antioquia", association: "Antioquia (Liga de Natación de Antioquia)", federationCode: "COL" },
+  { code: "BOG", name: "Club Compensar Bogotá", association: "Bogotá (Liga de Natación de Bogotá)", federationCode: "COL" },
+  { code: "VAL", name: "Club Astros del Valle", association: "Valle del Cauca (Liga de Natación del Valle)", federationCode: "COL" },
+
+  // España (RFEN)
+  { code: "SAB", name: "Club Natació Sabadell", association: "Cataluña (FCN)", federationCode: "ESP" },
+  { code: "CANO", name: "Real Canoe N.C.", association: "Madrid (FMN)", federationCode: "ESP" },
+  { code: "SEV", name: "Club Natación Sevilla", association: "Andalucía (FAN)", federationCode: "ESP" },
+
+  // USA Swimming
+  { code: "AZFL", name: "Azura Florida Aquatics", association: "Florida Gold Coast (FG)", federationCode: "USA" },
+  { code: "PST", name: "Pine Crest Swimming", association: "Florida Gold Coast (FG)", federationCode: "USA" },
+];
+
+/**
+ * Finds known official association for a club by code or name within a federation.
+ */
+export function findKnownClubAssociation(
+  code: string,
+  name?: string,
+  federationCode: string = "VEN"
+): string | null {
+  const cleanCode = (code || "").toUpperCase().trim();
+  const cleanName = (name || "").toUpperCase().trim();
+
+  const match = KNOWN_FEDERATION_CLUBS.find((c) => {
+    if (federationCode && c.federationCode !== federationCode) return false;
+    if (c.code.toUpperCase() === cleanCode) return true;
+    if (cleanName && cleanName.length > 3 && c.name.toUpperCase().includes(cleanName)) return true;
+    return false;
+  });
+
+  return match ? match.association : null;
+}
+
+/**
  * Returns the federation by ISO code or country name. Defaults to FEVEDA (VEN) if not found.
  */
 export function getFederation(codeOrCountry: string = "VEN"): FederationInfo {

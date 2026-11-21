@@ -8,7 +8,12 @@ import {
   isLikelyAdaelClub,
   KNOWN_ADAEL_CODES,
 } from "@/lib/association-ranking";
-import { getFederation, getAssociationsForFederation } from "@/lib/federations";
+import {
+  getFederation,
+  getAssociationsForFederation,
+  findKnownClubAssociation,
+  KNOWN_FEDERATION_CLUBS,
+} from "@/lib/federations";
 
 describe("Association Ranking Top 5", () => {
   const mockClubs = [
@@ -473,5 +478,24 @@ describe("Association Ranking Top 5", () => {
     const event = resFiltered.rankings[0];
     expect(event.top5[0].finalTimeMs).toBe(58000);
     expect(event.top5[0].meetName).toBe("I Estadal ADAEL 2026");
+  });
+
+  it("identifies known official clubs from FEVEDA and other national federations", () => {
+    // Lara clubs in FEVEDA
+    expect(findKnownClubAssociation("PIS", "Piscinas Bolivarianas", "VEN")).toBe("Lara (ADAEL)");
+    expect(findKnownClubAssociation("HISP", "Hogar Hispano", "VEN")).toBe("Lara (ADAEL)");
+    expect(findKnownClubAssociation("CBL", "Club Barquisimeto", "VEN")).toBe("Lara (ADAEL)");
+
+    // Miranda and DC clubs in FEVEDA
+    expect(findKnownClubAssociation("CPMI", "Centro Portugués", "VEN")).toBe("Miranda (ADAEM)");
+    expect(findKnownClubAssociation("CIV", "Centro Italo", "VEN")).toBe("Distrito Capital (ASDAC)");
+
+    // Colombia and Spain clubs
+    expect(findKnownClubAssociation("ANT", "Huracanes Antioquia", "COL")).toBe(
+      "Antioquia (Liga de Natación de Antioquia)"
+    );
+    expect(findKnownClubAssociation("SAB", "Natació Sabadell", "ESP")).toBe("Cataluña (FCN)");
+
+    expect(KNOWN_FEDERATION_CLUBS.length).toBeGreaterThan(20);
   });
 });
