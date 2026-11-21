@@ -22,6 +22,7 @@ import {
 } from "@/lib/association-ranking";
 import { ClubAssociationManager } from "./club-association-manager";
 import { AdaelTeamExtractor } from "./adael-team-extractor";
+import { ExportAssociationClubsModal } from "./export-association-clubs-modal";
 import { SwimFileImporterModal } from "./imports/SwimFileImporterModal";
 import { downloadFile } from "@/lib/file-delivery";
 import type { DashboardResult } from "@/lib/dashboard-summary";
@@ -283,6 +284,21 @@ export function AssociationRanking({
                   <Button variant="outline" className="gap-2 shrink-0">
                     <Upload className="size-4 text-primary" />
                     <span>Importar Resultados</span>
+                  </Button>
+                }
+              />
+              <ExportAssociationClubsModal
+                results={results}
+                athletes={athletes}
+                detectedClubs={detectedClubs}
+                detectedMeets={detectedMeets}
+                associationOptions={associationOptions}
+                initialAssociation={selectedAssociation}
+                initialMeetId={Array.isArray(selectedMeetIds) && selectedMeetIds.length === 1 ? selectedMeetIds[0] : "all"}
+                triggerButton={
+                  <Button variant="outline" className="gap-2 shrink-0">
+                    <Download className="size-4 text-primary" />
+                    <span>Exportar Clubes</span>
                   </Button>
                 }
               />
@@ -600,9 +616,26 @@ export function AssociationRanking({
                   </Badge>
                 )}
               </div>
-              <span className="text-[11px] text-muted-foreground">
-                Ranking estadal oficial · Incluye a todos los nadadores de los clubes afiliados
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                  Ranking estadal oficial · Incluye a todos los nadadores de los clubes afiliados
+                </span>
+                <ExportAssociationClubsModal
+                  results={results}
+                  athletes={athletes}
+                  detectedClubs={detectedClubs}
+                  detectedMeets={detectedMeets}
+                  associationOptions={associationOptions}
+                  initialAssociation={selectedAssociation}
+                  initialMeetId={Array.isArray(selectedMeetIds) && selectedMeetIds.length === 1 ? selectedMeetIds[0] : "all"}
+                  triggerButton={
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-primary/30">
+                      <Download className="size-3.5 text-primary" />
+                      <span>Exportar Clubes ({participatingClubs.length})</span>
+                    </Button>
+                  }
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5 pt-1">

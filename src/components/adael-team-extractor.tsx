@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, CheckCheck, Copy, Download, ExternalLink, HelpCircle, Layers, Plus, Save, Search, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { Building2, CheckCheck, Copy, Download, ExternalLink, FileSpreadsheet, FileText, HelpCircle, Layers, Plus, Save, Search, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,8 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { extractAdaelClubs, isLikelyAdaelClub, type DetectedClub } from "@/lib/association-ranking";
+import {
+  extractAdaelClubs,
+  isLikelyAdaelClub,
+  exportAssociationClubsCsv,
+  generateAssociationClubsPdf,
+  type DetectedClub,
+  type AssociationClubExportItem,
+} from "@/lib/association-ranking";
 import { KNOWN_FEDERATION_CLUBS } from "@/lib/federations";
+import { downloadFile } from "@/lib/file-delivery";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -196,6 +204,57 @@ export function AdaelTeamExtractor({
     toast.success("Listado de clubes de ADAEL copiado al portapapeles.");
   };
 
+  // Export ADAEL clubs to CSV / Excel
+  const handleExportAdaelCsv = () => {
+    if (affiliated.length === 0) {
+      toast.warning("No hay clubes de ADAEL extraídos para exportar.");
+      return;
+    }
+    const items: AssociationClubExportItem[] = affiliated.map((c) => ({
+      code: c.code,
+      name: c.name,
+      association: "Lara (ADAEL)",
+      meetName: "Campeonato Estadal ADAEL",
+      athleteCount: c.athleteCount,
+      resultsCount: c.resultsCount,
+      affiliationYears: c.affiliationYears || [],
+      isAffiliated: true,
+    }));
+    const file = exportAssociationClubsCsv(items, {
+      associationName: "Lara (ADAEL)",
+      meetName: "Campeonato Estadal ADAEL",
+      federationName: "FEVEDA",
+    });
+    downloadFile(file);
+    toast.success(`Archivo Excel/CSV de ADAEL exportado (${items.length} clubes).`);
+  };
+
+  // Export ADAEL clubs to official PDF
+  const handleExportAdaelPdf = () => {
+    if (affiliated.length === 0) {
+      toast.warning("No hay clubes de ADAEL extraídos para exportar.");
+      return;
+    }
+    const items: AssociationClubExportItem[] = affiliated.map((c) => ({
+      code: c.code,
+      name: c.name,
+      association: "Lara (ADAEL)",
+      meetName: "Campeonato Estadal ADAEL",
+      athleteCount: c.athleteCount,
+      resultsCount: c.resultsCount,
+      affiliationYears: c.affiliationYears || [],
+      isAffiliated: true,
+    }));
+    const file = generateAssociationClubsPdf(items, {
+      associationName: "Lara (ADAEL)",
+      meetName: "Campeonato Estadal ADAEL",
+      federationName: "FEVEDA",
+      onlyAffiliated: true,
+    });
+    downloadFile(file);
+    toast.success(`PDF oficial de clubes de ADAEL generado (${items.length} clubes).`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -370,6 +429,30 @@ export function AdaelTeamExtractor({
                 <Button size="sm" variant="outline" onClick={handleCopyRoster} className="h-9 text-xs gap-1.5">
                   <Copy className="size-3.5" />
                   Copiar Listado
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportAdaelCsv}
+                  disabled={affiliated.length === 0}
+                  className="h-9 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+                  title="Descargar clubes de ADAEL en Excel (CSV)"
+                >
+                  <FileSpreadsheet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Exportar CSV
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportAdaelPdf}
+                  disabled={affiliated.length === 0}
+                  className="h-9 text-xs gap-1.5 border-primary/30 text-foreground hover:bg-primary/10"
+                  title="Descargar nómina oficial de clubes de ADAEL en PDF"
+                >
+                  <FileText className="size-3.5 text-primary" />
+                  Exportar PDF
                 </Button>
 
                 {onSelectAdael && (

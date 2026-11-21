@@ -60,6 +60,18 @@ export interface AssociationRankingFilters {
   onlyAffiliatedClubs?: boolean; // When true, only official affiliated clubs (association !== "Sin Asociación")
 }
 
+export interface AssociationClubExportItem {
+  code: string;
+  name: string;
+  association: string;
+  meetName: string;
+  meetDate?: string | null;
+  athleteCount: number;
+  resultsCount: number;
+  affiliationYears: number[];
+  isAffiliated: boolean;
+}
+
 /**
  * Standard known club codes for ADAEL (Lara State, Venezuela).
  */
@@ -720,5 +732,352 @@ export function generateAssociationRankingPdf(
 
   const cleanAssoc = options.associationName.replace(/[^\w-]/g, "_").toLowerCase();
   const filename = `Ranking_Estadal_${cleanAssoc}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  return new File([doc.output("blob")], filename, { type: "application/pdf" });
+}
+
+/**
+ * Extracts and consolidates all clubs belonging to an association (or all associations)
+ * that participated in a specific state championship meet (or across meets),
+ * aggregating athlete count and results count per club.
+ */
+export function extractClubsFromMeetResults(
+  results: DashboardResult[],
+  athletes: any[],
+  detectedClubs: DetectedClub[],
+  options?: {
+    meetId?: string | "all";
+    association?: string | "all";
+    onlyAffiliatedClubs?: boolean;
+    affiliationYear?: number | "all";
+  }
+): AssociationClubExportItem[] {
+  const clubByCode = new Map(detectedClubs.map((c) => [c.code.toUpperCase(), c]));
+  const athleteMap = new Map(athletes.map((a) => [a.id, a]));
+
+  const meetFilter = options?.meetId && options.meetId !== "all" ? options.meetId : null;
+  const targetAssoc =
+    options?.association && options.association !== "all"
+      ? normalizeAssociationName(options.association).toLowerCase()
+      : null;
+  const yearFilter =
+    options?.affiliationYear && options.affiliationYear !== "all"
+      ? Number(options.affiliationYear)
+      : null;
+
+  const clubStats = new Map<
+    string,
+    {
+      code: string;
+      name: string;
+      association: string;
+      athletes: Set<string>;
+      resultsCount: number;
+      meets: Set<string>;
+      meetDates: Set<string>;
+      years: Set<number>;
+    }
+  >();
+
+  const ensureClub = (code: string, fallbackName?: string, fallbackAssoc?: string) => {
+    const upperCode = code.toUpperCase().trim();
+    if (!clubStats.has(upperCode)) {
+      const known = clubByCode.get(upperCode);
+      const assoc = normalizeAssociationName(known?.association || fallbackAssoc || "Sin Asociación");
+      const name = known?.name || fallbackName || upperCode;
+      clubStats.set(upperCode, {
+        code: upperCode,
+        name,
+        association: assoc,
+        athletes: new Set(),
+        resultsCount: 0,
+        meets: new Set(),
+        meetDates: new Set(),
+        years: new Set(known?.affiliationYears || []),
+      });
+    }
+    return clubStats.get(upperCode)!;
+  };
+
+  // 1. Process all results
+  for (const r of results) {
+    if (r.is_dq) continue;
+
+    const rMeetId = r.meets?.id || (r as any).meet_id || r.meets?.name;
+    if (meetFilter && rMeetId !== meetFilter && r.meets?.name !== meetFilter) {
+      continue;
+    }
+
+    const meetDate = r.meets?.start_date || null;
+    const meetYear = meetDate ? Number(meetDate.slice(0, 4)) : null;
+    if (yearFilter && meetYear && meetYear !== yearFilter) {
+      continue;
+    }
+
+    const athlete = athleteMap.get(r.athlete_id);
+    const clubCode = (
+      (r as any).origin_team ||
+      athlete?.clubs?.team_code ||
+      athlete?.teams?.code ||
+      "UN"
+    ).toUpperCase().trim();
+
+    if (clubCode === "UN") continue;
+
+    const club = ensureClub(
+      clubCode,
+      (r as any).origin_team_name || athlete?.clubs?.full_name || athlete?.teams?.name,
+      athlete?.clubs?.region_lsc || athlete?.teams?.lsc
+    );
+
+    if (r.athlete_id) club.athletes.add(r.athlete_id);
+    club.resultsCount += 1;
+    if (r.meets?.name) club.meets.add(r.meets.name);
+    if (meetDate) club.meetDates.add(meetDate);
+    if (meetYear && meetYear > 1990 && meetYear < 2100) club.years.add(meetYear);
+  }
+
+  // 2. If no specific meet filter was set, ensure all known detected clubs for the target association are included
+  if (!meetFilter) {
+    for (const dc of detectedClubs) {
+      if (dc.code !== "UN" && !clubStats.has(dc.code.toUpperCase())) {
+        const item = ensureClub(dc.code, dc.name, dc.association);
+        item.resultsCount = dc.resultsCount;
+        item.athletes = new Set(Array.from({ length: dc.athleteCount }, (_, i) => `${dc.code}-ath-${i}`));
+        dc.affiliationYears?.forEach((y) => item.years.add(y));
+      }
+    }
+  }
+
+  // 3. Filter by association and official affiliation
+  const items: AssociationClubExportItem[] = [];
+
+  for (const stats of clubStats.values()) {
+    const assocNorm = normalizeAssociationName(stats.association);
+    const isAffiliated = assocNorm !== "Sin Asociación";
+
+    if (options?.onlyAffiliatedClubs && !isAffiliated) {
+      continue;
+    }
+
+    if (targetAssoc && assocNorm.toLowerCase() !== targetAssoc) {
+      continue;
+    }
+
+    if (meetFilter && stats.resultsCount === 0 && stats.athletes.size === 0) {
+      continue;
+    }
+
+    const meetsList = [...stats.meets];
+    const meetName = meetsList.length > 0 ? meetsList.join(", ") : "Campeonato Estadal";
+    const datesList = [...stats.meetDates].sort();
+    const meetDate = datesList.length > 0 ? datesList[0] : null;
+
+    items.push({
+      code: stats.code,
+      name: stats.name,
+      association: assocNorm,
+      meetName,
+      meetDate,
+      athleteCount: stats.athletes.size,
+      resultsCount: stats.resultsCount,
+      affiliationYears: [...stats.years].sort((a, b) => b - a),
+      isAffiliated,
+    });
+  }
+
+  return items.sort((a, b) => a.code.localeCompare(b.code));
+}
+
+/**
+ * Generates an Excel-compatible CSV file containing the clubs of an association
+ * extracted from imported meet results. Includes UTF-8 BOM.
+ */
+export function exportAssociationClubsCsv(
+  clubs: AssociationClubExportItem[],
+  metadata: {
+    associationName: string;
+    meetName?: string;
+    seasonYear?: string;
+    federationName?: string;
+  }
+): File {
+  const sanitize = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+
+  const rows: string[] = [
+    `"Swim Lane Coach - Nómina de Clubes por Asociación y Campeonato"`,
+    `"Asociación / Estado:",${sanitize(metadata.associationName)}`,
+    `"Campeonato / Torneo:",${sanitize(metadata.meetName || "Todos los torneos estadales")}`,
+    `"Federación:",${sanitize(metadata.federationName || "FEVEDA")}`,
+    `"Temporada:",${sanitize(metadata.seasonYear || "Año en curso")}`,
+    `"Fecha de Exportación:",${sanitize(new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" }))}`,
+    `"Total de Clubes:",${clubs.length}`,
+    "",
+    [
+      `"Nº"`,
+      `"Código"`,
+      `"Nombre del Club"`,
+      `"Asociación Regional"`,
+      `"Campeonato Estadal"`,
+      `"Atletas Participantes"`,
+      `"Marcas Registradas"`,
+      `"Temporadas de Afiliación"`,
+      `"Padrón Oficial"`,
+    ].join(","),
+  ];
+
+  let totalAthletes = 0;
+  let totalResults = 0;
+
+  clubs.forEach((c, index) => {
+    totalAthletes += c.athleteCount;
+    totalResults += c.resultsCount;
+    rows.push(
+      [
+        index + 1,
+        sanitize(c.code),
+        sanitize(c.name),
+        sanitize(c.association),
+        sanitize(c.meetName),
+        c.athleteCount,
+        c.resultsCount,
+        sanitize(c.affiliationYears.join("; ")),
+        sanitize(c.isAffiliated ? "Sí (Afiliado Oficial)" : "No Oficial / Invitado"),
+      ].join(",")
+    );
+  });
+
+  rows.push("");
+  rows.push(
+    [
+      `"TOTALES"`,
+      `"${clubs.length} Clubes"`,
+      `""`,
+      `""`,
+      `""`,
+      totalAthletes,
+      totalResults,
+      `""`,
+      `""`,
+    ].join(",")
+  );
+
+  const csvContent = "\uFEFF" + rows.join("\r\n");
+  const cleanAssoc = metadata.associationName.replace(/[^\w-]/g, "_").toLowerCase();
+  const cleanMeet = (metadata.meetName || "estadal").replace(/[^\w-]/g, "_").toLowerCase().slice(0, 25);
+  const filename = `Clubes_${cleanAssoc}_${cleanMeet}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+  return new File([csvContent], filename, { type: "text/csv;charset=utf-8;" });
+}
+
+/**
+ * Generates an official Association Clubs PDF report from championship results.
+ */
+export function generateAssociationClubsPdf(
+  clubs: AssociationClubExportItem[],
+  options: {
+    associationName: string;
+    meetName?: string;
+    federationName?: string;
+    seasonYear?: string;
+    onlyAffiliated?: boolean;
+    brand?: ReportBrand;
+  }
+): File {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  setReportTableBrand(doc, options.brand);
+
+  const title = `Padrón de Clubes · ${options.associationName}`;
+  doc.setProperties({
+    title,
+    author: "Swim Lane Coach",
+    creator: "Swim Lane Coach",
+    subject: `Nómina oficial de clubes extraída de resultados de campeonato estadal`,
+  });
+
+  // Header Title
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 14, 13);
+
+  // Subheader: Championship & Federation
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 64, 120);
+  const subheader = `${options.federationName ? options.federationName + " · " : ""}Campeonato: ${options.meetName || "Torneo Estadal"} · Temporada: ${options.seasonYear || "Año en curso"}`;
+  doc.text(subheader, 14, 18);
+  doc.setTextColor(0);
+
+  // Criteria & totals
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  const totalAthletes = clubs.reduce((acc, c) => acc + c.athleteCount, 0);
+  const totalResults = clubs.reduce((acc, c) => acc + c.resultsCount, 0);
+  const criteriaText = options.onlyAffiliated ? "Solo Clubes Afiliados Oficiales" : "Todos los Clubes Participantes";
+  doc.text(
+    `Padrón: ${criteriaText}  |  Clubes: ${clubs.length}  |  Atletas: ${totalAthletes}  |  Marcas: ${totalResults}`,
+    14,
+    23
+  );
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(120);
+  doc.text(
+    `Fecha de extracción: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}  |  Swim Lane Coach · Sistema de Natación Competitiva`,
+    14,
+    28
+  );
+  doc.setTextColor(0);
+
+  const headers = ["Nº", "Código", "Nombre del Club", "Asociación", "Atletas", "Marcas", "Temporadas"];
+  const rows = clubs.map((c, idx) => [
+    (idx + 1).toString(),
+    c.code,
+    c.name,
+    c.association,
+    c.athleteCount.toString(),
+    c.resultsCount.toString(),
+    c.affiliationYears.length > 0 ? c.affiliationYears.join(", ") : "—",
+  ]);
+
+  autoTable(doc, {
+    startY: 32,
+    head: [headers],
+    body: rows,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [40, 80, 140], textColor: [255, 255, 255], fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 20, fontStyle: "bold" },
+      2: { cellWidth: 65 },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 16, halign: "center" },
+      5: { cellWidth: 16, halign: "center" },
+      6: { cellWidth: "auto", halign: "center" },
+    },
+  });
+
+  // Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7.5);
+    doc.setTextColor(140);
+    doc.text(
+      "Swim Lane Coach · Nómina oficial de clubes extraída de resultados de campeonato estadal",
+      14,
+      doc.internal.pageSize.getHeight() - 7
+    );
+    doc.text(
+      `Página ${p} de ${totalPages}`,
+      doc.internal.pageSize.getWidth() - 25,
+      doc.internal.pageSize.getHeight() - 7
+    );
+  }
+
+  const cleanAssoc = options.associationName.replace(/[^\w-]/g, "_").toLowerCase();
+  const cleanMeet = (options.meetName || "estadal").replace(/[^\w-]/g, "_").toLowerCase().slice(0, 25);
+  const filename = `Clubes_${cleanAssoc}_${cleanMeet}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
   return new File([doc.output("blob")], filename, { type: "application/pdf" });
 }

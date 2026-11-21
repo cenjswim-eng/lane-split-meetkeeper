@@ -7,6 +7,9 @@ import {
   extractAdaelClubs,
   isLikelyAdaelClub,
   KNOWN_ADAEL_CODES,
+  extractClubsFromMeetResults,
+  exportAssociationClubsCsv,
+  generateAssociationClubsPdf,
 } from "@/lib/association-ranking";
 import {
   getFederation,
@@ -604,5 +607,85 @@ describe("Association Ranking Top 5", () => {
     const topSwimmerAffiliated = resAffiliated.rankings[0].top5[0];
     expect(topSwimmerAffiliated.athleteId).not.toBe("ath-un");
     expect(topSwimmerAffiliated.athleteId).toBe("ath-1");
+  });
+
+  it("extracts clubs of an association from meet results (Campeonato Estadal)", () => {
+    const meetResults = [
+      {
+        id: "res-estadal-1",
+        athlete_id: "ath-1", // Miranda CPMI
+        final_time_ms: 58000,
+        course: "LCM",
+        is_dq: false,
+        meets: { id: "meet-estadal-lara", name: "I Campeonato Estadal ADAEL 2026", start_date: "2026-03-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+        origin_team: "PIS",
+      },
+      {
+        id: "res-estadal-2",
+        athlete_id: "ath-2", // Miranda CPMI
+        final_time_ms: 59000,
+        course: "LCM",
+        is_dq: false,
+        meets: { id: "meet-estadal-lara", name: "I Campeonato Estadal ADAEL 2026", start_date: "2026-03-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+        origin_team: "HISP",
+      },
+      {
+        id: "res-estadal-3",
+        athlete_id: "ath-4", // DC CIV
+        final_time_ms: 61000,
+        course: "LCM",
+        is_dq: false,
+        meets: { id: "meet-estadal-lara", name: "I Campeonato Estadal ADAEL 2026", start_date: "2026-03-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+        origin_team: "CIV",
+      },
+    ];
+
+    const detected = [
+      { id: "c-1", code: "PIS", name: "Piscinas Bolivarianas", association: "Lara (ADAEL)", isClub: true, athleteCount: 1, resultsCount: 1 },
+      { id: "c-2", code: "HISP", name: "Hogar Hispano", association: "Lara (ADAEL)", isClub: true, athleteCount: 1, resultsCount: 1 },
+      { id: "c-3", code: "CIV", name: "Centro Italo", association: "Distrito Capital (ASDAC)", isClub: true, athleteCount: 1, resultsCount: 1 },
+    ];
+
+    // Extract only ADAEL clubs from meet-estadal-lara
+    const adaelClubs = extractClubsFromMeetResults(
+      meetResults as any,
+      mockAthletes,
+      detected as any,
+      {
+        meetId: "meet-estadal-lara",
+        association: "Lara (ADAEL)",
+        onlyAffiliatedClubs: true,
+      }
+    );
+
+    expect(adaelClubs.length).toBe(2);
+    expect(adaelClubs.map((c) => c.code)).toEqual(["HISP", "PIS"]);
+    expect(adaelClubs[0].association).toBe("Lara (ADAEL)");
+    expect(adaelClubs[0].meetName).toBe("I Campeonato Estadal ADAEL 2026");
+    expect(adaelClubs[0].isAffiliated).toBe(true);
+
+    // Export to CSV
+    const csvFile = exportAssociationClubsCsv(adaelClubs, {
+      associationName: "Lara (ADAEL)",
+      meetName: "I Campeonato Estadal ADAEL 2026",
+      federationName: "FEVEDA",
+    });
+    expect(csvFile).toBeInstanceOf(File);
+    expect(csvFile.name).toContain("adael");
+    expect(csvFile.type).toContain("csv");
+
+    // Export to PDF
+    const pdfFile = generateAssociationClubsPdf(adaelClubs, {
+      associationName: "Lara (ADAEL)",
+      meetName: "I Campeonato Estadal ADAEL 2026",
+      federationName: "FEVEDA",
+      onlyAffiliated: true,
+    });
+    expect(pdfFile).toBeInstanceOf(File);
+    expect(pdfFile.name).toContain("adael");
+    expect(pdfFile.type).toBe("application/pdf");
   });
 });
