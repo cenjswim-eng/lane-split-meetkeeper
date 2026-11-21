@@ -12,6 +12,7 @@ export interface DetectedClub {
   isClub: boolean;
   athleteCount: number;
   resultsCount: number;
+  affiliationYears?: number[];
 }
 
 export interface AssociationTopItem {
@@ -21,6 +22,7 @@ export interface AssociationTopItem {
   gender: string;
   birthDate: string | null;
   ageAtDec31: number;
+  affiliationYear: number;
   clubCode: string;
   clubName: string;
   association: string;
@@ -43,7 +45,7 @@ export interface EventTopRanking {
 }
 
 export interface AssociationRankingFilters {
-  association: string; // 'all' or specific association name (e.g. "Miranda (ADAEL)")
+  association: string; // 'all' or specific association name (e.g. "Miranda (ADAEM)")
   clubFilter?: string; // 'all' or specific club code
   course: string; // 'all' | 'LCM' | 'SCM'
   gender: string; // 'all' | 'M' | 'F'
@@ -53,6 +55,7 @@ export interface AssociationRankingFilters {
   strokeFilter?: number; // 0 for all, 1-5 for specific stroke
   distanceFilter?: number; // 0 for all
   topN?: number; // default 5
+  affiliationYear?: number | "all"; // Season / Year of annual federation affiliation (e.g. 2026, 2025)
 }
 
 /**
@@ -182,6 +185,13 @@ export function extractDetectedClubs(
   teams: any[] = []
 ): DetectedClub[] {
   const map = new Map<string, DetectedClub>();
+  const clubYearsMap = new Map<string, Set<number>>();
+
+  const recordClubYear = (code: string, year: number | null | undefined) => {
+    if (!year || year < 1990 || year > 2100) return;
+    if (!clubYearsMap.has(code)) clubYearsMap.set(code, new Set());
+    clubYearsMap.get(code)!.add(year);
+  };
 
   // 1. Registered clubs
   for (const c of clubs) {
@@ -194,6 +204,7 @@ export function extractDetectedClubs(
       isClub: true,
       athleteCount: 0,
       resultsCount: 0,
+      affiliationYears: [],
     });
   }
 
@@ -210,6 +221,7 @@ export function extractDetectedClubs(
         isClub: false,
         athleteCount: 0,
         resultsCount: 0,
+        affiliationYears: [],
       });
     } else {
       const existing = map.get(code)!;
@@ -235,6 +247,7 @@ export function extractDetectedClubs(
         isClub: Boolean(a.clubs?.id),
         athleteCount: 0,
         resultsCount: 0,
+        affiliationYears: [],
       });
     }
     if (map.has(code)) {
@@ -258,11 +271,24 @@ export function extractDetectedClubs(
         isClub: false,
         athleteCount: 0,
         resultsCount: 0,
+        affiliationYears: [],
       });
     }
     if (map.has(rawCode)) {
       map.get(rawCode)!.resultsCount += 1;
     }
+
+    // Record meet year as annual federation affiliation activity for this club
+    if (r.meets?.start_date) {
+      const y = Number(r.meets.start_date.slice(0, 4));
+      recordClubYear(rawCode, y);
+    }
+  }
+
+  // Populate affiliationYears for each detected club
+  for (const [code, club] of map.entries()) {
+    const years = clubYearsMap.get(code);
+    club.affiliationYears = years ? [...years].sort((a, b) => b - a) : [];
   }
 
   return [...map.values()].sort((a, b) => a.code.localeCompare(b.code));
@@ -327,9 +353,24 @@ export function calculateAssociationRankings(
       continue;
     }
 
-    // Age calculation at Dec 31
+    // Meet year (competition date) represents the annual federation affiliation season
     const meetYear = Number(r.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
-    const athleteAge = ageAtDec31(athlete.birth_date, meetYear);
+
+    // Annual federation affiliation season filter
+    if (
+      filters.affiliationYear &&
+      filters.affiliationYear !== "all" &&
+      meetYear !== Number(filters.affiliationYear)
+    ) {
+      continue;
+    }
+
+    // Official federation age is evaluated at December 31 of the affiliation season / competition year
+    const evalYear =
+      filters.affiliationYear && filters.affiliationYear !== "all"
+        ? Number(filters.affiliationYear)
+        : meetYear;
+    const athleteAge = ageAtDec31(athlete.birth_date, evalYear);
 
     // Age Mode check (Libre vs Cruce de edades)
     if (filters.ageMode === "13-14" && (athleteAge < 13 || athleteAge > 14)) continue;
@@ -396,6 +437,7 @@ export function calculateAssociationRankings(
         gender,
         birthDate: athlete?.birth_date || null,
         ageAtDec31: age,
+        affiliationYear: meetYear,
         clubCode,
         clubName: clubInfo?.name || athlete?.clubs?.full_name || athlete?.teams?.name || clubCode,
         association: normalizeAssociationName(clubInfo?.association || athlete?.clubs?.region_lsc || athlete?.teams?.lsc),
@@ -444,6 +486,8 @@ export function generateAssociationRankingPdf(
     ageModeLabel: string;
     courseLabel: string;
     genderLabel: string;
+    affiliationYearLabel?: string;
+    federationName?: string;
     participatingClubs?: string[];
     brand?: ReportBrand;
   }
@@ -456,37 +500,49 @@ export function generateAssociationRankingPdf(
     title,
     author: "Swim Lane Coach",
     creator: "Swim Lane Coach",
-    subject: "Ranking Oficial por Estado y Asociación Top 5",
+    subject: `Ranking Oficial por Estado y Asociación Top 5 - ${options.affiliationYearLabel || ""}`,
   });
 
   // Header
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
-  doc.text(title, 14, 15);
+  doc.text(title, 14, 13);
 
+  // Federation & Affiliation Season subheader
   doc.setFontSize(9.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 64, 120);
+  const fedSeasonText = `${options.federationName ? options.federationName + " · " : ""}Temporada de Afiliación Anual: ${options.affiliationYearLabel || "Año en curso"}`;
+  doc.text(fedSeasonText, 14, 18);
+  doc.setTextColor(0);
+
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.text(
-    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Extracción: Mejores 5 tiempos`,
+    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Extracción: Mejores 5 tiempos de la temporada`,
     14,
-    21
+    23
   );
 
   // Participating clubs line
   if (options.participatingClubs && options.participatingClubs.length > 0) {
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(60);
     const clubsStr = `Clubes afiliados participantes (${options.participatingClubs.length}): ${options.participatingClubs.join(", ")}`;
-    doc.text(clubsStr.length > 130 ? clubsStr.slice(0, 127) + "..." : clubsStr, 14, 26);
+    doc.text(clubsStr.length > 135 ? clubsStr.slice(0, 132) + "..." : clubsStr, 14, 28);
     doc.setTextColor(0);
   }
 
   doc.setFontSize(8);
   doc.setTextColor(120);
-  doc.text(`Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}`, 14, 30);
+  doc.text(
+    `Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}  |  Regla: 1 mejor tiempo por atleta · Edad al 31 de Diciembre`,
+    14,
+    33
+  );
   doc.setTextColor(0);
 
-  let currentY = 35;
+  let currentY = 38;
 
   if (rankings.length === 0) {
     doc.setFontSize(11);

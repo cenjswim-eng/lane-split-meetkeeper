@@ -308,4 +308,104 @@ describe("Association Ranking Top 5", () => {
     expect(normalizeAssociationName("Cataluña")).toBe("Cataluña (FCN)");
     expect(normalizeAssociationName("FG")).toBe("Florida Gold Coast (FG)");
   });
+
+  it("filters ranking by annual federation affiliation season (affiliationYear) and detects club seasons", () => {
+    // Add multi-season results: 2025 vs 2026
+    const multiSeasonResults = [
+      ...mockResults,
+      // Athlete 1 in 2025 (Faster than 2026: 57.00s in 2025, but 58.00s in 2026)
+      {
+        id: "res-2025-1",
+        athlete_id: "ath-1",
+        final_time_ms: 57000, // 57.00s in 2025
+        course: "LCM",
+        is_dq: false,
+        meets: { name: "Nacional 2025", start_date: "2025-11-15" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+      },
+      // Athlete 2 in 2025 (58.50s in 2025 vs 59.00s in 2026)
+      {
+        id: "res-2025-2",
+        athlete_id: "ath-2",
+        final_time_ms: 58500,
+        course: "LCM",
+        is_dq: false,
+        meets: { name: "Estadal 2025", start_date: "2025-05-20" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+      },
+    ];
+
+    const detected = extractDetectedClubs(mockAthletes, multiSeasonResults, mockClubs);
+    const cpmiClub = detected.find((c) => c.code === "CPMI");
+    expect(cpmiClub?.affiliationYears).toContain(2026);
+    expect(cpmiClub?.affiliationYears).toContain(2025);
+
+    // 1. Filter by 2026 Annual Affiliation Season
+    const res2026 = calculateAssociationRankings(
+      multiSeasonResults as any,
+      mockAthletes,
+      detected,
+      {
+        association: "Miranda (ADAEM)",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        affiliationYear: 2026,
+      }
+    );
+
+    const event2026 = res2026.rankings[0];
+    const ath1In2026 = event2026.top5.find((item) => item.athleteName === "Pedro Pérez");
+    // Pedro's time in 2026 season was 58.00s (not 57.00s which was 2025)
+    expect(ath1In2026?.finalTimeMs).toBe(58000);
+    expect(ath1In2026?.affiliationYear).toBe(2026);
+
+    // 2. Filter by 2025 Annual Affiliation Season
+    const res2025 = calculateAssociationRankings(
+      multiSeasonResults as any,
+      mockAthletes,
+      detected,
+      {
+        association: "Miranda (ADAEM)",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        affiliationYear: 2025,
+      }
+    );
+    const event2025 = res2025.rankings[0];
+    const ath1In2025 = event2025.top5.find((item) => item.athleteName === "Pedro Pérez");
+    expect(ath1In2025?.finalTimeMs).toBe(57000);
+    expect(ath1In2025?.affiliationYear).toBe(2025);
+
+    // 3. Filter by all seasons (historic best)
+    const resAll = calculateAssociationRankings(
+      multiSeasonResults as any,
+      mockAthletes,
+      detected,
+      {
+        association: "Miranda (ADAEM)",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        affiliationYear: "all",
+      }
+    );
+    const eventAll = resAll.rankings[0];
+    const ath1All = eventAll.top5.find((item) => item.athleteName === "Pedro Pérez");
+    expect(ath1All?.finalTimeMs).toBe(57000); // 57.00 is historic best across both seasons
+
+    // 4. PDF generation includes affiliation year label
+    const pdf2026 = generateAssociationRankingPdf(res2026.rankings, {
+      associationName: "Miranda (ADAEM)",
+      ageModeLabel: "Categoría Libre",
+      courseLabel: "50 m (LCM)",
+      genderLabel: "Masculino",
+      affiliationYearLabel: "Temporada de Afiliación Anual 2026",
+      federationName: "FEVEDA",
+      participatingClubs: res2026.participatingClubs,
+    });
+    expect(pdf2026).toBeDefined();
+    expect(pdf2026.size).toBeGreaterThan(100);
+  });
 });

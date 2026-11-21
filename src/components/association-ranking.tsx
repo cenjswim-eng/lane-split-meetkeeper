@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, Download, FileText, Filter, Layers, Medal, Settings2, Trophy, Users } from "lucide-react";
+import { Building2, Calendar, Download, FileText, Filter, Layers, Medal, Settings2, Sparkles, Trophy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +32,19 @@ export function AssociationRanking({
     return extractDetectedClubs(athletes, results, clubs, teams);
   }, [athletes, results, clubs, teams]);
 
+  // Distinct annual federation affiliation seasons derived from imported results
+  const availableAffiliationYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const r of results) {
+      if (r.meets?.start_date) {
+        const y = Number(r.meets.start_date.slice(0, 4));
+        if (y > 2000 && y < 2100) years.add(y);
+      }
+    }
+    years.add(new Date().getFullYear());
+    return [...years].sort((a, b) => b - a);
+  }, [results]);
+
   // Distinct associations
   const associationOptions = useMemo(() => {
     const counts = new Map<string, number>();
@@ -43,6 +56,9 @@ export function AssociationRanking({
   }, [detectedClubs]);
 
   // Filters State
+  const [selectedAffiliationYear, setSelectedAffiliationYear] = useState<string>(() => {
+    return String(new Date().getFullYear());
+  });
   const [selectedAssociation, setSelectedAssociation] = useState<string>("all");
   const [selectedClub, setSelectedClub] = useState<string>("all");
   const [selectedCourse, setSelectedCourse] = useState<string>("LCM");
@@ -61,6 +77,13 @@ export function AssociationRanking({
     );
   }, [detectedClubs, selectedAssociation]);
 
+  // Total imported swims for current affiliation year
+  const totalSwimsInYearCount = useMemo(() => {
+    if (selectedAffiliationYear === "all") return results.length;
+    const y = Number(selectedAffiliationYear);
+    return results.filter((r) => r.meets?.start_date && Number(r.meets.start_date.slice(0, 4)) === y).length;
+  }, [results, selectedAffiliationYear]);
+
   // Calculate rankings
   const { rankings, participatingClubs } = useMemo(() => {
     return calculateAssociationRankings(results, athletes, detectedClubs, {
@@ -73,6 +96,7 @@ export function AssociationRanking({
       customMaxAge,
       strokeFilter: selectedStroke,
       topN: topLimit,
+      affiliationYear: selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear),
     });
   }, [
     results,
@@ -87,6 +111,7 @@ export function AssociationRanking({
     customMaxAge,
     selectedStroke,
     topLimit,
+    selectedAffiliationYear,
   ]);
 
   // Total unique swimmers in the top 5
@@ -121,11 +146,17 @@ export function AssociationRanking({
       const courseLabel = selectedCourse === "LCM" ? "50 m (LCM)" : selectedCourse === "SCM" ? "25 m (SCM)" : "Todas las piscinas";
       const genderLabel = selectedGender === "M" ? "Masculino" : selectedGender === "F" ? "Femenino" : "Masculino y Femenino";
 
+      const seasonLabel =
+        selectedAffiliationYear === "all"
+          ? "Histórico (Todas las temporadas)"
+          : `Temporada de Afiliación Anual ${selectedAffiliationYear}`;
+
       const file = generateAssociationRankingPdf(rankings, {
         associationName: assocName,
         ageModeLabel: ageLabel,
         courseLabel,
         genderLabel,
+        affiliationYearLabel: seasonLabel,
         participatingClubs,
       });
 
@@ -148,7 +179,7 @@ export function AssociationRanking({
                 <CardTitle className="text-xl font-bold">Ranking Oficial por Asociación (Top 5)</CardTitle>
               </div>
               <CardDescription>
-                Extrae las 5 mejores marcas por prueba y categoría de los clubes afiliados a cada asociación. Regla oficial: 1 mejor tiempo por atleta y edad calculada al 31 de diciembre.
+                Extrae las 5 mejores marcas por prueba y categoría de los clubes afiliados a cada asociación según el año de afiliación federativa anual. Regla oficial: 1 mejor tiempo por atleta y edad calculada al 31 de diciembre.
               </CardDescription>
             </div>
 
@@ -164,7 +195,33 @@ export function AssociationRanking({
 
         <CardContent className="space-y-4 pt-0">
           {/* Filter Bar */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 border-t pt-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 border-t pt-4">
+            {/* Temporada de Afiliación Anual */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3.5 text-primary" />
+                  <span>Afiliación Anual</span>
+                </span>
+                <span className="text-[10px] text-primary">
+                  {selectedAffiliationYear === "all" ? "Histórico" : `Año ${selectedAffiliationYear}`}
+                </span>
+              </label>
+              <Select value={selectedAffiliationYear} onValueChange={setSelectedAffiliationYear}>
+                <SelectTrigger aria-label="Filtrar por temporada de afiliación anual">
+                  <SelectValue placeholder="Seleccionar temporada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las temporadas (Histórico)</SelectItem>
+                  {availableAffiliationYears.map((yr) => (
+                    <SelectItem key={yr} value={String(yr)}>
+                      Temporada {yr} {yr === new Date().getFullYear() ? "· (Actual)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Asociación */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
@@ -343,7 +400,19 @@ export function AssociationRanking({
 
           {/* Quick Stats Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex items-center gap-1 font-medium text-foreground">
+                <Calendar className="size-3.5 text-primary" />
+                <span>Temporada:</span>
+                <Badge variant={selectedAffiliationYear === "all" ? "outline" : "secondary"} className="ml-0.5 text-primary text-[11px]">
+                  {selectedAffiliationYear === "all" ? "Todas (Histórico)" : `Afiliación Anual ${selectedAffiliationYear}`}
+                </Badge>
+              </span>
+              <span>•</span>
+              <span>
+                Marcas extraídas: <strong className="text-foreground">{totalSwimsInYearCount}</strong>
+              </span>
+              <span>•</span>
               <span>
                 Pruebas con registros: <strong className="text-foreground">{rankings.length}</strong>
               </span>
@@ -454,7 +523,12 @@ export function AssociationRanking({
                           {item.formattedTime}
                         </td>
                         <td className="p-2.5 text-muted-foreground truncate max-w-48">
-                          {item.meetName}
+                          <div className="flex flex-col">
+                            <span className="text-foreground truncate">{item.meetName}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Temporada {item.affiliationYear}
+                            </span>
+                          </div>
                         </td>
                         <td className="p-2.5 text-center text-muted-foreground font-mono">
                           {item.meetDate || "—"}

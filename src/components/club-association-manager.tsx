@@ -350,7 +350,7 @@ export function ClubAssociationManager({
                         </Badge>
                         <span className="font-semibold text-sm truncate">{club.name}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{club.athleteCount} atletas</span>
                         <span>•</span>
                         <span>{club.resultsCount} marcas</span>
@@ -364,6 +364,19 @@ export function ClubAssociationManager({
                         >
                           Actual: {club.association}
                         </span>
+                        {club.affiliationYears && club.affiliationYears.length > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <span>Temporadas:</span>
+                              {club.affiliationYears.slice(0, 3).map((yr) => (
+                                <Badge key={yr} variant="outline" className="text-[10px] px-1 py-0 h-4 font-mono">
+                                  {yr}
+                                </Badge>
+                              ))}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
