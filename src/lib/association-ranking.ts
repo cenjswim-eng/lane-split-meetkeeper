@@ -3,6 +3,7 @@ import { brandedTable as autoTable, setReportTableBrand } from "./report-table-t
 import type { ReportBrand } from "./report-brand";
 import { ageAtDec31, eventLabel, formatTime } from "./swim";
 import type { DashboardResult } from "./dashboard-summary";
+export * from "./team-hub/ranking-engine";
 
 export interface DetectedClub {
   id: string;

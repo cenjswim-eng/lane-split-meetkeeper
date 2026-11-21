@@ -42,6 +42,12 @@ import {
   drainOfflineQueue,
   exportOfflineQueueBackupJson,
 } from '@/lib/meet-engine/offline-pool-sync';
+import {
+  generateSwimmerRanking,
+  calculateAge,
+  type SwimResultRecord,
+  type RankingFilterOptions,
+} from '@/lib/team-hub/ranking-engine';
 
 describe('Hito 1: Normalización de Datos y Deduplicación Fuzzy', () => {
   it('normalizes times with comma (,) or dot (.) decimal into exact integer milliseconds', () => {
@@ -497,5 +503,166 @@ describe('Hito 6: Resiliencia Offline-First para Piscina', () => {
     const parsed = JSON.parse(json);
     expect(parsed.totalHeats).toBeGreaterThanOrEqual(1);
     expect(Array.isArray(parsed.heats)).toBe(true);
+  });
+});
+
+describe('Hito 7: Motor de Rankings Oficiales (Hy-Tek Top Times)', () => {
+  const sampleResults: SwimResultRecord[] = [
+    {
+      resultId: 'res_1',
+      swimmerId: 'swim_1',
+      swimmerName: 'Alejandro Gonzalez',
+      gender: 'M',
+      birthDate: '2008-04-12',
+      clubCode: 'PISBO',
+      clubName: 'Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Camp. Estadal Lara 2026',
+      meetDate: '2026-06-15',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 53200, // 53.20
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'res_2',
+      swimmerId: 'swim_1', // Mismo nadador con peor tiempo (debe descartarse)
+      swimmerName: 'Alejandro Gonzalez',
+      gender: 'M',
+      birthDate: '2008-04-12',
+      clubCode: 'PISBO',
+      clubName: 'Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Invitacional Master',
+      meetDate: '2026-03-10',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 54500, // 54.50
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'res_3',
+      swimmerId: 'swim_2',
+      swimmerName: 'Carlos Ramirez',
+      gender: 'M',
+      birthDate: '2008-01-20',
+      clubCode: 'HOCAL',
+      clubName: 'Hogar Canario Larense',
+      associationCode: 'LARA',
+      meetName: 'Camp. Estadal Lara 2026',
+      meetDate: '2026-06-15',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 53200, // Empate en 1° lugar (53.20)
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'res_4',
+      swimmerId: 'swim_3',
+      swimmerName: 'Diego Morales',
+      gender: 'M',
+      birthDate: '2008-09-05',
+      clubCode: 'DELPH',
+      clubName: 'Delfines de Miranda',
+      associationCode: 'MIR', // Otra asociación
+      meetName: 'Camp. Nacional Miranda',
+      meetDate: '2026-07-20',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 54100,
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'res_5',
+      swimmerId: 'swim_4',
+      swimmerName: 'Luis Perez',
+      gender: 'M',
+      birthDate: '2008-11-10',
+      clubCode: 'ACUAR',
+      clubName: 'Acuáticos de Lara',
+      associationCode: 'LARA',
+      meetName: 'Camp. Estadal Lara 2026',
+      meetDate: '2026-06-15',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 55000,
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'res_6',
+      swimmerId: 'swim_5',
+      swimmerName: 'Manuel Descalificado',
+      gender: 'M',
+      birthDate: '2008-05-15',
+      clubCode: 'PISBO',
+      clubName: 'Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Camp. Estadal Lara 2026',
+      meetDate: '2026-06-15',
+      distance: 100,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 51000,
+      status: 'DQ', // Descalificado
+      isExhibition: false,
+    },
+  ];
+
+  it('filters by association, retains only the best time per swimmer, and handles ties with rank skipping', () => {
+    const filters: RankingFilterOptions = {
+      distance: 100,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+      associations: ['LARA'],
+      topN: 10,
+    };
+
+    const ranking = generateSwimmerRanking(sampleResults, filters);
+
+    // DQ excluded, Diego Morales (MIR) excluded
+    expect(ranking.length).toBe(3);
+
+    // Alejandro Gonzalez (53200) and Carlos Ramirez (53200) are tied for rank 1
+    expect(ranking[0]?.rank).toBe(1);
+    expect(ranking[0]?.timeMs).toBe(53200);
+
+    expect(ranking[1]?.rank).toBe(1);
+    expect(ranking[1]?.timeMs).toBe(53200);
+
+    // Rank skipping: next swimmer (Luis Perez 55000) must be rank 3 (NOT 2)
+    expect(ranking[2]?.rank).toBe(3);
+    expect(ranking[2]?.timeMs).toBe(55000);
+    expect(ranking[2]?.swimmerId).toBe('swim_4');
+  });
+
+  it('calculates competitive age at cutoff date and filters age categories', () => {
+    // 2008 born at 2026-12-31 is 18 years old
+    expect(calculateAge('2008-04-12', '2026-12-31')).toBe(18);
+    // 2012 born at 2026-06-01 is 14 years old
+    expect(calculateAge('2012-05-10', '2026-06-01')).toBe(14);
+
+    const filtersYouth: RankingFilterOptions = {
+      distance: 100,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+      minAge: 17,
+      maxAge: 18,
+      ageCutoffDate: '2026-12-31',
+    };
+
+    const ranking = generateSwimmerRanking(sampleResults, filtersYouth);
+    expect(ranking.every(r => r.ageAtRecord >= 17 && r.ageAtRecord <= 18)).toBe(true);
   });
 });
