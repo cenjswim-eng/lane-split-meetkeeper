@@ -1,6 +1,7 @@
+import { reportHeading, reportMetrics, finishReport, reportPrint } from './report-layout';
 import { attendanceSummary,attendanceStatus,trainingSessions,type AttendanceReport } from './attendance';
 import { jsPDF } from "jspdf";
-import { brandedTable as autoTable,setReportTableBrand } from './report-table-theme';
+import { brandedTable as autoTable,setReportTableBrand,setProfessionalReportTheme } from './report-table-theme';
 import type { ReportBrand,ReportPrivacy } from './report-brand';
 import { formatTime, eventLabel, ageAtDec31, ageGroup } from "./swim";
 import { MEMBER_ROLES, type MemberRole } from "./club";
@@ -111,28 +112,16 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
   return [...byMeet.values()].filter((m) => m.points > 0).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 }
 
-export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, attendance: AttendanceReport, brand?: ReportBrand, startY = 16) {
+export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, attendance: AttendanceReport, brand?: ReportBrand, _startY = 16) {
   const summary = attendanceSummary(attendance.rows);
-  let textX = 14;
-
-  if (brand?.logo) {
-    try {
-      doc.addImage(brand.logo, "PNG", 14, startY, 20, 20);
-      textX = 38;
-    } catch {}
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(20, 30, 40);
-  doc.text(brand?.name || "Swim Lane Coach", textX, startY + 6);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(80, 90, 100);
-  doc.text("Asistencia a entrenamientos · Reporte Resumido", textX, startY + 12);
-  doc.setFontSize(8);
-  doc.text(`Atleta: ${athleteName} · Período: ${attendance.from} al ${attendance.to}`, textX, startY + 17);
-  doc.setTextColor(0);
+  setProfessionalReportTheme(doc);
+  const headingY = reportHeading(doc, 'Asistencia a entrenamientos', `${athleteName} · ${attendance.from} al ${attendance.to}`, brand);
+  const contentY = reportMetrics(doc, [
+    {label: 'Asistencia del período', value: summary.percentage == null ? '—' : `${summary.percentage}%`},
+    {label: 'Sesiones registradas', value: String(summary.total)},
+    {label: 'Presentes + tarde', value: String(summary.attended)},
+    {label: 'Ausentes / justificadas', value: `${summary.absent} / ${summary.excused}`},
+  ], headingY, brand);
 
   const notesRows = attendance.rows.filter(r => r.notes && r.notes.trim() && r.notes.trim() !== "—");
   const observationsText = notesRows.length > 0
@@ -145,7 +134,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
     : "Sin sesiones registradas en este período";
 
   autoTable(doc, {
-    startY: startY + 23,
+    startY: contentY,
     margin: { left: 14, right: 14, bottom: 25 },
     head: [[
       {
@@ -162,11 +151,11 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
     ]],
     body: [
       [
-        { content: "Fechas / Período:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
-        { content: `Del ${attendance.from} al ${attendance.to} (${summary.total} sesiones programadas)` }
+        { content: "Fechas / Período:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
+        { content: `Del ${attendance.from} al ${attendance.to} (${summary.total} sesiones registradas)` }
       ],
       [
-        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         {
           content: pctDetail,
           styles: {
@@ -177,12 +166,12 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
         }
       ],
       [
-        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
       ]
     ],
     theme: "grid",
-    styles: { fontSize: 8.5, cellPadding: 3, lineColor: [215, 220, 225], lineWidth: 0.2, overflow: "linebreak" },
+    styles: { fontSize: 8.5, cellPadding: 3, lineColor: reportPrint.rule, lineWidth: 0.2, overflow: "linebreak" },
   });
 }
 
@@ -191,7 +180,8 @@ export function athleteAttendancePdf(athlete: { first_name: string; last_name: s
   setReportTableBrand(doc, brand);
   const name = `${athlete.first_name} ${athlete.last_name}`;
   renderAttendanceSummaryBox(doc, name, attendance, brand, 16);
-  return new File([brandedOutput(doc)], exportFilename(name, "_asistencia.pdf"), { type: "application/pdf" });
+  finishReport(doc, brand);
+  return new File([doc.output("blob")], exportFilename(name, "_asistencia.pdf"), { type: "application/pdf" });
 }
 
 export function dailyAttendancePdf(options: {
@@ -203,27 +193,8 @@ export function dailyAttendancePdf(options: {
 }): File {
   const doc = new jsPDF({ orientation: "landscape" });
   setReportTableBrand(doc, options.brand);
-  const startY = 16;
-  let textX = 14;
-
-  if (options.brand?.logo) {
-    try {
-      doc.addImage(options.brand.logo, "PNG", 14, startY, 20, 20);
-      textX = 38;
-    } catch {}
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(20, 30, 40);
-  doc.text(options.brand?.name || options.clubName || "Swim Lane Coach", textX, startY + 6);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(80, 90, 100);
-  doc.text("Asistencia a entrenamientos · Reporte Resumido", textX, startY + 12);
-  doc.setFontSize(8);
-  doc.text(`Fecha: ${options.date} · Sesión: ${trainingSessions[options.session]} · Emisión: ${new Date().toLocaleDateString("es-VE")}`, textX, startY + 17);
-  doc.setTextColor(0);
+  setProfessionalReportTheme(doc);
+  const headingY = reportHeading(doc, 'Asistencia a entrenamientos', `${options.clubName} · ${options.date} · ${trainingSessions[options.session]}`, options.brand);
 
   const registered = options.rows.filter(r => r.status);
   const counts = { present: 0, late: 0, absent: 0, excused: 0 };
@@ -244,8 +215,14 @@ export function dailyAttendancePdf(options: {
     ? `${pct} (${attended} de ${total} nadadores registrados · ${counts.present} presentes, ${counts.late} tarde, ${counts.absent} ausentes, ${counts.excused} justificadas)`
     : "Sin asistencia registrada en esta sesión";
 
+  const contentY = reportMetrics(doc, [
+    {label: 'Asistencia de la sesión', value: pct},
+    {label: 'Nadadores registrados', value: String(total)},
+    {label: 'Presentes + tarde', value: String(attended)},
+    {label: 'Ausentes / justificadas', value: `${counts.absent} / ${counts.excused}`},
+  ], headingY, options.brand);
   autoTable(doc, {
-    startY: startY + 23,
+    startY: contentY,
     margin: { left: 14, right: 14, bottom: 25 },
     head: [[
       {
@@ -262,11 +239,11 @@ export function dailyAttendancePdf(options: {
     ]],
     body: [
       [
-        { content: "Fechas / Sesión:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: "Fechas / Sesión:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         { content: `${options.date} · Sesión de ${trainingSessions[options.session]} (${total} nadadores registrados)` }
       ],
       [
-        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         {
           content: pctDetail,
           styles: {
@@ -277,15 +254,16 @@ export function dailyAttendancePdf(options: {
         }
       ],
       [
-        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: [248, 250, 252] } },
+        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
       ]
     ],
     theme: "grid",
-    styles: { fontSize: 8.5, cellPadding: 3, lineColor: [215, 220, 225], lineWidth: 0.2, overflow: "linebreak" },
+    styles: { fontSize: 8.5, cellPadding: 3, lineColor: reportPrint.rule, lineWidth: 0.2, overflow: "linebreak" },
   });
 
-  return new File([brandedOutput(doc)], exportFilename(`asistencia_${options.date}_${options.session}`, ".pdf"), { type: "application/pdf" });
+  finishReport(doc, options.brand);
+  return new File([doc.output("blob")], exportFilename(`asistencia_${options.date}_${options.session}`, ".pdf"), { type: "application/pdf" });
 }
 
 export function athleteProgressPdf(athlete: { first_name: string; last_name: string; birth_date: string | null; gender?: string | null; federation_id: string | null; teams: { name: string } | null }, results: AthleteReportResult[], standards: readonly QualificationStandard[] = [], source: StandardVersion | null = null, achievements: readonly Achievement[] = [],brand?:ReportBrand,privacy?:ReportPrivacy,attendance?:AttendanceReport) {
@@ -297,8 +275,15 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const year = new Date().getFullYear();
   const age = ageAtDec31(athlete.birth_date, year);
   const category = standards.find(s => age != null && (s.age_min == null || age >= s.age_min) && (s.age_max == null || age <= s.age_max) && s.age_group && (!s.gender || s.gender === athlete.gender))?.age_group ?? ageGroup(age);
-  header(doc, "Seguimiento individual — últimos 9 meses", name);
-  autoTable(doc, { startY: 28, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", privacy&&!privacy.birthDate?'—':athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
+  setProfessionalReportTheme(doc);
+  const headingY = reportHeading(doc, 'Seguimiento individual', `${name} · Últimos 9 meses`, brand);
+  const contentY = reportMetrics(doc, [
+    {label: 'Resultados vigentes', value: String(ranked.length)},
+    {label: 'Competencias', value: String(new Set(ranked.map(r => `${r.meets?.name}|${r.meets?.start_date}`)).size)},
+    {label: 'Pruebas / piscina', value: String(new Set(ranked.filter(r=>r.events&&!r.is_dq&&r.final_time_ms!=null).map(r=>`${r.events?.distance}|${r.events?.stroke}|${r.course}`)).size)},
+    {label: 'Puntos de competencia', value: String(ranked.reduce((sum,r)=>sum+(r.points_scored??0),0))},
+  ], headingY, brand);
+  autoTable(doc, { startY: contentY, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", privacy&&!privacy.birthDate?'—':athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
   const best = new Map<string, AthleteReportResult>();
   for (const r of ranked) {
     if (!r.events || r.is_dq || r.final_time_ms == null) continue;
@@ -346,7 +331,8 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     const note = doc.splitTextToSize(`${standardSourceNote(source)}\n${STANDARD_AGE_NOTE}`, 268);
     doc.text(note, 14, doc.internal.pageSize.getHeight() - 12 - (note.length - 1) * 2.5);
   }
-  return new File([brandedOutput(doc)], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
+  finishReport(doc, brand);
+  return new File([doc.output("blob")], exportFilename(name, "_seguimiento.pdf"), { type: "application/pdf" });
 }
 
 export function clubRosterPdf(name: string, members: { first_name: string; last_name: string; member_role: string; active: boolean; email: string | null; phone: string | null }[],brand?:ReportBrand) {

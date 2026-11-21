@@ -1,8 +1,11 @@
+import { nativeReportLayout } from './report-layout';
 import { PDFDocument,StandardFonts,rgb,PDFString } from 'pdf-lib';
 import { contrastInk,type ReportBrand } from './report-brand';
 export async function brandPdf(file:File,brand:ReportBrand,title:string):Promise<File>{
  if(file.type!=='application/pdf')return file;
- const source=await PDFDocument.load(await file.arrayBuffer()),doc=await PDFDocument.create();
+ const source=await PDFDocument.load(await file.arrayBuffer());
+ if(source.getKeywords()?.includes(nativeReportLayout))return file;
+ const doc=await PDFDocument.create();
  const font=await doc.embedFont(StandardFonts.Helvetica),bold=await doc.embedFont(StandardFonts.HelveticaBold);
  const color=(hex:string)=>{const n=parseInt(hex.slice(1),16);return rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255);};
  const ink=color('#182e39'),muted=color('#586873'),primary=color(brand.primary),secondary=color(brand.secondary);

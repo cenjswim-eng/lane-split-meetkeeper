@@ -143,11 +143,11 @@ export function ClubAssociationManager({
         : clean.split(",");
 
       if (parts.length >= 2) {
-        const rawCode = parts[0].trim().toUpperCase();
-        const rawAssoc = normalizeAssociationName(parts[parts.length - 1].trim());
+        const rawCode = (parts[0] ?? "").trim().toUpperCase();
+        const rawAssoc = normalizeAssociationName((parts[parts.length - 1] ?? "").trim());
 
         const targetClub = clubs.find(
-          (c) => c.code.toUpperCase() === rawCode || c.name.toLowerCase().includes(parts[0].trim().toLowerCase())
+          (c) => c.code.toUpperCase() === rawCode || c.name.toLowerCase().includes((parts[0] ?? "").trim().toLowerCase())
         );
 
         if (targetClub && rawAssoc !== "Sin Asociación") {
@@ -464,7 +464,7 @@ export function ClubAssociationManager({
                   className="h-7 text-xs bg-background"
                   onClick={() => handleAssignAllShown(assoc)}
                 >
-                  + {assoc.split("(")[0].trim() || assoc}
+                  + {(assoc.split("(")[0] ?? "").trim() || assoc}
                 </Button>
               ))}
             </div>
