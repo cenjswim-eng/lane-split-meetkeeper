@@ -1,13 +1,13 @@
 import { RelayCategorySelector } from '@/components/relay-category-selector';
-import { relayCategoryEligible,type RelayAgeCategory } from '@/lib/relay-category';
+import { relayCategoryEligible, type RelayAgeCategory } from '@/lib/relay-category';
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { bestFreeRelay, bestMedleyRelay, candidatesFromResults, type RelayTeam } from "@/lib/relay";
-import { formatTime, STROKES } from "@/lib/swim";
+import { candidatesFromResults } from "@/lib/relay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { RelayInteractiveBuilder } from "@/components/team-hub/relay-interactive-builder";
+import { optimizeFreeRelay, optimizeMedleyRelay, RelaySwimmerCandidate } from "@/lib/team-hub/smart-relay-builder";
 
 const relayQuery = (course: string, distance: number, gender: string) =>
   queryOptions({
@@ -63,14 +63,30 @@ function RelaysPage() {
     })),
   );
 
-  const team: RelayTeam | null = kind === "free" ? bestFreeRelay(candidates) : bestMedleyRelay(candidates);
-  const label = `4x${distance} ${kind === "free" ? "Libre" : "Combinado"}`;
+  const swimmerCandidates: RelaySwimmerCandidate[] = candidates.map((c) => {
+    const athleteRecord = data.find((d) => d.athlete_id === c.id);
+    return {
+      id: c.id,
+      name: c.name,
+      gender: ((athleteRecord?.athletes?.gender || 'M') === 'F' ? 'F' : 'M') as 'M' | 'F',
+      birthDate: athleteRecord?.athletes?.birth_date,
+      bestTimes: c.best,
+    };
+  });
+
+  const optimizedRelay = kind === 'free'
+    ? optimizeFreeRelay(swimmerCandidates, { isMixed: gender === 'all' })
+    : optimizeMedleyRelay(swimmerCandidates, { isMixed: gender === 'all' });
+
+  const label = `4x${distance} ${kind === 'free' ? 'Libre' : 'Combinado'}`;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold uppercase">Optimizador de relevos</h1>
-        <p className="text-muted-foreground">Cruza las mejores marcas de los nadadores activos y sugiere la cuarteta más rápida.</p>
+        <h1 className="text-4xl font-bold uppercase">Constructor Inteligente de Relevos</h1>
+        <p className="text-muted-foreground">
+          Optimiza la cuarteta más rápida calculando tiempos planos y ventajas de partida lanzada (-0.70s).
+        </p>
       </div>
 
       <RelayCategorySelector category={category} onChange={setCategory} year={year} onYearChange={setYear}/>
@@ -99,38 +115,22 @@ function RelaysPage() {
         <Select value={gender} onValueChange={setGender}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Todos (Mixto)</SelectItem>
             <SelectItem value="M">Masculino</SelectItem>
             <SelectItem value="F">Femenino</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="rounded-lg border bg-card p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-2xl font-semibold uppercase">{label} · {course} · {category?.name??"Abierto"}</h2>
-          {team && <span className="time text-2xl font-semibold text-accent">{formatTime(team.totalMs)}</span>}
-        </div>
-        {!team ? (
-          <p className="mt-4 text-muted-foreground">
-            No hay suficientes nadadores activos con marcas en {distance} m para armar este relevo. Importa más resultados o ajusta los filtros.
+      {optimizedRelay ? (
+        <RelayInteractiveBuilder initialRelay={optimizedRelay} />
+      ) : (
+        <div className="rounded-lg border bg-card p-6 text-center">
+          <p className="text-muted-foreground">
+            No hay suficientes nadadores activos con marcas registradas en {distance} m para conformar la cuarteta de {label}. Importa más resultados o ajusta la categoría de edad.
           </p>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {team.legs.map((leg, i) => (
-              <div key={leg.athleteId} className="flex items-center gap-4 rounded-lg border bg-background p-3">
-                <span className="time w-6 text-center text-lg font-semibold text-muted-foreground">{i + 1}</span>
-                <Badge variant="secondary" className="w-24 justify-center">{STROKES[leg.stroke]}</Badge>
-                <span className="flex-1 font-medium">{leg.name}</span>
-                <span className="time text-lg font-semibold text-primary">{formatTime(leg.ms)}</span>
-              </div>
-            ))}
-            <p className="pt-2 text-xs text-muted-foreground">
-              Tiempo estimado sumando las mejores marcas individuales; no incluye salidas de relevo.
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
