@@ -58,6 +58,24 @@ export interface AssociationRankingFilters {
   affiliationYear?: number | "all"; // Season / Year of annual federation affiliation (e.g. 2026, 2025)
   selectedMeetIds?: string[] | "all"; // Specific meet IDs to include in the ranking
   onlyAffiliatedClubs?: boolean; // When true, only official affiliated clubs (association !== "Sin Asociación")
+  customClubCodes?: string[] | "all"; // When set and not "all", only include swimmers from these specific club codes
+}
+
+export interface ExtractedClubAthleteItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  gender: string;
+  birthDate: string | null;
+  ageAtDec31: number;
+  category: string;
+  clubCode: string;
+  clubName: string;
+  association: string;
+  resultsCount: number;
+  meets: string[];
+  bestTimesSummary?: string;
 }
 
 export interface AssociationClubExportItem {
@@ -447,6 +465,17 @@ export function calculateAssociationRankings(
 
     // Optional specific club filter
     if (filters.clubFilter && filters.clubFilter !== "all" && clubCode.toLowerCase() !== filters.clubFilter.toLowerCase()) {
+      continue;
+    }
+
+    // Optional manually selected custom clubs filter (restricts ranking to specific chosen clubs)
+    if (
+      filters.customClubCodes &&
+      filters.customClubCodes !== "all" &&
+      Array.isArray(filters.customClubCodes) &&
+      filters.customClubCodes.length > 0 &&
+      !filters.customClubCodes.map((c) => c.toUpperCase().trim()).includes(clubCode)
+    ) {
       continue;
     }
 
@@ -1079,5 +1108,363 @@ export function generateAssociationClubsPdf(
   const cleanMeet = (options.meetName || "estadal").replace(/[^\w-]/g, "_").toLowerCase().slice(0, 25);
   const filename = `Clubes_${cleanAssoc}_${cleanMeet}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
+  return new File([doc.output("blob")], filename, { type: "application/pdf" });
+}
+
+/**
+ * Returns swimming category label based on age at Dec 31 according to national/FEVEDA/World Aquatics rules.
+ */
+export function getSwimmingCategoryLabel(age: number): string {
+  if (age <= 10) return "Pre-Infantil (≤10 años)";
+  if (age >= 11 && age <= 12) return "Infantil A (11-12 años)";
+  if (age >= 13 && age <= 14) return "Infantil B (13-14 años)";
+  if (age >= 15 && age <= 16) return "Juvenil A (15-16 años)";
+  if (age >= 17 && age <= 18) return "Juvenil B (17-18 años)";
+  return "Máxima (19 y más años)";
+}
+
+/**
+ * Extracts all athletes that belong to the specified target clubs from imported meet results.
+ */
+export function extractAthletesFromClubs(
+  results: DashboardResult[],
+  athletes: any[],
+  targetClubCodes: string[] | "all",
+  options?: {
+    detectedClubs?: DetectedClub[];
+    meetId?: string | "all";
+    seasonYear?: number | "all";
+    gender?: string | "all";
+  }
+): ExtractedClubAthleteItem[] {
+  const athleteMap = new Map(athletes.map((a) => [a.id, a]));
+  const clubByCode = new Map(
+    (options?.detectedClubs || []).map((c) => [c.code.toUpperCase(), c])
+  );
+
+  const targetCodesSet =
+    targetClubCodes === "all"
+      ? null
+      : new Set(targetClubCodes.map((c) => c.toUpperCase().trim()));
+
+  const meetFilter = options?.meetId && options.meetId !== "all" ? options.meetId : null;
+  const yearFilter =
+    options?.seasonYear && options.seasonYear !== "all" ? Number(options.seasonYear) : null;
+  const currentYear = yearFilter || new Date().getFullYear();
+
+  const athleteStats = new Map<
+    string,
+    {
+      id: string;
+      athlete: any;
+      clubCode: string;
+      clubName: string;
+      association: string;
+      resultsCount: number;
+      meets: Set<string>;
+      bestEvents: Map<string, { label: string; timeMs: number; formatted: string }>;
+    }
+  >();
+
+  for (const r of results) {
+    if (r.is_dq) continue;
+
+    const rMeetId = r.meets?.id || (r as any).meet_id || r.meets?.name;
+    if (meetFilter && rMeetId !== meetFilter && r.meets?.name !== meetFilter) {
+      continue;
+    }
+
+    const meetDate = r.meets?.start_date || null;
+    const meetYear = meetDate ? Number(meetDate.slice(0, 4)) : null;
+    if (yearFilter && meetYear && meetYear !== yearFilter) {
+      continue;
+    }
+
+    const athlete = athleteMap.get(r.athlete_id);
+    if (!athlete) continue;
+
+    if (options?.gender && options.gender !== "all" && athlete.gender !== options.gender) {
+      continue;
+    }
+
+    const clubCode = (
+      (r as any).origin_team ||
+      athlete.clubs?.team_code ||
+      athlete.teams?.code ||
+      "UN"
+    ).toUpperCase().trim();
+
+    if (clubCode === "UN") continue;
+
+    if (targetCodesSet && !targetCodesSet.has(clubCode)) {
+      continue;
+    }
+
+    const knownClub = clubByCode.get(clubCode);
+    const assoc = normalizeAssociationName(
+      knownClub?.association || athlete.clubs?.region_lsc || athlete.teams?.lsc
+    );
+    const clubName =
+      knownClub?.name ||
+      (r as any).origin_team_name ||
+      athlete.clubs?.full_name ||
+      athlete.teams?.name ||
+      clubCode;
+
+    if (!athleteStats.has(athlete.id)) {
+      athleteStats.set(athlete.id, {
+        id: athlete.id,
+        athlete,
+        clubCode,
+        clubName,
+        association: assoc,
+        resultsCount: 0,
+        meets: new Set(),
+        bestEvents: new Map(),
+      });
+    }
+
+    const stats = athleteStats.get(athlete.id)!;
+    stats.resultsCount += 1;
+    if (r.meets?.name) stats.meets.add(r.meets.name);
+
+    if (r.events && r.final_time_ms) {
+      const eventKey = `${r.events.distance}-${r.events.stroke}-${r.course}`;
+      const existing = stats.bestEvents.get(eventKey);
+      if (!existing || r.final_time_ms < existing.timeMs) {
+        stats.bestEvents.set(eventKey, {
+          label: `${eventLabel(r.events.distance, r.events.stroke)} (${r.course})`,
+          timeMs: r.final_time_ms,
+          formatted: formatTime(r.final_time_ms),
+        });
+      }
+    }
+  }
+
+  const items: ExtractedClubAthleteItem[] = [];
+
+  for (const stats of athleteStats.values()) {
+    const a = stats.athlete;
+    const birthDate = a.birth_date || null;
+    const age = ageAtDec31(birthDate, currentYear);
+    const category = getSwimmingCategoryLabel(age);
+    const fullName =
+      `${a.last_name || ""}, ${a.first_name || ""}`.trim().replace(/^,\s*|,\s*$/g, "") || "Nadador";
+
+    const topTimes = [...stats.bestEvents.values()]
+      .slice(0, 3)
+      .map((ev) => `${ev.label}: ${ev.formatted}`)
+      .join("; ");
+
+    items.push({
+      id: stats.id,
+      firstName: a.first_name || "",
+      lastName: a.last_name || "",
+      fullName,
+      gender: a.gender || "M",
+      birthDate,
+      ageAtDec31: age,
+      category,
+      clubCode: stats.clubCode,
+      clubName: stats.clubName,
+      association: stats.association,
+      resultsCount: stats.resultsCount,
+      meets: [...stats.meets],
+      bestTimesSummary: topTimes || "—",
+    });
+  }
+
+  return items.sort((a, b) => {
+    if (a.clubCode !== b.clubCode) return a.clubCode.localeCompare(b.clubCode);
+    if (a.category !== b.category) return a.category.localeCompare(b.category);
+    return a.fullName.localeCompare(b.fullName);
+  });
+}
+
+/**
+ * Generates an Excel-compatible CSV file containing all athletes extracted from the selected clubs.
+ */
+export function exportClubAthletesCsv(
+  athletes: ExtractedClubAthleteItem[],
+  metadata: {
+    clubsCount: number;
+    meetName?: string;
+    seasonYear?: string;
+    federationName?: string;
+  }
+): File {
+  const sanitize = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+
+  const rows: string[] = [
+    `"Swim Lane Coach - Nómina de Atletas Extraídos por Clubes"`,
+    `"Clubes Considerados:",${metadata.clubsCount}`,
+    `"Campeonato / Torneo:",${sanitize(metadata.meetName || "Todos los torneos")}`,
+    `"Federación:",${sanitize(metadata.federationName || "FEVEDA")}`,
+    `"Temporada:",${sanitize(metadata.seasonYear || "Año en curso")}`,
+    `"Fecha de Exportación:",${sanitize(new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" }))}`,
+    `"Total de Atletas Extraídos:",${athletes.length}`,
+    "",
+    [
+      `"Nº"`,
+      `"Atleta (Apellidos, Nombres)"`,
+      `"Sexo"`,
+      `"Fecha de Nacimiento"`,
+      `"Edad (31/Dic)"`,
+      `"Categoría"`,
+      `"Código Club"`,
+      `"Nombre del Club"`,
+      `"Asociación Regional"`,
+      `"Marcas Registradas"`,
+      `"Mejores Marcas"`,
+      `"Competencias Participadas"`,
+    ].join(","),
+  ];
+
+  let totalMarks = 0;
+
+  athletes.forEach((a, idx) => {
+    totalMarks += a.resultsCount;
+    rows.push(
+      [
+        idx + 1,
+        sanitize(a.fullName),
+        sanitize(a.gender === "M" ? "Masculino" : "Femenino"),
+        sanitize(a.birthDate || "—"),
+        a.ageAtDec31 > 0 ? a.ageAtDec31 : "—",
+        sanitize(a.category),
+        sanitize(a.clubCode),
+        sanitize(a.clubName),
+        sanitize(a.association),
+        a.resultsCount,
+        sanitize(a.bestTimesSummary),
+        sanitize(a.meets.join("; ")),
+      ].join(",")
+    );
+  });
+
+  rows.push("");
+  rows.push([
+    `"TOTAL"`,
+    `"${athletes.length} Atletas"`,
+    `""`,
+    `""`,
+    `""`,
+    `""`,
+    `"${metadata.clubsCount} Clubes"`,
+    `""`,
+    `""`,
+    totalMarks,
+    `""`,
+    `""`,
+  ].join(","));
+
+  const csvContent = "\uFEFF" + rows.join("\r\n");
+  const filename = `Atletas_Clubes_Ranking_${new Date().toISOString().slice(0, 10)}.csv`;
+  return new File([csvContent], filename, { type: "text/csv;charset=utf-8;" });
+}
+
+/**
+ * Generates an official PDF report of athletes belonging to the selected clubs.
+ */
+export function generateClubAthletesPdf(
+  athletes: ExtractedClubAthleteItem[],
+  options: {
+    clubsCount: number;
+    meetName?: string;
+    federationName?: string;
+    seasonYear?: string;
+    brand?: ReportBrand;
+  }
+): File {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  setReportTableBrand(doc, options.brand);
+
+  const title = `Nómina Oficial de Atletas por Clubes · Ranking`;
+  doc.setProperties({
+    title,
+    author: "Swim Lane Coach",
+    creator: "Swim Lane Coach",
+    subject: `Nómina de atletas extraídos de los clubes seleccionados para el ranking`,
+  });
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 14, 13);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 64, 120);
+  const subheader = `${options.federationName ? options.federationName + " · " : ""}Torneo: ${options.meetName || "Todos"} · Temporada: ${options.seasonYear || "Año en curso"}`;
+  doc.text(subheader, 14, 18);
+  doc.setTextColor(0);
+
+  const maleCount = athletes.filter((a) => a.gender === "M").length;
+  const femaleCount = athletes.filter((a) => a.gender === "F").length;
+  const totalResults = athletes.reduce((acc, a) => acc + a.resultsCount, 0);
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    `Total Atletas: ${athletes.length}  |  Masculino: ${maleCount}  |  Femenino: ${femaleCount}  |  Clubes: ${options.clubsCount}  |  Marcas Registradas: ${totalResults}`,
+    14,
+    23
+  );
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(120);
+  doc.text(
+    `Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}  |  Regla: Edad calculada al 31 de Diciembre`,
+    14,
+    28
+  );
+  doc.setTextColor(0);
+
+  const headers = ["Nº", "Atleta", "Sexo", "Edad", "Categoría", "Club", "Asociación", "Marcas", "Mejores Pruebas"];
+  const rows = athletes.map((a, idx) => [
+    (idx + 1).toString(),
+    a.fullName,
+    a.gender === "M" ? "M" : "F",
+    a.ageAtDec31 > 0 ? a.ageAtDec31.toString() : "—",
+    a.category,
+    `${a.clubCode} - ${a.clubName}`,
+    a.association,
+    a.resultsCount.toString(),
+    a.bestTimesSummary || "—",
+  ]);
+
+  autoTable(doc, {
+    startY: 32,
+    head: [headers],
+    body: rows,
+    margin: { left: 14, right: 14 },
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [40, 80, 140], textColor: [255, 255, 255], fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 12, halign: "center" },
+      3: { cellWidth: 12, halign: "center" },
+      4: { cellWidth: 32 },
+      5: { cellWidth: 45 },
+      6: { cellWidth: 32 },
+      7: { cellWidth: 16, halign: "center" },
+      8: { cellWidth: "auto" },
+    },
+  });
+
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7.5);
+    doc.setTextColor(140);
+    doc.text(
+      "Swim Lane Coach · Nómina oficial de atletas extraídos de los clubes seleccionados",
+      14,
+      doc.internal.pageSize.getHeight() - 7
+    );
+    doc.text(`Página ${p} de ${totalPages}`, doc.internal.pageSize.getWidth() - 25, doc.internal.pageSize.getHeight() - 7);
+  }
+
+  const filename = `Atletas_Clubes_Ranking_${new Date().toISOString().slice(0, 10)}.pdf`;
   return new File([doc.output("blob")], filename, { type: "application/pdf" });
 }

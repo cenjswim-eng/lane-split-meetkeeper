@@ -10,6 +10,10 @@ import {
   extractClubsFromMeetResults,
   exportAssociationClubsCsv,
   generateAssociationClubsPdf,
+  extractAthletesFromClubs,
+  exportClubAthletesCsv,
+  generateClubAthletesPdf,
+  getSwimmingCategoryLabel,
 } from "@/lib/association-ranking";
 import {
   getFederation,
@@ -686,6 +690,72 @@ describe("Association Ranking Top 5", () => {
     });
     expect(pdfFile).toBeInstanceOf(File);
     expect(pdfFile.name).toContain("adael");
+    expect(pdfFile.type).toBe("application/pdf");
+  });
+
+  it("filters ranking by manually selected custom clubs (customClubCodes)", () => {
+    const detected = extractDetectedClubs(mockAthletes, mockResults, mockClubs);
+
+    // Only include CPMI club manually (excluding CIV and EMIL)
+    const resCustom = calculateAssociationRankings(
+      mockResults as any,
+      mockAthletes,
+      detected,
+      {
+        association: "all",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        customClubCodes: ["CPMI"],
+      }
+    );
+
+    expect(resCustom.participatingClubs).toEqual(["CPMI"]);
+    expect(resCustom.rankings[0].top5.every((item) => item.clubCode === "CPMI")).toBe(true);
+  });
+
+  it("extracts all athletes belonging to selected clubs and calculates their age category", () => {
+    expect(getSwimmingCategoryLabel(10)).toContain("Pre-Infantil");
+    expect(getSwimmingCategoryLabel(12)).toContain("Infantil A");
+    expect(getSwimmingCategoryLabel(14)).toContain("Infantil B");
+    expect(getSwimmingCategoryLabel(16)).toContain("Juvenil A");
+    expect(getSwimmingCategoryLabel(18)).toContain("Juvenil B");
+    expect(getSwimmingCategoryLabel(20)).toContain("Máxima");
+
+    const detected = extractDetectedClubs(mockAthletes, mockResults, mockClubs);
+
+    // Extract athletes for CPMI
+    const athletesCpmi = extractAthletesFromClubs(
+      mockResults as any,
+      mockAthletes,
+      ["CPMI"],
+      {
+        detectedClubs: detected,
+        seasonYear: 2026,
+      }
+    );
+
+    expect(athletesCpmi.length).toBeGreaterThan(0);
+    expect(athletesCpmi.every((a) => a.clubCode === "CPMI")).toBe(true);
+    expect(athletesCpmi[0].fullName).toBeDefined();
+    expect(athletesCpmi[0].category).toBeDefined();
+
+    // Export athletes CSV
+    const csvFile = exportClubAthletesCsv(athletesCpmi, {
+      clubsCount: 1,
+      meetName: "Estadal 2026",
+      seasonYear: "2026",
+    });
+    expect(csvFile).toBeInstanceOf(File);
+    expect(csvFile.type).toContain("csv");
+
+    // Export athletes PDF
+    const pdfFile = generateClubAthletesPdf(athletesCpmi, {
+      clubsCount: 1,
+      meetName: "Estadal 2026",
+      seasonYear: "2026",
+    });
+    expect(pdfFile).toBeInstanceOf(File);
     expect(pdfFile.type).toBe("application/pdf");
   });
 });

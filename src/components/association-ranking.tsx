@@ -23,6 +23,9 @@ import {
 import { ClubAssociationManager } from "./club-association-manager";
 import { AdaelTeamExtractor } from "./adael-team-extractor";
 import { ExportAssociationClubsModal } from "./export-association-clubs-modal";
+import { CustomClubRankingSelectorModal } from "./custom-club-ranking-selector-modal";
+import { ClubAthletesExtractorModal } from "./club-athletes-extractor-modal";
+import { RankingDataCleanerModal } from "./ranking-data-cleaner-modal";
 import { SwimFileImporterModal } from "./imports/SwimFileImporterModal";
 import { downloadFile } from "@/lib/file-delivery";
 import type { DashboardResult } from "@/lib/dashboard-summary";
@@ -122,6 +125,7 @@ export function AssociationRanking({
   const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
   const [topLimit, setTopLimit] = useState<number>(5);
   const [onlyAffiliatedClubs, setOnlyAffiliatedClubs] = useState<boolean>(false);
+  const [selectedCustomClubCodes, setSelectedCustomClubCodes] = useState<string[] | "all">("all");
 
   // Selected meets filter state
   const [selectedMeetIds, setSelectedMeetIds] = useState<string[] | "all">("all");
@@ -184,6 +188,7 @@ export function AssociationRanking({
       affiliationYear: selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear),
       selectedMeetIds,
       onlyAffiliatedClubs,
+      customClubCodes: selectedCustomClubCodes,
     });
   }, [
     results,
@@ -201,6 +206,7 @@ export function AssociationRanking({
     selectedAffiliationYear,
     selectedMeetIds,
     onlyAffiliatedClubs,
+    selectedCustomClubCodes,
   ]);
 
   // Total unique swimmers in the top 5
@@ -279,13 +285,26 @@ export function AssociationRanking({
                 onSelectAdael={() => setSelectedAssociation("Lara (ADAEL)")}
               />
               <ClubAssociationManager clubs={detectedClubs} />
-              <SwimFileImporterModal
-                triggerButton={
-                  <Button variant="outline" className="gap-2 shrink-0">
-                    <Upload className="size-4 text-primary" />
-                    <span>Importar Resultados</span>
-                  </Button>
+              <CustomClubRankingSelectorModal
+                clubs={detectedClubs}
+                selectedClubCodes={selectedCustomClubCodes}
+                onSelectionChange={setSelectedCustomClubCodes}
+              />
+              <ClubAthletesExtractorModal
+                results={results}
+                athletes={athletes}
+                targetClubCodes={
+                  selectedCustomClubCodes !== "all"
+                    ? selectedCustomClubCodes
+                    : selectedAssociation === "all"
+                    ? "all"
+                    : detectedClubs
+                        .filter((c) => c.association.toLowerCase() === selectedAssociation.toLowerCase())
+                        .map((c) => c.code)
                 }
+                detectedClubs={detectedClubs}
+                detectedMeets={detectedMeets}
+                seasonYear={selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear)}
               />
               <ExportAssociationClubsModal
                 results={results}
@@ -301,6 +320,18 @@ export function AssociationRanking({
                     <span>Exportar Clubes</span>
                   </Button>
                 }
+              />
+              <SwimFileImporterModal
+                triggerButton={
+                  <Button variant="outline" className="gap-2 shrink-0">
+                    <Upload className="size-4 text-primary" />
+                    <span>Importar Resultados</span>
+                  </Button>
+                }
+              />
+              <RankingDataCleanerModal
+                meets={detectedMeets}
+                teams={teams}
               />
               <Button onClick={handleExportPdf} className="gap-2 shrink-0">
                 <FileText className="size-4" />
@@ -615,11 +646,41 @@ export function AssociationRanking({
                     Solo Clubes Afiliados
                   </Badge>
                 )}
+                {selectedCustomClubCodes !== "all" && (
+                  <div className="flex items-center gap-1">
+                    <Badge variant="default" className="text-[10px] bg-primary text-primary-foreground">
+                      Selección manual ({selectedCustomClubCodes.length})
+                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCustomClubCodes("all")}
+                      className="text-[10px] text-primary hover:underline cursor-pointer"
+                      title="Restablecer selección a todos los clubes"
+                    >
+                      (Ver todos)
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                  Ranking estadal oficial · Incluye a todos los nadadores de los clubes afiliados
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <ClubAthletesExtractorModal
+                  results={results}
+                  athletes={athletes}
+                  targetClubCodes={
+                    selectedCustomClubCodes !== "all"
+                      ? selectedCustomClubCodes
+                      : participatingClubs
+                  }
+                  detectedClubs={detectedClubs}
+                  detectedMeets={detectedMeets}
+                  seasonYear={selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear)}
+                  triggerButton={
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-primary/30">
+                      <Users className="size-3.5 text-primary" />
+                      <span>Extraer Atletas ({participatingClubs.length})</span>
+                    </Button>
+                  }
+                />
                 <ExportAssociationClubsModal
                   results={results}
                   athletes={athletes}
