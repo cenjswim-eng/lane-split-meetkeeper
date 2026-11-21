@@ -133,8 +133,30 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
     ? `${pct} (${summary.attended} asistencias de ${summary.total} sesiones registradas · ${summary.present} presentes, ${summary.late} tarde, ${summary.absent} ausentes, ${summary.excused} justificadas)`
     : "Sin sesiones registradas en este período";
 
+  // Visual graphical attendance progress bar
+  const barY = contentY;
+  const barW = 120;
+  const barH = 3.5;
+  const pctNum = summary.percentage ?? 0;
+  doc.setFillColor("#E2E8F0");
+  if (typeof doc.roundedRect === "function") {
+    doc.roundedRect(14, barY, barW, barH, 1, 1, "F");
+  } else {
+    doc.rect(14, barY, barW, barH, "F");
+  }
+  if (pctNum > 0) {
+    const fillW = Math.min(barW, Math.max(2, (pctNum / 100) * barW));
+    const pctColor = pctNum >= 80 ? [8, 115, 60] : pctNum >= 60 ? [180, 110, 0] : [180, 40, 30];
+    doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
+    if (typeof doc.roundedRect === "function") {
+      doc.roundedRect(14, barY, fillW, barH, 1, 1, "F");
+    } else {
+      doc.rect(14, barY, fillW, barH, "F");
+    }
+  }
+
   autoTable(doc, {
-    startY: contentY,
+    startY: contentY + 6.5,
     margin: { left: 14, right: 14, bottom: 25 },
     head: [[
       {
@@ -144,7 +166,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
           fontSize: 9,
           fontStyle: "bold",
           halign: "left",
-          ...(brand?.primary ? {} : { fillColor: [12, 74, 110] as [number,number,number] }),
+          ...(brand?.primary ? { fillColor: brand.primary as any } : { fillColor: [12, 74, 110] as [number,number,number] }),
           textColor: 255
         }
       }
@@ -221,8 +243,31 @@ export function dailyAttendancePdf(options: {
     {label: 'Presentes + tarde', value: String(attended)},
     {label: 'Ausentes / justificadas', value: `${counts.absent} / ${counts.excused}`},
   ], headingY, options.brand);
+
+  // Visual graphical attendance progress bar
+  const barY = contentY;
+  const barW = 120;
+  const barH = 3.5;
+  const pctNum = percentage ?? 0;
+  doc.setFillColor("#E2E8F0");
+  if (typeof doc.roundedRect === "function") {
+    doc.roundedRect(14, barY, barW, barH, 1, 1, "F");
+  } else {
+    doc.rect(14, barY, barW, barH, "F");
+  }
+  if (pctNum > 0) {
+    const fillW = Math.min(barW, Math.max(2, (pctNum / 100) * barW));
+    const pctColor = pctNum >= 80 ? [8, 115, 60] : pctNum >= 60 ? [180, 110, 0] : [180, 40, 30];
+    doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
+    if (typeof doc.roundedRect === "function") {
+      doc.roundedRect(14, barY, fillW, barH, 1, 1, "F");
+    } else {
+      doc.rect(14, barY, fillW, barH, "F");
+    }
+  }
+
   autoTable(doc, {
-    startY: contentY,
+    startY: contentY + 6.5,
     margin: { left: 14, right: 14, bottom: 25 },
     head: [[
       {
@@ -232,7 +277,7 @@ export function dailyAttendancePdf(options: {
           fontSize: 9,
           fontStyle: "bold",
           halign: "left",
-          ...(options.brand?.primary ? {} : { fillColor: [12, 74, 110] as [number,number,number] }),
+          ...(options.brand?.primary ? { fillColor: options.brand.primary as any } : { fillColor: [12, 74, 110] as [number,number,number] }),
           textColor: 255
         }
       }
@@ -283,7 +328,23 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     {label: 'Pruebas / piscina', value: String(new Set(ranked.filter(r=>r.events&&!r.is_dq&&r.final_time_ms!=null).map(r=>`${r.events?.distance}|${r.events?.stroke}|${r.course}`)).size)},
     {label: 'Puntos de competencia', value: String(ranked.reduce((sum,r)=>sum+(r.points_scored??0),0))},
   ], headingY, brand);
-  autoTable(doc, { startY: contentY, margin: { bottom: 25 }, head: [["Club", "Nacimiento", "Categoría al 31/12 (generación)", "ID federativo"]], body: [[athlete.teams?.name ?? "Sin club", privacy&&!privacy.birthDate?'—':athlete.birth_date ?? "—", `${category} (${year})`, athlete.federation_id ?? "—"]], styles: { fontSize: 9 } });
+
+  const primaryFill = brand?.primary ? (brand.primary as any) : [12, 74, 110];
+
+  autoTable(doc, {
+    startY: contentY,
+    margin: { bottom: 25 },
+    head: [["Club Oficial", "Fecha de Nacimiento", "Categoría al 31/12 (generación)", "ID Federativo"]],
+    body: [[
+      athlete.teams?.name ?? "Sin club",
+      privacy && !privacy.birthDate ? "—" : athlete.birth_date ?? "—",
+      `${category} (${year})`,
+      athlete.federation_id ?? "—"
+    ]],
+    headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+    styles: { fontSize: 8.5, cellPadding: 2.5 }
+  });
+
   const best = new Map<string, AthleteReportResult>();
   for (const r of ranked) {
     if (!r.events || r.is_dq || r.final_time_ms == null) continue;
@@ -294,7 +355,15 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
   const y = () => (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 28;
   const latestDate = results.map(r=>r.meets?.start_date??'').sort().at(-1);
   const lastAchievements = latestMeetAchievements(achievements.filter(a=>a.achieved_on===latestDate));
-  if(lastAchievements.length) autoTable(doc,{startY:y()+8,margin:{bottom:25},head:[['Logros de la última competencia','Prueba / piscina','Tiempo','Mejora / mínima']],body:lastAchievements.map(a=>[`${a.meets?.name??''} · ${achievementLabels[a.kind]}`,`${eventLabel(a.distance,a.stroke)} ${a.course}`,formatTime(a.time_ms),a.kind==='pb'?`${((a.improvement_ms??0)/1000).toFixed(3)} s`:a.kind==='minimum'?formatTime(a.minimum_ms):'Primera marca']),styles:{fontSize:8}});
+  if(lastAchievements.length) autoTable(doc,{
+    startY:y()+8,
+    margin:{bottom:25},
+    head:[['Logros de la última competencia','Prueba / piscina','Tiempo','Mejora / mínima']],
+    body:lastAchievements.map(a=>[`${a.meets?.name??''} · ${achievementLabels[a.kind]}`,`${eventLabel(a.distance,a.stroke)} ${a.course}`,formatTime(a.time_ms),a.kind==='pb'?`${((a.improvement_ms??0)/1000).toFixed(3)} s`:a.kind==='minimum'?formatTime(a.minimum_ms):'Primera marca']),
+    headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+    styles:{fontSize:8, cellPadding: 2}
+  });
+
   const minimumCells = (r: AthleteReportResult) => {
     const minimum = athleteMinimum(athlete, r, standards);
     if (!minimum) return ["—", "—"];
@@ -305,19 +374,64 @@ export function athleteProgressPdf(athlete: { first_name: string; last_name: str
     const comparison = comparisons.get(r);
     return [comparison ? `${formatTime(comparison.previous_ms)} (${comparison.previous_date})` : "—", comparisonLabel(comparison)];
   };
-  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 8 } });
-  doc.setFontSize(8);
-  doc.text("Variación: respecto a la mejor marca de la fecha de competencia anterior, misma prueba y piscina, dentro de los últimos 9 meses.", 14, y() + 5);
+
+  autoTable(doc, {
+    startY: y() + 9,
+    margin: { bottom: 25 },
+    head: [["Mejores marcas", "Tiempo", "AQUA", "Competencia", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]],
+    body: [...best].map(([key,r]) => [key, formatTime(r.final_time_ms), r.aqua_points ?? "—", r.meets?.name ?? "—", ...comparisonCells(r), ...minimumCells(r)]),
+    headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 40 },
+      1: { fontStyle: "bold", halign: "right", cellWidth: 22 },
+      2: { halign: "center", cellWidth: 16 },
+      3: { cellWidth: "auto" },
+      4: { cellWidth: 32 },
+      5: { cellWidth: 26 },
+      6: { cellWidth: 22, halign: "right" },
+      7: { cellWidth: 38 },
+    },
+    styles: { fontSize: 8, cellPadding: 2 }
+  });
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(reportPrint.muted);
+  doc.text("Variación: respecto a la mejor marca de la fecha de competencia anterior, misma prueba y piscina, dentro de los últimos 9 meses.", 14, y() + 4.5);
+
   const meetPoints = meetPointsSummary(ranked);
   if (meetPoints.length) {
-    autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Puntos por competencia", "Fecha", "Pruebas", "Puntos"]], body: [...meetPoints.map((m) => [m.name, m.date ?? "—", m.swims, m.points]), ["Total del periodo", "", meetPoints.reduce((n, m) => n + m.swims, 0), meetPoints.reduce((n, m) => n + m.points, 0)]], styles: { fontSize: 8 } });
-    doc.setFontSize(8);
-    doc.text("Puntos de premiación del torneo en vivo (finales); distintos de la puntuación AQUA.", 14, y() + 5);
+    autoTable(doc, {
+      startY: y() + 8,
+      margin: { bottom: 25 },
+      head: [["Puntos por competencia", "Fecha", "Pruebas", "Puntos"]],
+      body: [...meetPoints.map((m) => [m.name, m.date ?? "—", m.swims, m.points]), ["Total del periodo", "", meetPoints.reduce((n, m) => n + m.swims, 0), meetPoints.reduce((n, m) => n + m.points, 0)]],
+      headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 2 }
+    });
+    doc.setFontSize(7.5);
+    doc.setTextColor(reportPrint.muted);
+    doc.text("Puntos de premiación del torneo en vivo (finales); distintos de la puntuación AQUA.", 14, y() + 4.5);
   }
+
   const sorted = ranked;
-  autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Puntos", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]], body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", r.points_scored ?? "—", ...comparisonCells(r), ...minimumCells(r)]), styles: { fontSize: 7, cellPadding: 1.5 } });
+  autoTable(doc, {
+    startY: y() + 8,
+    margin: { bottom: 25 },
+    head: [["Fecha", "Competencia", "Prueba", "Piscina", "Ronda", "Sembrado", "Final", "Puesto", "AQUA", "Puntos", "Anterior (fecha)", "Variación", "Mínima", "Diferencia con mínima"]],
+    body: sorted.map((r) => [r.meets?.start_date ?? "—", r.meets?.name ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", r.course ?? "—", r.round ?? "F", formatTime(r.seed_time_ms), r.is_dq ? "DQ" : formatTime(r.final_time_ms), r.place ?? "—", r.aqua_points ?? "—", r.points_scored ?? "—", ...comparisonCells(r), ...minimumCells(r)]),
+    headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+    styles: { fontSize: 7, cellPadding: 1.5 }
+  });
+
   const splits = sorted.flatMap((r) => r.splits.map((s) => [r.meets?.start_date ?? "—", r.events ? eventLabel(r.events.distance,r.events.stroke) : "—", `${s.split_distance} m`, formatTime(s.cumulative_time_ms), formatTime(s.lap_time_ms)]));
-  if (splits.length) autoTable(doc, { startY: y() + 10, margin: { bottom: 25 }, head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]], body: splits, styles: { fontSize: 8 } });
+  if (splits.length) autoTable(doc, {
+    startY: y() + 8,
+    margin: { bottom: 25 },
+    head: [["Fecha", "Prueba", "Distancia", "Acumulado", "Parcial"]],
+    body: splits,
+    headStyles: { fillColor: primaryFill, fontStyle: "bold" },
+    styles: { fontSize: 8, cellPadding: 2 }
+  });
   if (attendance) {
     doc.addPage();
     renderAttendanceSummaryBox(doc, name, attendance, brand, 16);
