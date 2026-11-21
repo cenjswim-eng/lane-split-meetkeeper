@@ -4,6 +4,9 @@ import {
   calculateAssociationRankings,
   generateAssociationRankingPdf,
   normalizeAssociationName,
+  extractAdaelClubs,
+  isLikelyAdaelClub,
+  KNOWN_ADAEL_CODES,
 } from "@/lib/association-ranking";
 import { getFederation, getAssociationsForFederation } from "@/lib/federations";
 
@@ -407,5 +410,68 @@ describe("Association Ranking Top 5", () => {
     });
     expect(pdf2026).toBeDefined();
     expect(pdf2026.size).toBeGreaterThan(100);
+  });
+
+  it("extracts and detects teams belonging to ADAEL (Lara) accurately", () => {
+    const clubsPool = [
+      { id: "c-1", code: "PIS", name: "Piscinas Bolivarianas", association: "Lara (ADAEL)", isClub: true, athleteCount: 15, resultsCount: 40 },
+      { id: "c-2", code: "HISP", name: "Hogar Hispano de Lara", association: "Sin Asociación", isClub: true, athleteCount: 12, resultsCount: 30 },
+      { id: "c-3", code: "CBL", name: "Club Barquisimeto", association: "Sin Asociación", isClub: false, athleteCount: 8, resultsCount: 20 },
+      { id: "c-4", code: "CIV", name: "Centro Italo Venezolano", association: "Distrito Capital (ASDAC)", isClub: true, athleteCount: 10, resultsCount: 25 },
+      { id: "c-5", code: "CPMI", name: "Centro Portugués", association: "Miranda (ADAEM)", isClub: true, athleteCount: 14, resultsCount: 35 },
+    ];
+
+    expect(isLikelyAdaelClub(clubsPool[0])).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[1])).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[2])).toBe(true);
+    expect(isLikelyAdaelClub(clubsPool[3])).toBe(false);
+    expect(isLikelyAdaelClub(clubsPool[4])).toBe(false);
+
+    const { affiliated, candidates } = extractAdaelClubs(clubsPool as any);
+    expect(affiliated.map((c) => c.code)).toEqual(["PIS"]);
+    expect(candidates.map((c) => c.code)).toEqual(["CBL", "HISP"]);
+  });
+
+  it("filters ranking by specifically chosen meet IDs (selectedMeetIds)", () => {
+    const meetResults = [
+      {
+        id: "res-m1",
+        athlete_id: "ath-1",
+        final_time_ms: 58000,
+        course: "LCM",
+        is_dq: false,
+        meets: { id: "meet-estadal-1", name: "I Estadal ADAEL 2026", start_date: "2026-03-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+      },
+      {
+        id: "res-m2",
+        athlete_id: "ath-1",
+        final_time_ms: 55000, // Faster, but in invitational meet
+        course: "LCM",
+        is_dq: false,
+        meets: { id: "meet-invitational", name: "Invitacional Privado", start_date: "2026-04-01" },
+        events: { distance: 100, stroke: 1, is_relay: false },
+      },
+    ];
+
+    const detected = extractDetectedClubs(mockAthletes, meetResults, mockClubs);
+
+    // Only consider meet-estadal-1
+    const resFiltered = calculateAssociationRankings(
+      meetResults as any,
+      mockAthletes,
+      detected,
+      {
+        association: "Miranda (ADAEM)",
+        course: "LCM",
+        gender: "M",
+        ageMode: "libre",
+        selectedMeetIds: ["meet-estadal-1"],
+      }
+    );
+
+    const event = resFiltered.rankings[0];
+    expect(event.top5[0].finalTimeMs).toBe(58000);
+    expect(event.top5[0].meetName).toBe("I Estadal ADAEL 2026");
   });
 });

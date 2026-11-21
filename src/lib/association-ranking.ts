@@ -56,6 +56,90 @@ export interface AssociationRankingFilters {
   distanceFilter?: number; // 0 for all
   topN?: number; // default 5
   affiliationYear?: number | "all"; // Season / Year of annual federation affiliation (e.g. 2026, 2025)
+  selectedMeetIds?: string[] | "all"; // Specific meet IDs to include in the ranking
+}
+
+/**
+ * Standard known club codes for ADAEL (Lara State, Venezuela).
+ */
+export const KNOWN_ADAEL_CODES = new Set([
+  "PIS",
+  "PBOL",
+  "PISBO",
+  "HISP",
+  "HIL",
+  "HHIS",
+  "HISPANO",
+  "CBL",
+  "BARQ",
+  "CDL",
+  "CDLARA",
+  "AQU",
+  "AQUALARA",
+  "TRIL",
+  "TRILARA",
+  "ADAL",
+  "ADAEL",
+  "CLAR",
+  "LARA",
+  "CSL",
+  "CSLAR",
+  "CVM",
+  "PALM",
+  "TAR",
+  "TARL",
+]);
+
+/**
+ * Checks if a club belongs or is likely affiliated to ADAEL (Lara State).
+ */
+export function isLikelyAdaelClub(club: { code?: string; name?: string; association?: string }): boolean {
+  const code = (club.code || "").toUpperCase().trim();
+  const name = (club.name || "").toUpperCase().trim();
+  const assoc = (club.association || "").toUpperCase().trim();
+
+  if (KNOWN_ADAEL_CODES.has(code)) return true;
+  if (assoc.includes("ADAEL") || assoc.includes("ADAL") || assoc.includes("LARA") || assoc === "LAR") return true;
+  if (
+    name.includes("ADAEL") ||
+    name.includes("ADAL") ||
+    name.includes("LARA") ||
+    name.includes("BARQUISIMETO") ||
+    name.includes("CABUDARE") ||
+    name.includes("CARORA") ||
+    name.includes("PISCINAS BOLIVARIANAS") ||
+    name.includes("HOGAR HISPANO") ||
+    name.includes("CENTRO SOCIAL LARENSE") ||
+    name.includes("BICENTENARIO")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Extracts and categorizes all clubs belonging or likely belonging to ADAEL from the detected clubs list.
+ */
+export function extractAdaelClubs(detectedClubs: DetectedClub[]): {
+  affiliated: DetectedClub[];
+  candidates: DetectedClub[];
+} {
+  const affiliated: DetectedClub[] = [];
+  const candidates: DetectedClub[] = [];
+
+  for (const club of detectedClubs) {
+    const isAffiliated = normalizeAssociationName(club.association) === "Lara (ADAEL)";
+    if (isAffiliated) {
+      affiliated.push(club);
+    } else if (isLikelyAdaelClub(club)) {
+      candidates.push(club);
+    }
+  }
+
+  return {
+    affiliated: affiliated.sort((a, b) => a.code.localeCompare(b.code)),
+    candidates: candidates.sort((a, b) => a.code.localeCompare(b.code)),
+  };
 }
 
 /**
@@ -351,6 +435,19 @@ export function calculateAssociationRankings(
     // Optional specific club filter
     if (filters.clubFilter && filters.clubFilter !== "all" && clubCode.toLowerCase() !== filters.clubFilter.toLowerCase()) {
       continue;
+    }
+
+    // Specific meets selection filter (allows choosing which imported results form the ranking)
+    if (
+      filters.selectedMeetIds &&
+      filters.selectedMeetIds !== "all" &&
+      Array.isArray(filters.selectedMeetIds) &&
+      filters.selectedMeetIds.length > 0
+    ) {
+      const meetId = r.meets?.id || (r as any).meet_id || r.meets?.name;
+      if (meetId && !filters.selectedMeetIds.includes(meetId)) {
+        continue;
+      }
     }
 
     // Meet year (competition date) represents the annual federation affiliation season

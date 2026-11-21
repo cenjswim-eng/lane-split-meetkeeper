@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, Calendar, Download, FileText, Filter, Layers, Medal, Settings2, Sparkles, Trophy, Users } from "lucide-react";
+import { Building2, Calendar, CheckSquare, Download, FileText, Filter, Layers, Medal, Settings2, ShieldCheck, Sparkles, Trophy, Upload, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,12 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   extractDetectedClubs,
   calculateAssociationRankings,
   generateAssociationRankingPdf,
   type AssociationRankingFilters,
 } from "@/lib/association-ranking";
 import { ClubAssociationManager } from "./club-association-manager";
+import { AdaelTeamExtractor } from "./adael-team-extractor";
+import { SwimFileImporterModal } from "./imports/SwimFileImporterModal";
 import { downloadFile } from "@/lib/file-delivery";
 import type { DashboardResult } from "@/lib/dashboard-summary";
 
@@ -21,11 +31,13 @@ export function AssociationRanking({
   athletes,
   clubs = [],
   teams = [],
+  meets = [],
 }: {
   results: DashboardResult[];
   athletes: any[];
   clubs?: any[];
   teams?: any[];
+  meets?: any[];
 }) {
   // 1. Extract all detected clubs
   const detectedClubs = useMemo(() => {
@@ -55,6 +67,46 @@ export function AssociationRanking({
     return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [detectedClubs]);
 
+  // Distinct meets detected from results and meets list
+  const detectedMeets = useMemo(() => {
+    const meetMap = new Map<
+      string,
+      { id: string; name: string; startDate: string | null; resultsCount: number; year: number }
+    >();
+
+    for (const r of results) {
+      const meetId = r.meets?.id || (r as any).meet_id || r.meets?.name || "torneo-sin-id";
+      const name = r.meets?.name || "Torneo sin nombre";
+      const startDate = r.meets?.start_date || null;
+      const year = Number(startDate?.slice(0, 4) || new Date().getFullYear());
+
+      if (!meetMap.has(meetId)) {
+        meetMap.set(meetId, {
+          id: meetId,
+          name,
+          startDate,
+          resultsCount: 0,
+          year,
+        });
+      }
+      meetMap.get(meetId)!.resultsCount += 1;
+    }
+
+    for (const m of meets) {
+      if (m.id && !meetMap.has(m.id)) {
+        meetMap.set(m.id, {
+          id: m.id,
+          name: m.name || "Torneo",
+          startDate: m.start_date || null,
+          resultsCount: 0,
+          year: Number(m.start_date?.slice(0, 4) || new Date().getFullYear()),
+        });
+      }
+    }
+
+    return [...meetMap.values()].sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
+  }, [results, meets]);
+
   // Filters State
   const [selectedAffiliationYear, setSelectedAffiliationYear] = useState<string>(() => {
     return String(new Date().getFullYear());
@@ -68,6 +120,17 @@ export function AssociationRanking({
   const [customMaxAge, setCustomMaxAge] = useState<number>(14);
   const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
   const [topLimit, setTopLimit] = useState<number>(5);
+
+  // Selected meets filter state
+  const [selectedMeetIds, setSelectedMeetIds] = useState<string[] | "all">("all");
+  const [meetSelectionOpen, setMeetSelectionOpen] = useState(false);
+
+  // Meets for the currently active affiliation season
+  const meetsForActiveSeason = useMemo(() => {
+    if (selectedAffiliationYear === "all") return detectedMeets;
+    const y = Number(selectedAffiliationYear);
+    return detectedMeets.filter((m) => m.year === y);
+  }, [detectedMeets, selectedAffiliationYear]);
 
   // Available clubs for current association
   const availableClubsForAssoc = useMemo(() => {
@@ -84,6 +147,26 @@ export function AssociationRanking({
     return results.filter((r) => r.meets?.start_date && Number(r.meets.start_date.slice(0, 4)) === y).length;
   }, [results, selectedAffiliationYear]);
 
+  // Toggle single meet selection
+  const handleToggleMeet = (meetId: string) => {
+    if (selectedMeetIds === "all") {
+      const allIds = meetsForActiveSeason.map((m) => m.id);
+      setSelectedMeetIds(allIds.filter((id) => id !== meetId));
+    } else {
+      if (selectedMeetIds.includes(meetId)) {
+        const next = selectedMeetIds.filter((id) => id !== meetId);
+        setSelectedMeetIds(next);
+      } else {
+        const next = [...selectedMeetIds, meetId];
+        if (next.length === meetsForActiveSeason.length) {
+          setSelectedMeetIds("all");
+        } else {
+          setSelectedMeetIds(next);
+        }
+      }
+    }
+  };
+
   // Calculate rankings
   const { rankings, participatingClubs } = useMemo(() => {
     return calculateAssociationRankings(results, athletes, detectedClubs, {
@@ -97,6 +180,7 @@ export function AssociationRanking({
       strokeFilter: selectedStroke,
       topN: topLimit,
       affiliationYear: selectedAffiliationYear === "all" ? "all" : Number(selectedAffiliationYear),
+      selectedMeetIds,
     });
   }, [
     results,
@@ -112,6 +196,7 @@ export function AssociationRanking({
     selectedStroke,
     topLimit,
     selectedAffiliationYear,
+    selectedMeetIds,
   ]);
 
   // Total unique swimmers in the top 5
@@ -184,7 +269,19 @@ export function AssociationRanking({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <AdaelTeamExtractor
+                clubs={detectedClubs}
+                onSelectAdael={() => setSelectedAssociation("Lara (ADAEL)")}
+              />
               <ClubAssociationManager clubs={detectedClubs} />
+              <SwimFileImporterModal
+                triggerButton={
+                  <Button variant="outline" className="gap-2 shrink-0">
+                    <Upload className="size-4 text-primary" />
+                    <span>Importar Resultados</span>
+                  </Button>
+                }
+              />
               <Button onClick={handleExportPdf} className="gap-2 shrink-0">
                 <FileText className="size-4" />
                 Exportar PDF (Top 5)
@@ -323,6 +420,135 @@ export function AssociationRanking({
                   <SelectItem value="F">Femenino</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Section to import results and select meets considered for the ranking */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Layers className="size-4 text-primary" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-foreground">Competencias tomadas en consideración:</span>
+                  <Badge variant={selectedMeetIds === "all" ? "secondary" : "default"} className="text-[10px] font-mono">
+                    {selectedMeetIds === "all"
+                      ? `Todas (${meetsForActiveSeason.length} torneos)`
+                      : `${selectedMeetIds.length} de ${meetsForActiveSeason.length} torneos`}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Filtra qué torneos importados forman el ranking o importa nuevos archivos de resultados (HY3, SD3, CL2, ZIP).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Dialog open={meetSelectionOpen} onOpenChange={setMeetSelectionOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 bg-background">
+                    <Filter className="size-3.5" />
+                    <span>Seleccionar Torneos ({selectedMeetIds === "all" ? "Todos" : selectedMeetIds.length})</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto">
+                  <DialogHeader>
+                    <div className="flex items-center gap-2">
+                      <Layers className="size-5 text-primary" />
+                      <DialogTitle>Competencias Consideradas en el Ranking</DialogTitle>
+                    </div>
+                    <DialogDescription>
+                      Marca los torneos cuyos resultados deseas incluir en la formación del ranking estadal de la temporada.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 text-xs"
+                          onClick={() => setSelectedMeetIds("all")}
+                        >
+                          Seleccionar Todos ({meetsForActiveSeason.length})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setSelectedMeetIds([])}
+                        >
+                          Deseleccionar Todos
+                        </Button>
+                      </div>
+
+                      <SwimFileImporterModal
+                        triggerButton={
+                          <Button size="sm" className="h-7 text-xs gap-1.5 bg-primary">
+                            <Upload className="size-3 text-primary-foreground" />
+                            <span>Cargar Nueva Competencia</span>
+                          </Button>
+                        }
+                      />
+                    </div>
+
+                    <div className="divide-y border rounded-lg max-h-80 overflow-y-auto">
+                      {meetsForActiveSeason.length === 0 ? (
+                        <p className="p-4 text-xs text-center text-muted-foreground">
+                          No hay torneos registrados para la temporada de afiliación seleccionada.
+                        </p>
+                      ) : (
+                        meetsForActiveSeason.map((meet) => {
+                          const isChecked = selectedMeetIds === "all" || selectedMeetIds.includes(meet.id);
+                          return (
+                            <div
+                              key={meet.id}
+                              onClick={() => handleToggleMeet(meet.id)}
+                              className="p-3 flex items-center justify-between gap-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}}
+                                  className="size-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                />
+                                <div className="space-y-0.5 min-w-0">
+                                  <p className="text-xs font-semibold text-foreground truncate">{meet.name}</p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {meet.startDate || "Fecha no especificada"} · Temporada {meet.year}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <Badge variant="outline" className="text-[10px] font-mono shrink-0">
+                                {meet.resultsCount} marcas
+                              </Badge>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <Button size="sm" onClick={() => setMeetSelectionOpen(false)}>
+                        Aplicar Filtro al Ranking
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <SwimFileImporterModal
+                triggerButton={
+                  <Button size="sm" className="h-8 text-xs gap-1.5 shadow-xs bg-primary">
+                    <Upload className="size-3.5" />
+                    <span>Importar Resultados</span>
+                  </Button>
+                }
+              />
             </div>
           </div>
 

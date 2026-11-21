@@ -53,6 +53,7 @@ function Rankings() {
             athletes={data.athletes}
             clubs={(data as any).clubs || []}
             teams={(data as any).teams || []}
+            meets={data.meets || []}
           />
         </TabsContent>
 

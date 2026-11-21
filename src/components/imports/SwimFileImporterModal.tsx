@@ -15,7 +15,7 @@ import type { ParseFileResult } from '@/lib/swim-io/types';
 import { importParsed } from '@/lib/importer';
 import { eventLabel, formatTime } from '@/lib/swim';
 
-export function SwimFileImporterModal() {
+export function SwimFileImporterModal({ triggerButton }: { triggerButton?: React.ReactNode } = {}) {
  const { data } = useSuspenseQuery(coachQuery), { data: management } = useSuspenseQuery(clubManagementQuery), qc = useQueryClient();
  const [open,setOpen]=useState(false),[step,setStep]=useState(1),[file,setFile]=useState<ParseFileResult|null>(null),[reading,setReading]=useState(false),[error,setError]=useState(''),[drag,setDrag]=useState(false);
  const [clubId,setClub]=useState('none'),[teamCode,setTeam]=useState('all'),[links,setLinks]=useState<Record<string,string>>({}),[progress,setProgress]=useState(0);
@@ -32,7 +32,11 @@ export function SwimFileImporterModal() {
  async function pick(f?:File){if(!f||reading||mutation.isPending)return;setReading(true);setError('');try{setFile(await parseSwimFile(f));setLinks({});setTeam('all');setStep(2);}catch(e){setError(e instanceof Error?e.message:'No se pudo leer el archivo.');}finally{setReading(false);}}
  function update(field:'name'|'startDate'|'course',value:string){setFile(f=>f?{...f,parsed:{...f.parsed,meet:{...f.parsed.meet,[field]:value}}}:f);}
  return <Dialog open={open} onOpenChange={v=>{if(mutation.isPending)return;setOpen(v);if(!v){setStep(1);setFile(null);setError('');mutation.reset();}}}>
- <Button onClick={()=>setOpen(true)}><Upload/>Importar resultados</Button>
+ {triggerButton ? (
+  <span onClick={()=>setOpen(true)} className="inline-flex cursor-pointer">{triggerButton}</span>
+ ) : (
+  <Button onClick={()=>setOpen(true)}><Upload/>Importar resultados</Button>
+ )}
  <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl"><DialogHeader><DialogTitle>Importar archivo de natación</DialogTitle><DialogDescription>Competencias · HY3 / SD3 / CL2 / ZIP</DialogDescription></DialogHeader>
  <ol className="grid grid-cols-3 gap-2 border-b pb-4 text-sm">{['Carga','Revisión','Confirmación'].map((t,i)=><li key={t} className={step===i+1?'font-semibold text-primary':'text-muted-foreground'}>{i+1}. {t}</li>)}</ol>
  {error&&<p role="alert" className="break-words text-sm text-destructive">{error}</p>}
