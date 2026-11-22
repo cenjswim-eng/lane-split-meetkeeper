@@ -11,6 +11,8 @@ import { unzipSync } from 'fflate';
 import { normalizeSwimTimeToMs, normalizeCourse, normalizeIsoDate } from '@/lib/hytek-bridge/data-normalizer';
 import { KNOWN_ADAEL_CODES } from '@/lib/team-hub/ranking-engine';
 import { aquaPoints } from '@/lib/swim';
+import { normalizeTeamCode } from '@/data/fevedaClubs';
+import { extractAllSwimFilesFromZip } from '@/lib/swim-io/encodingAndTime';
 import type {
   AdaelIngestPayload,
   CourseType2026,
@@ -150,14 +152,17 @@ export function parseAdaelHy3String(
         currentAthleteId = null;
         currentEntry = null;
         currentRelay = null;
-        currentTeamCode = col(padded, 3, 7).toUpperCase();
-        const teamName = col(padded, 8, 37) || currentTeamCode;
+        const rawCode = col(padded, 3, 7).toUpperCase();
+        const rawName = col(padded, 8, 37) || rawCode;
+        const norm = normalizeTeamCode(rawCode, rawName);
+        currentTeamCode = norm.code;
+        const teamName = norm.name;
         if (!clubsMap.has(currentTeamCode)) {
           clubsMap.set(currentTeamCode, {
             code: currentTeamCode,
             name: teamName,
             isFederated: isAdaelAffiliatedClub(currentTeamCode, teamName),
-            association: isAdaelAffiliatedClub(currentTeamCode, teamName) ? 'LARA' : 'OTRA',
+            association: isAdaelAffiliatedClub(currentTeamCode, teamName) ? 'LARA' : norm.lsc,
           });
         }
         break;
@@ -421,18 +426,11 @@ export function parseAdaelHy3String(
 }
 
 /**
- * Expands a ZIP buffer into a list of enclosed HY3/SD3 files.
+ * Expands a ZIP buffer into a list of enclosed HY3/SD3/CL2 files,
+ * recursively unpacking any nested .zip archives.
  */
 export function expandZipFiles(buffer: ArrayBuffer | Uint8Array): { fileName: string; bytes: Uint8Array }[] {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const unzipped = unzipSync(bytes, {
-    filter: (entry) => /\.(hy3|sd3|cl2)$/i.test(entry.name),
-  });
-
-  return Object.entries(unzipped).map(([fileName, fileBytes]) => ({
-    fileName,
-    bytes: fileBytes,
-  }));
+  return extractAllSwimFilesFromZip(buffer);
 }
 
 /**

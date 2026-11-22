@@ -1,5 +1,6 @@
 import { parseTime, parseSwimTime, sdifTime } from "../swim";
 import { col, courseFromCode, mdyToIso, type ParsedFile, type ParsedResult } from "./types";
+import { normalizeTeamCode } from "@/data/fevedaClubs";
 
 /** Parser for SDIF v3 files (.SD3 / .CL2), the USA Swimming standard exported by Meet Manager. */
 export function parseSdif(text: string): ParsedFile {
@@ -31,8 +32,11 @@ export function parseSdif(text: string): ParsedFile {
       last = [];
       // Legacy CL2 places team code at 18; standard SDIF at 12. Detect the empty reserved field.
       const standard = Boolean(col(line, 12, 17));
-      teamCode = standard ? col(line, 12, 17) : col(line, 18, 23);
-      out.teams.push({ code: teamCode, name: standard ? col(line, 18, 47) : col(line, 24, 53) || teamCode, lsc: null });
+      const rawCode = standard ? col(line, 12, 17) : col(line, 18, 23);
+      const rawName = standard ? col(line, 18, 47) : col(line, 24, 53) || rawCode;
+      const normalized = normalizeTeamCode(rawCode, rawName);
+      teamCode = normalized.code;
+      out.teams.push({ code: normalized.code, name: normalized.name, lsc: normalized.lsc });
     } else if (type === "D0") {
       const fullName = col(line, 12, 39);
       const [lastName = "", firstRest = ""] = fullName.split(",").map((s) => s.trim());

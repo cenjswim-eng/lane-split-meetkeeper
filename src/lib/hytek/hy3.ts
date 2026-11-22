@@ -1,5 +1,6 @@
 import { parseTime, parseSwimTime } from "../swim";
 import { col, courseFromCode, mdyToIso, type ParsedFile, type ParsedResult } from "./types";
+import { normalizeTeamCode } from "@/data/fevedaClubs";
 
 const HY3_STROKE: Record<string, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
 
@@ -43,12 +44,18 @@ export function parseHy3(text: string): ParsedFile {
         if (c) out.meet.course = courseFromCode(c, out.meet.course);
         break;
       }
-      case "C1":
+      case "C1": {
         athleteKey = null;
         current = null;
-        teamCode = col(line, 3, 7);
-        if (!out.teams.some(t => t.code === teamCode)) out.teams.push({ code: teamCode, name: col(line, 8, 37) || teamCode });
+        const rawCode = col(line, 3, 7);
+        const rawName = col(line, 8, 37) || rawCode;
+        const normalized = normalizeTeamCode(rawCode, rawName);
+        teamCode = normalized.code;
+        if (!out.teams.some(t => t.code === teamCode)) {
+          out.teams.push({ code: normalized.code, name: normalized.name, lsc: normalized.lsc });
+        }
         break;
+      }
       case "D1": {
         current = null;
         const id = col(line, 4, 8);

@@ -14,6 +14,8 @@ import {
   AlertCircle,
   ChevronRight,
   ShieldAlert,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +32,7 @@ import {
   type RankingFilters,
   type RankedSwimResult,
 } from "@/lib/state-ranking";
+import { generateStateRankingPdf } from "@/lib/export-state-ranking-pdf";
 import { downloadFile } from "@/lib/file-delivery";
 
 export function StateRankingView({
@@ -54,6 +57,7 @@ export function StateRankingView({
   const [selectedSeason, setSelectedSeason] = useState<string>("2026");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [stateOverride, setStateOverride] = useState<string>("auto");
+  const [showPodiumAndMyClub, setShowPodiumAndMyClub] = useState<boolean>(false);
 
   // Adaptación de resultados heterogéneos de la BD a la interfaz SwimResult
   const swimResults: SwimResult[] = useMemo(() => {
@@ -82,6 +86,7 @@ export function StateRankingView({
     states.add("Distrito Capital");
     states.add("Carabobo");
     states.add("Zulia");
+    states.add("Bolívar");
     return Array.from(states).sort();
   }, [swimResults]);
 
@@ -120,17 +125,21 @@ export function StateRankingView({
     return calculateStateRankingSummary(rankedList, rankingFilters);
   }, [rankedList, rankingFilters]);
 
-  // Filtrado reactivo por texto de búsqueda en la tabla
+  // Filtrado reactivo por "Solo Mi Club vs Top 3" y búsqueda de texto
   const displayedList = useMemo(() => {
-    if (!searchQuery.trim()) return rankedList;
+    let list = rankedList;
+    if (showPodiumAndMyClub) {
+      list = list.filter((r) => r.rank <= 3 || r.isMyClub);
+    }
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase().trim();
-    return rankedList.filter(
+    return list.filter(
       (r) =>
         r.athleteName.toLowerCase().includes(q) ||
         r.clubCode.toLowerCase().includes(q) ||
         r.clubName.toLowerCase().includes(q)
     );
-  }, [rankedList, searchQuery]);
+  }, [rankedList, showPodiumAndMyClub, searchQuery]);
 
   // Manejo de botones rápidos de categorías de edad
   const handleCategoryPreset = (catMin: number, catMax: number) => {
@@ -160,11 +169,12 @@ export function StateRankingView({
       "Es Mi Club",
       "Tiempo Oficial",
       "Diferencia vs #1",
+      `Diferencia vs ${myClubCode}`,
       "Puntos AQUA",
       "Torneo",
       "Fecha",
     ];
-    const rows = rankedList.map((r) => [
+    const rows = displayedList.map((r) => [
       r.rank,
       `"${r.athleteName}"`,
       r.gender,
@@ -174,6 +184,7 @@ export function StateRankingView({
       r.isMyClub ? "SÍ" : "NO",
       r.timeFormatted,
       r.diffFromLeader,
+      r.diffVsMyClub,
       r.aquaPoints ?? "—",
       `"${r.meetName}"`,
       r.meetDate ?? "—",
@@ -183,6 +194,28 @@ export function StateRankingView({
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const filename = `ranking_estadal_${summary.activeState.replace(/[^a-z0-9]/gi, "_")}_${selectedCourse}_${selectedGender}_${selectedEventCode}.csv`;
     downloadFile(new File([blob], filename, { type: "text/csv" }));
+  };
+
+  // Exportar ranking a PDF Oficial
+  const handleExportPdf = () => {
+    if (!rankedList.length) return;
+    const currentEvent = STATE_EVENT_CODES.find((e) => e.eventCode === selectedEventCode);
+    const eventLabel = currentEvent?.label || selectedEventCode;
+    const categoryLabel = (minAge !== "" || maxAge !== "")
+      ? `Edades ${minAge || "0"} - ${maxAge || "99"}`
+      : "Todas las Edades (Abierto)";
+
+    const pdfFile = generateStateRankingPdf({
+      rankedItems: displayedList,
+      summary,
+      filters: rankingFilters,
+      eventLabel,
+      categoryLabel,
+      courseLabel: selectedCourse === "LCM" ? "Piscina Larga (50m)" : "Piscina Corta (25m)",
+      genderLabel: selectedGender === "M" ? "Masculino" : "Femenino",
+      activeClubName,
+    });
+    downloadFile(pdfFile);
   };
 
   return (
@@ -225,9 +258,26 @@ export function StateRankingView({
             </Select>
           </div>
 
-          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!rankedList.length} className="gap-1.5 h-8 text-xs">
-            <Download className="h-3.5 w-3.5" />
-            Exportar CSV
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={!rankedList.length}
+            className="gap-1.5 h-8 text-xs"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            CSV
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleExportPdf}
+            disabled={!rankedList.length}
+            className="gap-1.5 h-8 text-xs bg-primary text-primary-foreground shadow-sm"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Exportar PDF
           </Button>
         </div>
       </div>
@@ -283,22 +333,36 @@ export function StateRankingView({
           </CardContent>
         </Card>
 
-        {/* KPI 3: Mejor marca estadal de la prueba */}
+        {/* KPI 3: Desglose de Dominancia del Top 8 por Club Rival */}
         <Card className="border shadow-sm">
           <CardHeader className="p-4 pb-2">
             <CardDescription className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-              <span>LÍDER DE LA PRUEBA</span>
+              <span>DOMINANCIA TOP 8 POR CLUB</span>
               <Medal className="h-4 w-4 text-amber-500" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-mono">
-              {summary.leader ? summary.leader.timeFormatted : "—"}
+            <CardTitle className="text-lg font-bold tracking-tight text-foreground">
+              {summary.top8ClubDistribution.length > 0 ? (
+                <div className="flex flex-wrap gap-1 items-center">
+                  {summary.top8ClubDistribution.slice(0, 4).map((c) => (
+                    <Badge
+                      key={c.clubCode}
+                      variant={c.isMyClub ? "default" : "secondary"}
+                      className={`text-[10px] px-1.5 py-0 h-4 font-mono ${c.isMyClub ? "bg-primary text-primary-foreground font-bold" : ""}`}
+                    >
+                      {c.clubCode}: {c.count}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground text-sm font-normal">Sin finalistas</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <p className="text-xs text-muted-foreground truncate">
-              {summary.leader
-                ? `${summary.leader.athleteName} (${summary.leader.clubCode})`
-                : "Sin tiempos registrados con estos filtros"}
+              {summary.top8ClubDistribution.length > 0
+                ? summary.top8ClubDistribution.map((c) => `${c.clubCode} (${c.count})`).join(" · ")
+                : "No hay tiempos suficientes registrados"}
             </p>
           </CardContent>
         </Card>
@@ -356,22 +420,22 @@ export function StateRankingView({
             {/* Tipo de Piscina */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground">Tipo de Piscina</label>
-              <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-md">
+              <div className="grid grid-cols-2 gap-1.5">
                 <Button
                   type="button"
-                  variant={selectedCourse === "LCM" ? "default" : "ghost"}
+                  variant={selectedCourse === "LCM" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCourse("LCM")}
-                  className="h-7 text-xs font-medium"
+                  className="h-9 text-xs"
                 >
                   50m LCM
                 </Button>
                 <Button
                   type="button"
-                  variant={selectedCourse === "SCM" ? "default" : "ghost"}
+                  variant={selectedCourse === "SCM" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCourse("SCM")}
-                  className="h-7 text-xs font-medium"
+                  className="h-9 text-xs"
                 >
                   25m SCM
                 </Button>
@@ -381,123 +445,117 @@ export function StateRankingView({
             {/* Género */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground">Género</label>
-              <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-md">
+              <div className="grid grid-cols-2 gap-1.5">
                 <Button
                   type="button"
-                  variant={selectedGender === "M" ? "default" : "ghost"}
+                  variant={selectedGender === "M" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedGender("M")}
-                  className="h-7 text-xs font-medium"
+                  className="h-9 text-xs"
                 >
-                  Masculino (M)
+                  Masculino
                 </Button>
                 <Button
                   type="button"
-                  variant={selectedGender === "F" ? "default" : "ghost"}
+                  variant={selectedGender === "F" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedGender("F")}
-                  className="h-7 text-xs font-medium"
+                  className="h-9 text-xs"
                 >
-                  Femenino (F)
+                  Femenino
                 </Button>
               </div>
             </div>
 
-            {/* Temporada */}
+            {/* Rango de Fechas / Temporada */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground">Temporada / Año</label>
               <Select value={selectedSeason} onValueChange={setSelectedSeason}>
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Seleccionar temporada" />
+                  <SelectValue placeholder="Temporada" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las temporadas</SelectItem>
-                  {availableSeasons
-                    .filter((s) => s !== "all")
-                    .map((s) => (
-                      <SelectItem key={s} value={s}>
-                        Temporada {s}
-                      </SelectItem>
-                    ))}
+                  {availableSeasons.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s === "all" ? "Histórico Completo" : `Temporada ${s}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Fila 2: Filtro de Edad Flexible (Inputs Numéricos + Botones Rápidos de Categorías) */}
-          <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">Categorías Rápidas:</span>
-              <Button
-                type="button"
-                variant={minAge === "" && maxAge === "" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setMinAge("");
-                  setMaxAge("");
-                }}
-                className="h-7 text-xs px-2.5"
-              >
-                Todas las edades
-              </Button>
-              {QUICK_AGE_CATEGORIES.map((cat) => {
-                const active = isPresetActive(cat.min, cat.max);
-                return (
-                  <Button
-                    key={cat.label}
-                    type="button"
-                    variant={active ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleCategoryPreset(cat.min, cat.max)}
-                    className="h-7 text-xs px-2.5"
-                  >
-                    {cat.label}
-                    <span className="ml-1 text-[10px] opacity-75 font-normal">({cat.name})</span>
-                  </Button>
-                );
-              })}
+          {/* Fila 2: Filtro de Edad Flexible con Presets de Categoría */}
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Categoría y Rango de Edades (calculada al 31 de Diciembre de {rankingFilters.referenceYear})
+              </span>
             </div>
 
-            {/* Inputs Numéricos Flexibles */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Edad desde:</span>
-                <Input
-                  type="number"
-                  min="5"
-                  max="99"
-                  placeholder="Min"
-                  value={minAge}
-                  onChange={(e) => setMinAge(e.target.value)}
-                  className="h-7 w-16 text-xs text-center"
-                />
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Presets FEVEDA */}
+              <div className="flex flex-wrap gap-1">
+                {QUICK_AGE_CATEGORIES.map((cat) => {
+                  const active = isPresetActive(cat.min, cat.max);
+                  return (
+                    <Button
+                      key={cat.label}
+                      type="button"
+                      variant={active ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleCategoryPreset(cat.min, cat.max)}
+                      className="h-7 text-xs px-2.5"
+                    >
+                      {cat.label}
+                      <span className="ml-1 text-[10px] opacity-75 font-normal">({cat.name})</span>
+                    </Button>
+                  );
+                })}
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">hasta:</span>
-                <Input
-                  type="number"
-                  min="5"
-                  max="99"
-                  placeholder="Max"
-                  value={maxAge}
-                  onChange={(e) => setMaxAge(e.target.value)}
-                  className="h-7 w-16 text-xs text-center"
-                />
+
+              {/* Inputs Numéricos Flexibles */}
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">Edad desde:</span>
+                  <Input
+                    type="number"
+                    min="5"
+                    max="99"
+                    placeholder="Min"
+                    value={minAge}
+                    onChange={(e) => setMinAge(e.target.value)}
+                    className="h-7 w-16 text-xs text-center"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">hasta:</span>
+                  <Input
+                    type="number"
+                    min="5"
+                    max="99"
+                    placeholder="Max"
+                    value={maxAge}
+                    onChange={(e) => setMaxAge(e.target.value)}
+                    className="h-7 w-16 text-xs text-center"
+                  />
+                </div>
+                {(minAge !== "" || maxAge !== "") && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setMinAge("");
+                      setMaxAge("");
+                    }}
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground px-1.5"
+                  >
+                    Limpiar
+                  </Button>
+                )}
               </div>
-              {(minAge !== "" || maxAge !== "") && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setMinAge("");
-                    setMaxAge("");
-                  }}
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground px-1.5"
-                >
-                  Limpiar
-                </Button>
-              )}
             </div>
           </div>
         </CardContent>
@@ -515,15 +573,29 @@ export function StateRankingView({
             </Badge>
           </div>
 
-          <div className="relative w-72">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por nadador o club..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-8 text-xs"
-            />
+          <div className="flex items-center gap-2">
+            {/* Botón Rápido: Solo Mi Club vs Top 3 Estadal */}
+            <Button
+              type="button"
+              variant={showPodiumAndMyClub ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPodiumAndMyClub((prev) => !prev)}
+              className="h-8 text-xs gap-1.5 shadow-sm"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {showPodiumAndMyClub ? "Ver Todos los Nadadores" : "Solo Mi Club vs. Top 3 Estadal"}
+            </Button>
+
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nadador o club..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
           </div>
         </div>
 
@@ -537,6 +609,7 @@ export function StateRankingView({
                 <th className="p-3 font-semibold">Club / Equipo</th>
                 <th className="p-3 text-center font-semibold w-24">Tiempo</th>
                 <th className="p-3 text-center font-semibold w-24">Dif. vs #1</th>
+                <th className="p-3 text-center font-semibold w-28">Dif. {myClubCode}</th>
                 <th className="p-3 text-center font-semibold w-20">AQUA</th>
                 <th className="p-3 font-semibold">Torneo</th>
                 <th className="p-3 text-center font-semibold w-24">Fecha</th>
@@ -587,7 +660,7 @@ export function StateRankingView({
                         </span>
                         {item.isMyClub && (
                           <Badge variant="default" className="text-[10px] bg-primary text-primary-foreground font-semibold px-1 py-0 h-4">
-                            Mi Club
+                            MI CLUB
                           </Badge>
                         )}
                       </div>
@@ -622,6 +695,21 @@ export function StateRankingView({
                       )}
                     </td>
 
+                    {/* Diferencia vs. Mejor de Mi Club */}
+                    <td className="p-3 text-center font-mono text-xs">
+                      {item.diffVsMyClub === "0.00s" ? (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary font-bold">
+                          Líder Club
+                        </Badge>
+                      ) : item.diffVsMyClub.startsWith("-") ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">{item.diffVsMyClub}</span>
+                      ) : item.diffVsMyClub !== "—" ? (
+                        <span className="text-muted-foreground">{item.diffVsMyClub}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+
                     {/* Puntos AQUA */}
                     <td className="p-3 text-center font-mono text-xs text-primary font-bold">
                       {item.aquaPoints ?? "—"}
@@ -642,7 +730,7 @@ export function StateRankingView({
 
               {!displayedList.length && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
                     <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
                     <p className="font-medium text-sm">No se encontraron marcas oficiales para los filtros seleccionados.</p>
                     <p className="text-xs mt-1">
@@ -660,7 +748,7 @@ export function StateRankingView({
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-primary" />
-              Atletas de Mi Club ({summary.myClubCode}) resaltados
+              Atletas de Mi Club ({summary.myClubCode}) resaltados con insignia
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500" />

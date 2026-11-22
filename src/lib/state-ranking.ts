@@ -8,6 +8,7 @@
 
 import { formatTime } from "./swim";
 import { normalizeAssociationName } from "./association-ranking";
+import { normalizeTeamCode } from "@/data/fevedaClubs";
 
 export interface SwimResult {
   id: string;
@@ -44,6 +45,15 @@ export interface RankedSwimResult extends SwimResult {
   age: number;
   isMyClub: boolean;
   diffFromLeader: string;  // '—' para el #1 o '+X.XXs' para los demás
+  diffVsMyClub: string;    // '—' si no hay atletas de mi club, '0.00s' para el mejor de mi club, o '+X.XXs' / '-X.XXs'
+  diffVsMyClubMs: number | null;
+}
+
+export interface Top8ClubItem {
+  clubCode: string;
+  clubName: string;
+  count: number;
+  isMyClub: boolean;
 }
 
 export interface StateRankingSummary {
@@ -55,6 +65,7 @@ export interface StateRankingSummary {
   myClubBest: RankedSwimResult | null;
   myClubLeaderGapSeconds: number | null;
   myClubLeaderGapText: string;
+  top8ClubDistribution: Top8ClubItem[];
 }
 
 // Calcula la edad competitiva al 31 de diciembre del año de referencia
@@ -82,6 +93,7 @@ export function generateStateRanking(
   filters: RankingFilters
 ): RankedSwimResult[] {
   const targetStateClean = cleanStateName(filters.state);
+  const targetMyClubClean = filters.myClubCode.toUpperCase().trim();
 
   // 1. Filtrar por estado, prueba, género, tipo de piscina, fecha y rango de edad
   const filtered = allResults.filter((r) => {
@@ -116,23 +128,47 @@ export function generateStateRanking(
     (a, b) => a.timeMs - b.timeMs
   );
 
-  // 4. Enriquecer con posición, bandera de "Mi Club" y diferencial respecto al líder
+  // 4. Identificar el mejor tiempo del club del usuario logueado en esta prueba
+  const myClubSwimmers = sorted.filter(
+    (entry) => entry.clubCode.toUpperCase().trim() === targetMyClubClean
+  );
+  const myClubBestTime = myClubSwimmers.length > 0 ? myClubSwimmers[0].timeMs : null;
+
+  // 5. Enriquecer con posición, bandera de "Mi Club", diff vs Líder y diff vs Mi Club
   const leaderTime = sorted.length > 0 ? sorted[0].timeMs : 0;
 
   return sorted.map((entry, index) => {
     const diffMs = entry.timeMs - leaderTime;
+    const isMyClub = entry.clubCode.toUpperCase().trim() === targetMyClubClean;
+
+    let diffVsMyClub = '—';
+    let diffVsMyClubMs: number | null = null;
+
+    if (myClubBestTime !== null) {
+      diffVsMyClubMs = entry.timeMs - myClubBestTime;
+      if (diffVsMyClubMs === 0) {
+        diffVsMyClub = '0.00s';
+      } else if (diffVsMyClubMs > 0) {
+        diffVsMyClub = `+${(diffVsMyClubMs / 1000).toFixed(2)}s`;
+      } else {
+        diffVsMyClub = `-${(Math.abs(diffVsMyClubMs) / 1000).toFixed(2)}s`;
+      }
+    }
+
     return {
       rank: index + 1,
       ...entry,
       age: getCompetitiveAge(entry.birthDate, filters.referenceYear),
-      isMyClub: entry.clubCode.toUpperCase().trim() === filters.myClubCode.toUpperCase().trim(),
+      isMyClub,
       diffFromLeader: index === 0 ? '—' : `+${(diffMs / 1000).toFixed(2)}s`,
+      diffVsMyClub,
+      diffVsMyClubMs,
     };
   });
 }
 
 /**
- * Cálculo de Resumen de KPIs de "Mi Club" frente al Estado
+ * Cálculo de Resumen de KPIs de "Mi Club" frente al Estado y Desglose de Rivales en el Top 8
  */
 export function calculateStateRankingSummary(
   rankedResults: RankedSwimResult[],
@@ -158,6 +194,29 @@ export function calculateStateRankingSummary(
     }
   }
 
+  // Distribución de puestos del Top 8 por club (para visualizar qué club rival domina)
+  const top8Results = rankedResults.filter((r) => r.rank <= 8);
+  const clubCountMap = new Map<string, { clubCode: string; clubName: string; count: number; isMyClub: boolean }>();
+  for (const r of top8Results) {
+    const key = r.clubCode.toUpperCase().trim();
+    const existing = clubCountMap.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      clubCountMap.set(key, {
+        clubCode: r.clubCode,
+        clubName: r.clubName,
+        count: 1,
+        isMyClub: r.isMyClub,
+      });
+    }
+  }
+
+  const top8ClubDistribution = Array.from(clubCountMap.values()).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.clubCode.localeCompare(b.clubCode);
+  });
+
   return {
     activeState: filters.state,
     myClubCode: filters.myClubCode,
@@ -167,6 +226,7 @@ export function calculateStateRankingSummary(
     myClubBest,
     myClubLeaderGapSeconds,
     myClubLeaderGapText,
+    top8ClubDistribution,
   };
 }
 
@@ -214,18 +274,24 @@ export function adaptToSwimResults(
   const clubMap = new Map<string, { code: string; name: string; state: string }>();
 
   for (const c of clubs) {
-    const code = (c.team_code || c.short_name || c.name || 'CLUB').toUpperCase().trim();
-    const state = normalizeAssociationName(c.region_lsc || c.region || 'Lara');
-    clubMap.set(c.id, { code, name: c.full_name || c.name, state });
-    clubMap.set(code, { code, name: c.full_name || c.name, state });
+    const rawCode = c.team_code || c.short_name || c.name || 'CLUB';
+    const norm = normalizeTeamCode(rawCode, c.full_name || c.name, c.region_lsc || c.region || 'Lara');
+    clubMap.set(c.id, { code: norm.code, name: norm.name, state: norm.state });
+    clubMap.set(norm.code, { code: norm.code, name: norm.name, state: norm.state });
+    if (rawCode.toUpperCase() !== norm.code) {
+      clubMap.set(rawCode.toUpperCase().trim(), { code: norm.code, name: norm.name, state: norm.state });
+    }
   }
 
   for (const t of teams) {
-    const code = (t.code || 'TEAM').toUpperCase().trim();
-    if (!clubMap.has(code)) {
-      const state = normalizeAssociationName(t.lsc || 'Lara');
-      clubMap.set(t.id, { code, name: t.name || code, state });
-      clubMap.set(code, { code, name: t.name || code, state });
+    const rawCode = t.code || 'TEAM';
+    const norm = normalizeTeamCode(rawCode, t.name, t.lsc || 'Lara');
+    if (!clubMap.has(norm.code)) {
+      clubMap.set(t.id, { code: norm.code, name: norm.name, state: norm.state });
+      clubMap.set(norm.code, { code: norm.code, name: norm.name, state: norm.state });
+      if (rawCode.toUpperCase() !== norm.code) {
+        clubMap.set(rawCode.toUpperCase().trim(), { code: norm.code, name: norm.name, state: norm.state });
+      }
     }
   }
 
@@ -250,15 +316,18 @@ export function adaptToSwimResults(
     const strokeStr = strokeNumToStr[strokeNum] || 'FREE';
     const eventCode = `${distance}_${strokeStr}`;
 
+    const rawTeam = r.origin_team || ath.clubs?.team_code || ath.teams?.code || 'CLUB';
+    const normTeam = normalizeTeamCode(rawTeam, ath.clubs?.name || ath.teams?.name);
+
     const clubMeta =
       (ath.club_id && clubMap.get(ath.club_id)) ||
+      (normTeam.code && clubMap.get(normTeam.code)) ||
       (r.origin_team && clubMap.get(r.origin_team.toUpperCase().trim())) ||
-      (ath.clubs?.id && clubMap.get(ath.clubs.id)) ||
-      (ath.clubs?.team_code && clubMap.get(ath.clubs.team_code.toUpperCase().trim()));
+      (ath.clubs?.id && clubMap.get(ath.clubs.id));
 
-    const clubCode = clubMeta?.code || ath.clubs?.team_code || ath.teams?.code || r.origin_team || 'CLUB';
-    const clubName = clubMeta?.name || ath.clubs?.full_name || ath.clubs?.name || ath.teams?.name || clubCode;
-    const state = clubMeta?.state || normalizeAssociationName(ath.clubs?.region_lsc || ath.teams?.lsc || 'Lara');
+    const clubCode = clubMeta?.code || normTeam.code;
+    const clubName = clubMeta?.name || normTeam.name;
+    const state = clubMeta?.state || normTeam.state;
 
     adapted.push({
       id: r.id || `${ath.id}-${r.final_time_ms}`,
