@@ -77,8 +77,36 @@ export function indexFrameUrl(html: string, base: string): string | null {
 }
 
 export function meetEventPages(indexHtml: string, base: string): string[] {
-  const links = [...indexHtml.matchAll(/href=["']?([^"' >#]+?([FPS])\d{3,4}\.html?(?:\?[^"' >#]*)?)/gi)];
-  return [...new Set(links.flatMap(m => m[1] ? [new URL(m[1].replace(/&amp;/g, "&"), base).toString()] : []))];
+  // 1. Enlaces estándar Meet Manager ([FPS]\d{1,4})
+  const mmLinks = [...indexHtml.matchAll(/href=["']?([^"' >#]*?[FPS]\d{1,4}\.html?(?:\?[^"' >#]*)?)/gi)].map(
+    (m) => m[1]
+  );
+  // 2. Enlaces nombrados como event1.htm, prueba1.htm, etc.
+  const namedLinks = [
+    ...indexHtml.matchAll(
+      /href=["']?([^"' >#]*?(?:event|evento|prueba|ev|res)[_-]?\d{1,4}\.html?(?:\?[^"' >#]*)?)/gi
+    ),
+  ].map((m) => m[1]);
+  // 3. Enlaces numerados directos (ej. 1.htm, 01.html)
+  const numLinks = [...indexHtml.matchAll(/href=["']?([^"' >#]*?\b\d{1,4}\.html?(?:\?[^"' >#]*)?)/gi)].map(
+    (m) => m[1]
+  );
+
+  const nonEventPattern =
+    /(?:evtindex|index|menu|header|navbar|top|bottom|team|teams|athlete|athletes|banner|footer)\.html?$/i;
+
+  const validUrls = [...mmLinks, ...namedLinks, ...numLinks]
+    .filter((href): href is string => Boolean(href && href.trim()))
+    .map((href) => {
+      try {
+        return new URL(href.replace(/&amp;/g, "&"), base).toString();
+      } catch {
+        return null;
+      }
+    })
+    .filter((u): u is string => Boolean(u) && !nonEventPattern.test(new URL(u).pathname));
+
+  return [...new Set(validUrls)];
 }
 
 export function meetIndexInfo(html: string, indexHtml: string) {

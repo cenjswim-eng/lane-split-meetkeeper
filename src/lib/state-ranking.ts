@@ -43,6 +43,7 @@ export interface RankingFilters {
 export interface RankedSwimResult extends SwimResult {
   rank: number;
   age: number;
+  categoryName: string;
   isMyClub: boolean;
   diffFromLeader: string;  // '—' para el #1 o '+X.XXs' para los demás
   diffVsMyClub: string;    // '—' si no hay atletas de mi club, '0.00s' para el mejor de mi club, o '+X.XXs' / '-X.XXs'
@@ -170,10 +171,12 @@ export function generateStateRanking(
       }
     }
 
+    const age = getCompetitiveAge(entry.birthDate, filters.referenceYear);
     return {
       rank: index + 1,
       ...entry,
-      age: getCompetitiveAge(entry.birthDate, filters.referenceYear),
+      age,
+      categoryName: getCategoryNameByAge(age),
       isMyClub,
       diffFromLeader: index === 0 ? '—' : `+${(diffMs / 1000).toFixed(2)}s`,
       diffVsMyClub,
@@ -270,12 +273,27 @@ export const STATE_EVENT_CODES = [
 ];
 
 export const QUICK_AGE_CATEGORIES = [
+  { label: 'Todas', name: 'Todas las Categorías', min: 0, max: 99 },
+  { label: '7 - 9', name: 'Pre-Infantil', min: 7, max: 9 },
   { label: '10 - 11', name: 'Infantil A', min: 10, max: 11 },
   { label: '12 - 13', name: 'Infantil B', min: 12, max: 13 },
   { label: '14 - 15', name: 'Juvenil A', min: 14, max: 15 },
   { label: '16 - 18', name: 'Juvenil B', min: 16, max: 18 },
-  { label: '19+', name: 'Máxima / Abierto', min: 19, max: 99 },
+  { label: '19+', name: 'Máxima', min: 19, max: 99 },
 ];
+
+/**
+ * Obtiene el nombre oficial de la categoría FEVEDA según la edad competitiva
+ */
+export function getCategoryNameByAge(age: number): string {
+  if (age <= 0) return 'Abierto';
+  if (age <= 9) return 'Pre-Infantil';
+  if (age <= 11) return 'Infantil A';
+  if (age <= 13) return 'Infantil B';
+  if (age <= 15) return 'Juvenil A';
+  if (age <= 18) return 'Juvenil B';
+  return 'Máxima';
+}
 
 /**
  * Adaptador: Convierte resultados heterogéneos de base de datos a SwimResult[]
@@ -360,7 +378,11 @@ export function adaptToSwimResults(
     if (r.is_dq || !r.final_time_ms || r.final_time_ms <= 0) continue;
 
     const ath = athletes.find((a) => a.id === r.athlete_id) || r.athletes;
-    if (!ath || !ath.birth_date) continue;
+    if (!ath) continue;
+
+    const meetYear = r.meets?.start_date ? Number(r.meets.start_date.slice(0, 4)) : 2026;
+    const resolvedBirthDate =
+      ath.birth_date || (r.age ? `${meetYear - Number(r.age)}-01-01` : "2012-01-01");
 
     const distance = r.events?.distance ?? r.distance ?? 100;
     const strokeNum = r.events?.stroke ?? r.stroke ?? 1;
@@ -423,7 +445,7 @@ export function adaptToSwimResults(
       id: r.id || `${ath.id}-${r.final_time_ms}`,
       athleteId: ath.id || r.athlete_id,
       athleteName: `${ath.last_name || ''}, ${ath.first_name || ''}`.trim().replace(/^,\s*|,\s*$/g, ''),
-      birthDate: ath.birth_date,
+      birthDate: resolvedBirthDate,
       gender: ath.gender || 'M',
       clubCode,
       clubName,

@@ -64,6 +64,7 @@ import { importParsed } from "@/lib/importer";
 import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, type FevedaMeet } from "@/lib/feveda";
 import { normalizeTeamCode } from "@/data/fevedaClubs";
 import { formatTime } from "@/lib/swim";
+import { getCategoryNameByAge } from "@/lib/state-ranking";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function RivalResultsLinkExtractorModal({
@@ -386,11 +387,14 @@ export function RivalResultsLinkExtractorModal({
     return filterParsedByClubCodes(parsedFile, Array.from(selectedClubs));
   }, [parsedFile, selectedClubs]);
 
-  // Lista de previsualización para la tabla
+  // Lista de previsualización para la tabla con todas las categorías
   const previewRows = useMemo(() => {
     if (!filteredParsed) return [];
     const athMap = new Map(filteredParsed.athletes.map((a) => [a.key, a]));
     const teamMap = new Map(filteredParsed.teams.map((t) => [t.code, t]));
+    const refYear = filteredParsed.meet?.startDate
+      ? Number(filteredParsed.meet.startDate.slice(0, 4))
+      : 2026;
 
     const strokeNames: Record<number, string> = {
       1: "Libre",
@@ -407,11 +411,19 @@ export function RivalResultsLinkExtractorModal({
         const team = ath?.teamCode ? teamMap.get(ath.teamCode) : null;
         const norm = normalizeTeamCode(ath?.teamCode || "CLUB", team?.name);
 
+        const birth = ath?.birthDate || `${refYear - 14}-01-01`;
+        const birthYear =
+          parseInt(birth.slice(0, 4), 10) || new Date(birth).getUTCFullYear();
+        const age = refYear - birthYear;
+        const categoryName = getCategoryNameByAge(age);
+
         return {
           id: `${r.athleteKey}-${idx}`,
           athleteName: ath ? `${ath.lastName}, ${ath.firstName}` : "Atleta",
           gender: ath?.gender || r.gender || "M",
-          birthDate: ath?.birthDate || "2010-01-01",
+          birthDate: birth,
+          age,
+          categoryName,
           clubCode: norm.code,
           clubName: norm.name,
           eventLabel: `${r.distance}m ${strokeNames[r.stroke] || "Libre"}`,
@@ -421,6 +433,18 @@ export function RivalResultsLinkExtractorModal({
         };
       });
   }, [filteredParsed]);
+
+  // Desglose de todas las categorías extraídas para confirmación visual
+  const categoryStats = useMemo(() => {
+    if (!previewRows.length) return [];
+    const counts: Record<string, number> = {};
+    for (const row of previewRows) {
+      counts[row.categoryName] = (counts[row.categoryName] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [previewRows]);
 
   // Búsqueda en la previsualización
   const displayedPreviewRows = useMemo(() => {
@@ -944,6 +968,20 @@ export function RivalResultsLinkExtractorModal({
                 })}
               </div>
 
+              {/* Desglose de Categorías Extraídas */}
+              {categoryStats.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+                  <span className="font-bold text-foreground text-xs flex items-center gap-1">
+                    <Sparkles className="size-3.5 text-primary" /> Todas las Categorías Detectadas ({categoryStats.length}):
+                  </span>
+                  {categoryStats.map((cs) => (
+                    <Badge key={cs.name} variant="outline" className="text-[10px] font-medium bg-background px-2 py-0.5">
+                      {cs.name}: <strong className="ml-1 text-primary">{cs.count} marcas</strong>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
               {/* Resumen de Métricas */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                 <Card className="bg-muted/40 border-0 p-3">
@@ -971,7 +1009,7 @@ export function RivalResultsLinkExtractorModal({
                 <div className="space-y-2 pt-2 border-t">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold">
-                      Vista previa de marcas ({previewRows.length} resultados válidos)
+                      Vista previa de marcas ({previewRows.length} resultados válidos en todas las categorías)
                     </span>
                     <div className="relative w-48">
                       <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -990,6 +1028,7 @@ export function RivalResultsLinkExtractorModal({
                         <tr>
                           <th className="p-2 font-semibold">Pos</th>
                           <th className="p-2 font-semibold">Atleta</th>
+                          <th className="p-2 font-semibold text-center">Edad / Categoría</th>
                           <th className="p-2 font-semibold">Club Rival</th>
                           <th className="p-2 font-semibold">Prueba</th>
                           <th className="p-2 font-semibold text-right">Tiempo</th>
@@ -1000,6 +1039,12 @@ export function RivalResultsLinkExtractorModal({
                           <tr key={row.id} className="hover:bg-muted/30">
                             <td className="p-2 font-mono font-bold text-muted-foreground">#{row.place}</td>
                             <td className="p-2 font-medium">{row.athleteName}</td>
+                            <td className="p-2 text-center whitespace-nowrap">
+                              <span className="font-mono text-xs font-semibold mr-1.5">{row.age}a</span>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-border/70">
+                                {row.categoryName}
+                              </Badge>
+                            </td>
                             <td className="p-2">
                               <Badge variant="outline" className="font-mono text-[10px]">
                                 {row.clubCode}

@@ -208,6 +208,11 @@ export function StateRankingView({
 
   // Manejo de botones rápidos de categorías de edad
   const handleCategoryPreset = (catMin: number, catMax: number) => {
+    if (catMin === 0 && catMax === 99) {
+      setMinAge("");
+      setMaxAge("");
+      return;
+    }
     if (minAge === String(catMin) && maxAge === String(catMax)) {
       setMinAge("");
       setMaxAge("");
@@ -218,6 +223,9 @@ export function StateRankingView({
   };
 
   const isPresetActive = (catMin: number, catMax: number) => {
+    if (catMin === 0 && catMax === 99) {
+      return minAge === "" && maxAge === "";
+    }
     return minAge === String(catMin) && maxAge === String(catMax);
   };
 
@@ -754,8 +762,15 @@ export function StateRankingView({
                       </div>
                     </td>
 
-                    {/* Edad */}
-                    <td className="p-3 text-center font-mono text-muted-foreground">{item.age}</td>
+                    {/* Edad y Categoría */}
+                    <td className="p-3 text-center">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="font-mono text-xs font-semibold text-foreground">{item.age}</span>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 text-muted-foreground border-border/60">
+                          {item.categoryName}
+                        </Badge>
+                      </div>
+                    </td>
 
                     {/* Club */}
                     <td className="p-3">

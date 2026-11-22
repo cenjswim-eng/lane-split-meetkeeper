@@ -30,7 +30,9 @@ export function parseEventHeader(line: string) {
     // También admitir encabezados directos como "#1 50m Libre Femenino 12-13" o "50 Libre Masculino"
     const directMatch = line.match(/^\s*(?:#\s*(\d+[A-Z]?)\s+)?(.*)$/i);
     if (directMatch && directMatch[2]) {
-      const distCheck = directMatch[2].match(/\b(25|50|100|200|400|800|1500|1650)\b/);
+      const distCheck = directMatch[2].match(
+        /\b(25|50|100|200|400|800|1500|1650)(?:m\b|mts?\b| metros?\b|\b)/i
+      );
       const strokeCheck = STROKE_WORDS.find(([re]) => directMatch[2] && re.test(directMatch[2]));
       if (distCheck && strokeCheck) {
         m = directMatch;
@@ -40,16 +42,84 @@ export function parseEventHeader(line: string) {
   if (!m) return null;
   const rest = m[2]!;
   if (/relay|relevo/i.test(rest)) return { relay: true as const };
-  const dist = rest.match(/\b(25|50|100|200|400|800|1500|1650)\b/);
+  const dist = rest.match(/\b(25|50|100|200|400|800|1500|1650)(?:m\b|mts?\b| metros?\b|\b)/i);
   const stroke = STROKE_WORDS.find(([re]) => re.test(rest))?.[1];
   if (!dist || !stroke) return null;
-  const gender = /girls|women|female|mujeres|damas|\bfem|niñas/i.test(rest) ? "F" : /boys|\bmen\b|male|hombres|varones|caballeros|\bmasc|niños/i.test(rest) ? "M" : /mixed|mixto/i.test(rest) ? "X" : null;
-  let minAge: number | null = null, maxAge: number | null = null;
-  const range = rest.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\b/);
-  const over = rest.match(/\b(\d{1,2})\s*(?:&|y|and)\s*(?:over|mayores|más)/i);
-  const under = rest.match(/\b(\d{1,2})\s*(?:&|y|and)\s*(?:under|menores)/i);
-  if (range) { minAge = +range[1]!; maxAge = +range[2]!; } else if (over) minAge = +over[1]!; else if (under) maxAge = +under[1]!;
-  const course = /yard|yarda/i.test(rest) ? "SCY" : /\bSC\b|short course|piscina corta|25\s*m/i.test(rest) ? "SCM" : /\bLC\b|long course|piscina larga|50\s*m/i.test(rest) ? "LCM" : null;
+  const gender = /girls|women|female|mujeres|damas|\bfem|niñas|hembras/i.test(rest)
+    ? "F"
+    : /boys|\bmen\b|male|hombres|varones|caballeros|\bmasc|niños/i.test(rest)
+    ? "M"
+    : /mixed|mixto/i.test(rest)
+    ? "X"
+    : null;
+
+  let minAge: number | null = null,
+    maxAge: number | null = null;
+
+  // 1. Detección por nombre de categoría oficial (FEVEDA / World Aquatics)
+  // Nota: Pre-Infantil debe evaluarse antes que Infantil para evitar falsos positivos
+  if (/pre[- ]?infantil\s*a\b/i.test(rest)) {
+    minAge = 7;
+    maxAge = 7;
+  } else if (/pre[- ]?infantil\s*b\b/i.test(rest)) {
+    minAge = 8;
+    maxAge = 8;
+  } else if (/pre[- ]?infantil\s*c\b/i.test(rest)) {
+    minAge = 9;
+    maxAge = 9;
+  } else if (/pre[- ]?infantil/i.test(rest)) {
+    minAge = 7;
+    maxAge = 9;
+  } else if (/(?<!pre[- ]?)infantil\s*a\b/i.test(rest)) {
+    minAge = 10;
+    maxAge = 11;
+  } else if (/(?<!pre[- ]?)infantil\s*b\b/i.test(rest)) {
+    minAge = 12;
+    maxAge = 13;
+  } else if (/juvenil\s*a\b/i.test(rest)) {
+    minAge = 14;
+    maxAge = 15;
+  } else if (/juvenil\s*b\b/i.test(rest)) {
+    minAge = 16;
+    maxAge = 18;
+  } else if (/m[aá]xima|abierto|open|\bsenior\b/i.test(rest)) {
+    minAge = 19;
+    maxAge = 99;
+  } else if (/\bmaster\b/i.test(rest)) {
+    minAge = 25;
+    maxAge = 99;
+  }
+
+  // 2. Detección por rangos numéricos si no fue establecido por nombre
+  if (minAge === null) {
+    const range = rest.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\b/);
+    const over = rest.match(/\b(\d{1,2})\s*(?:&|y|and|\+)?\s*(?:over|mayores|mas|más|\bO\b|\+)/i);
+    const under = rest.match(/\b(\d{1,2})\s*(?:&|y|and)?\s*(?:under|menores|-)/i);
+    const singleAge = rest.match(/\b(\d{1,2})\s*(?:a[ñn]os?|yr?s?)\b/i);
+
+    if (range) {
+      minAge = +range[1]!;
+      maxAge = +range[2]!;
+    } else if (over) {
+      minAge = +over[1]!;
+      maxAge = 99;
+    } else if (under) {
+      minAge = 0;
+      maxAge = +under[1]!;
+    } else if (singleAge) {
+      minAge = +singleAge[1]!;
+      maxAge = +singleAge[1]!;
+    }
+  }
+
+  const course = /yard|yarda/i.test(rest)
+    ? "SCY"
+    : /\bSC\b|short course|piscina corta|25\s*m/i.test(rest)
+    ? "SCM"
+    : /\bLC\b|long course|piscina larga|50\s*m/i.test(rest)
+    ? "LCM"
+    : null;
+
   return { relay: false as const, number: m[1] || "1", distance: +dist[1]!, stroke, gender, minAge, maxAge, course };
 }
 
@@ -122,10 +192,21 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
 
     // Cálculo de fecha de nacimiento estimada a partir de la edad y año del torneo
     const meetYear = startDate ? Number(startDate.slice(0, 4)) : new Date().getFullYear();
-    const numAge = /^\d{1,2}$/.test(age?.trim() || "") ? Number(age.trim()) : (event.maxAge || event.minAge || null);
-    const estimatedBirthDate = numAge ? `${meetYear - numAge}-01-01` : null;
+    let numAge = /^\d{1,2}$/.test(age?.trim() || "") ? Number(age.trim()) : null;
+    if (!numAge) {
+      if (event.minAge && event.maxAge) {
+        // En categorías por rango (ej. 10-11, 12-13, 14-15), tomar la edad de la prueba para que coincida en el ranking
+        numAge = event.minAge;
+      } else if (event.minAge) {
+        numAge = event.minAge;
+      } else if (event.maxAge) {
+        numAge = event.maxAge;
+      }
+    }
+    const estimatedBirthDate = numAge ? `${meetYear - numAge}-01-01` : `${meetYear - 14}-01-01`;
 
-    if (!athletes.has(key)) {
+    const existingAth = athletes.get(key);
+    if (!existingAth) {
       athletes.set(key, {
         key,
         tmId: null,
@@ -136,6 +217,13 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
         gender: event.gender === "X" ? null : event.gender,
         teamCode: code,
       });
+    } else {
+      if ((!existingAth.birthDate || existingAth.birthDate.endsWith("-01-01")) && numAge) {
+        existingAth.birthDate = `${meetYear - numAge}-01-01`;
+      }
+      if (!existingAth.gender && event.gender && event.gender !== "X") {
+        existingAth.gender = event.gender;
+      }
     }
     const dq = /^(DQ|DSQ|DFS|DNF)$/.test(finalRaw!);
     const noSwim = /^(NS|SCR)$/.test(finalRaw!);
