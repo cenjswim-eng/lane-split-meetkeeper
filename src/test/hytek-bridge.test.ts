@@ -14,7 +14,7 @@ import {
   formatHy3Record,
   serializeHy3File,
 } from '@/lib/hytek-bridge/hy3-writer';
-import { parseHy3File } from '@/lib/hytek-bridge/hy3-parser';
+import { parseHy3File, decodeHy3Bytes } from '@/lib/hytek-bridge/hy3-parser';
 import { runPreFlightValidation } from '@/lib/hytek-bridge/preflight-validator';
 import { convertSwimTime } from '@/lib/team-hub/course-converter';
 import {
@@ -44,7 +44,10 @@ import {
 } from '@/lib/meet-engine/offline-pool-sync';
 import {
   generateSwimmerRanking,
+  generateAdaelFederatedRanking2026,
   calculateAge,
+  ADAEL_2026_SEASON,
+  KNOWN_ADAEL_CODES,
   type SwimResultRecord,
   type RankingFilterOptions,
 } from '@/lib/team-hub/ranking-engine';
@@ -664,5 +667,211 @@ describe('Hito 7: Motor de Rankings Oficiales (Hy-Tek Top Times)', () => {
 
     const ranking = generateSwimmerRanking(sampleResults, filtersYouth);
     expect(ranking.every(r => r.ageAtRecord >= 17 && r.ageAtRecord <= 18)).toBe(true);
+  });
+});
+
+describe('Hito 11: Reglas del Módulo Ranking Federado ADAEL 2026', () => {
+  const multiSeasonResults: SwimResultRecord[] = [
+    {
+      resultId: 'adael_1',
+      swimmerId: 'swimmer_lara_1',
+      swimmerName: 'Peña, Iker',
+      gender: 'M',
+      birthDate: '2010-12-15', // Cumple 16 el 15/12/2026
+      clubCode: 'PISBO',
+      clubName: 'Club Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Campeonato Estadal Apertura ADAEL 2026',
+      meetDate: '2026-03-20', // Temporada 2026 (antes de cumplir 16: tiene 15 al meetDate)
+      distance: 50,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 25400,
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'adael_2',
+      swimmerId: 'swimmer_lara_2',
+      swimmerName: 'Gómez, Sofía',
+      gender: 'F',
+      birthDate: '2012-08-10',
+      clubCode: 'HISP',
+      clubName: 'Club Hogar Hispano de Lara',
+      associationCode: 'LARA',
+      meetName: 'Torneo Aniversario Piscinas Bolivarianas 2026',
+      meetDate: '2026-07-15', // Temporada 2026
+      distance: 50,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 28100,
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'adael_3',
+      swimmerId: 'swimmer_lara_1',
+      swimmerName: 'Peña, Iker',
+      gender: 'M',
+      birthDate: '2010-12-15',
+      clubCode: 'PISBO',
+      clubName: 'Club Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Copa Navidad 2025',
+      meetDate: '2025-12-10', // Fuera de temporada 2026 (Año 2025)
+      distance: 50,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 24900, // Tiempo más rápido pero de 2025
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'adael_4',
+      swimmerId: 'swimmer_ext_1',
+      swimmerName: 'Mendoza, Luis',
+      gender: 'M',
+      birthDate: '2010-04-10',
+      clubCode: 'SCLN',
+      clubName: 'Sport Center Los Naranjos',
+      associationCode: 'MIR', // Fuera de Lara / ADAEL
+      meetName: 'Estadal Miranda 2026',
+      meetDate: '2026-05-10',
+      distance: 50,
+      stroke: 'FREE',
+      course: 'LCM',
+      timeMs: 25100,
+      status: 'OK',
+      isExhibition: false,
+    },
+    {
+      resultId: 'adael_5',
+      swimmerId: 'swimmer_lara_1',
+      swimmerName: 'Peña, Iker',
+      gender: 'M',
+      birthDate: '2010-12-15',
+      clubCode: 'PISBO',
+      clubName: 'Club Piscinas Bolivarianas',
+      associationCode: 'LARA',
+      meetName: 'Estadal Piscina Corta ADAEL 2026',
+      meetDate: '2026-10-25',
+      distance: 50,
+      stroke: 'FREE',
+      course: 'SCM', // Piscina Corta (25m)
+      timeMs: 24200,
+      status: 'OK',
+      isExhibition: false,
+    },
+  ];
+
+  it('Regla 1 (Ámbito): restringe resultados estrictamente a la temporada 2026 (01/01/2026 al 31/12/2026)', () => {
+    const ranking = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+    });
+
+    // Debe incluir solo la marca de 2026 (25400 ms) y excluir la marca de 2025 (24900 ms)
+    expect(ranking.length).toBe(1);
+    expect(ranking[0]?.resultId).toBe('adael_1');
+    expect(ranking[0]?.timeMs).toBe(25400);
+    expect(ranking[0]?.meetDate).toBe('2026-03-20');
+  });
+
+  it('Regla 2 (Afiliación): filtra por clubes pertenecientes a LARA o lista blanca conocida KNOWN_ADAEL_CODES', () => {
+    expect(KNOWN_ADAEL_CODES).toContain('PISBO');
+    expect(KNOWN_ADAEL_CODES).toContain('HISP');
+    expect(KNOWN_ADAEL_CODES).toContain('BARQ');
+
+    const ranking = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+    });
+
+    // Swimmer Mendoza (MIR) no pertenece a LARA ni a KNOWN_ADAEL_CODES
+    const swimmers = ranking.map(r => r.swimmerId);
+    expect(swimmers).not.toContain('swimmer_ext_1');
+    expect(swimmers).toContain('swimmer_lara_1');
+  });
+
+  it('Regla 3 (Edad Competitiva): calcula por defecto al 31 de Diciembre de 2026 y permite alternar a Meet Date', () => {
+    // Iker Peña nació el 15/12/2010. Al meetDate (20/03/2026) tiene 15 años.
+    // Al 31/12/2026 tiene 16 años cumplidos (Categoría Juvenil A).
+    const rankingDec31 = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+      ageCalculationMode: 'DEC_31',
+    });
+    expect(rankingDec31[0]?.ageAtRecord).toBe(16);
+
+    const rankingMeetDate = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+      ageCalculationMode: 'MEET_DATE',
+    });
+    expect(rankingMeetDate[0]?.ageAtRecord).toBe(15);
+  });
+
+  it('Regla 4 (Cursos): mantiene separación estricta entre Piscina Larga (LCM) y Piscina Corta (SCM)', () => {
+    const rankingLcm = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'LCM',
+    });
+    expect(rankingLcm.every(r => r.course === 'LCM')).toBe(true);
+    expect(rankingLcm[0]?.timeMs).toBe(25400);
+
+    const rankingScm = generateAdaelFederatedRanking2026(multiSeasonResults, {
+      distance: 50,
+      stroke: 'FREE',
+      gender: 'M',
+      course: 'SCM',
+    });
+    expect(rankingScm.every(r => r.course === 'SCM')).toBe(true);
+    expect(rankingScm[0]?.timeMs).toBe(24200);
+  });
+
+  it('Regla 5 (Codificación): lee archivos .hy3 usando TextDecoder(iso-8859-1) preservando Ñ y acentos sin desplazar columnas', () => {
+    // Generar línea D1 en ISO-8859-1 con caracteres en español: PEÑA, IKER
+    // En ISO-8859-1, 'Ñ' es el byte 0xD1 (1 byte).
+    const rawAsciiD1 = 'D1M00001PEÑA                IKER                A                     12345678       12152010';
+    const padded128 = rawAsciiD1.padEnd(128, ' ');
+
+    // Codificar bytes en ISO-8859-1
+    const bytes = new Uint8Array(padded128.length);
+    for (let i = 0; i < padded128.length; i++) {
+      bytes[i] = padded128.charCodeAt(i);
+    }
+
+    // Decodificar con la función oficial
+    const decoded = decodeHy3Bytes(bytes);
+    expect(decoded.length).toBe(128); // Cero desplazamiento de columnas
+    expect(decoded.slice(8, 28).trim()).toBe('PEÑA');
+    expect(decoded.slice(28, 48).trim()).toBe('IKER');
+
+    // Parsear el archivo directamente desde bytes decodificados
+    const hy3Content = [
+      'B1CAMPEONATO ESTADAL ADAEL 2026               BARQUISIMETO                                 0320202603222026',
+      'B2                                                                                              1       L',
+      'C1PISBOPISCINAS BOLIVARIANAS DE LARA ',
+      decoded + '  ', // 130 chars
+      'E1  M    50A  15 16          1   25.40L',
+      'E2 F     25.40   OK',
+    ].join('\r\n');
+
+    const parsed = parseHy3File(hy3Content);
+    expect(parsed.athletes.length).toBe(1);
+    expect(parsed.athletes[0]?.lastName).toBe('PEÑA');
+    expect(parsed.athletes[0]?.firstName).toBe('IKER');
+    expect(parsed.entries.length).toBe(1);
+    expect(parsed.entries[0]?.finalTimeMs).toBe(25400);
   });
 });

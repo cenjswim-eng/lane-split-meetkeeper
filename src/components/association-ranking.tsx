@@ -112,14 +112,13 @@ export function AssociationRanking({
   }, [results, meets]);
 
   // Filters State
-  const [selectedAffiliationYear, setSelectedAffiliationYear] = useState<string>(() => {
-    return String(new Date().getFullYear());
-  });
+  const [selectedAffiliationYear, setSelectedAffiliationYear] = useState<string>("2026");
   const [selectedAssociation, setSelectedAssociation] = useState<string>("all");
   const [selectedClub, setSelectedClub] = useState<string>("all");
   const [selectedCourse, setSelectedCourse] = useState<string>("LCM");
   const [selectedGender, setSelectedGender] = useState<string>("all");
   const [ageMode, setAgeMode] = useState<AssociationRankingFilters["ageMode"]>("libre");
+  const [ageCalculationMode, setAgeCalculationMode] = useState<"DEC_31" | "MEET_DATE">("DEC_31");
   const [customMinAge, setCustomMinAge] = useState<number>(13);
   const [customMaxAge, setCustomMaxAge] = useState<number>(14);
   const [selectedStroke, setSelectedStroke] = useState<number>(0); // 0 = all
@@ -181,6 +180,9 @@ export function AssociationRanking({
       course: selectedCourse,
       gender: selectedGender,
       ageMode,
+      ageCalculationMode,
+      seasonStartDate: selectedAffiliationYear === "2026" ? "2026-01-01" : undefined,
+      seasonEndDate: selectedAffiliationYear === "2026" ? "2026-12-31" : undefined,
       customMinAge,
       customMaxAge,
       strokeFilter: selectedStroke,
@@ -199,6 +201,7 @@ export function AssociationRanking({
     selectedCourse,
     selectedGender,
     ageMode,
+    ageCalculationMode,
     customMinAge,
     customMaxAge,
     selectedStroke,
@@ -252,6 +255,7 @@ export function AssociationRanking({
         courseLabel,
         genderLabel,
         affiliationYearLabel: seasonLabel,
+        ageCalculationMode,
         participatingClubs,
         onlyAffiliatedClubs,
       });
@@ -280,6 +284,21 @@ export function AssociationRanking({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2 shrink-0 border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                onClick={() => {
+                  setSelectedAffiliationYear("2026");
+                  setSelectedAssociation("Lara (ADAEL)");
+                  setOnlyAffiliatedClubs(true);
+                  setAgeCalculationMode("DEC_31");
+                  setSelectedCourse("LCM");
+                  toast.success("Ranking Federado ADAEL 2026 activado (Temporada 2026, Lara, Edad al 31/12, Piscina LCM).");
+                }}
+              >
+                <Sparkles className="size-4 text-amber-600 dark:text-amber-400" />
+                <span>Oficial ADAEL 2026</span>
+              </Button>
               <AdaelTeamExtractor
                 clubs={detectedClubs}
                 onSelectAdael={() => setSelectedAssociation("Lara (ADAEL)")}
@@ -343,7 +362,7 @@ export function AssociationRanking({
 
         <CardContent className="space-y-4 pt-0">
           {/* Filter Bar */}
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 border-t pt-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 border-t pt-4">
             {/* Temporada de Afiliación Anual */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
@@ -464,6 +483,26 @@ export function AssociationRanking({
                   <SelectItem value="15-16">Cruce 15 - 16 años (Juvenil A)</SelectItem>
                   <SelectItem value="17+">17 y más años (Máxima)</SelectItem>
                   <SelectItem value="custom">Rango Personalizado...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modo de Cálculo de Edad (Regla Federativa ADAEL vs Meet Date) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                <span>Cálculo de Edad</span>
+                <span className="text-[10px] text-primary">{ageCalculationMode === "DEC_31" ? "31/Dic" : "Torneo"}</span>
+              </label>
+              <Select
+                value={ageCalculationMode}
+                onValueChange={(val: "DEC_31" | "MEET_DATE") => setAgeCalculationMode(val)}
+              >
+                <SelectTrigger aria-label="Modo de cálculo de edad">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DEC_31">31 de Diciembre (Federativo)</SelectItem>
+                  <SelectItem value="MEET_DATE">Al día del evento (Meet Date)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

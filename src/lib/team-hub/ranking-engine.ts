@@ -65,8 +65,13 @@ export interface RankingFilterOptions {
   course: CourseType;
   minAge?: number;
   maxAge?: number;
-  ageCutoffDate?: string;   // Si se omite, usa la edad al día del torneo (meetDate)
-  associations?: string[];  // ej. ['LARA'] o vacío para Nacional (todas)
+  ageCalculationMode?: 'DEC_31' | 'MEET_DATE'; // Default: 'DEC_31' (Federativo)
+  ageCutoffDate?: string;   // Si se omite y ageCalculationMode es DEC_31, usa seasonYear-12-31 o 2026-12-31
+  seasonYear?: number;      // ej. 2026 (Ámbito de temporada 2026: 01/01/2026 al 31/12/2026)
+  startDate?: string;       // ISO 'YYYY-MM-DD' (ej. '2026-01-01')
+  endDate?: string;         // ISO 'YYYY-MM-DD' (ej. '2026-12-31')
+  associations?: string[];  // ej. ['LARA', 'ADAEL', 'Lara (ADAEL)']
+  clubWhitelist?: string[]; // ej. Lista blanca de clubes afiliados (ej. KNOWN_ADAEL_CODES)
   includeExhibition?: boolean;
   topN?: number;            // ej. Top 10, Top 20 o sin límite
 }
@@ -75,6 +80,28 @@ export interface RankedSwimmerItem extends SwimResultRecord {
   rank: number;
   ageAtRecord: number;
 }
+
+/**
+ * Códigos oficiales conocidos de clubes afiliados a ADAEL (Estado Lara, Venezuela).
+ */
+export const KNOWN_ADAEL_CODES: string[] = [
+  'PIS', 'PBOL', 'PISBO', 'HISP', 'HIL', 'HHIS', 'HISPANO', 'CBL', 'BARQ',
+  'CDL', 'CDLARA', 'AQU', 'AQUALARA', 'TRIL', 'TRILARA', 'ADAL', 'ADAEL',
+  'CLAR', 'LARA', 'CSL', 'CSLAR', 'CVM', 'PALM', 'TAR', 'TARL', 'HOCAL', 'ACUAR',
+];
+
+/**
+ * Configuración oficial del Módulo Ranking Federado ADAEL 2026
+ */
+export const ADAEL_2026_SEASON = {
+  year: 2026,
+  startDate: '2026-01-01',
+  endDate: '2026-12-31',
+  ageCutoffDate: '2026-12-31',
+  associationCode: 'LARA',
+  associationName: 'Lara (ADAEL)',
+  courses: ['LCM', 'SCM'] as const,
+};
 
 /**
  * Helper: Calcular edad exacta entre fecha de nacimiento y fecha referencia.
@@ -97,26 +124,53 @@ export function generateSwimmerRanking(
   allResults: SwimResultRecord[],
   filters: RankingFilterOptions
 ): RankedSwimmerItem[] {
-  // 1. Filtrado inicial de validez, prueba, curso y asociación
+  const ageMode = filters.ageCalculationMode ?? 'DEC_31';
+  const cutoffDate = filters.ageCutoffDate ?? (filters.seasonYear ? `${filters.seasonYear}-12-31` : '2026-12-31');
+  const seasonStart = filters.startDate ?? (filters.seasonYear ? `${filters.seasonYear}-01-01` : undefined);
+  const seasonEnd = filters.endDate ?? (filters.seasonYear ? `${filters.seasonYear}-12-31` : undefined);
+
+  const allowedAssocs = (filters.associations ?? []).map((a) => a.toUpperCase().trim());
+  const allowedClubs = (filters.clubWhitelist ?? []).map((c) => c.toUpperCase().trim());
+
+  // 1. Filtrado inicial de validez, prueba, curso, temporada y afiliación
   const validRecords = allResults.filter((r) => {
     if (r.status !== 'OK') return false;
     if (!filters.includeExhibition && r.isExhibition) return false;
     if (r.distance !== filters.distance) return false;
     if (r.stroke !== filters.stroke) return false;
     if (r.gender !== filters.gender) return false;
+
+    // Regla de Cursos: Separación estricta entre LCM y SCM (sin mezclar)
     if (r.course !== filters.course) return false;
 
-    // Filtro por Asociación / Estado
-    if (filters.associations && filters.associations.length > 0) {
+    // Regla de Ámbito de Temporada (ej. 2026-01-01 al 2026-12-31)
+    if (seasonStart && r.meetDate < seasonStart) return false;
+    if (seasonEnd && r.meetDate > seasonEnd) return false;
+
+    // Regla de Afiliación (Asociación LARA / ADAEL o lista blanca de clubes afiliados)
+    if (allowedAssocs.length > 0 || allowedClubs.length > 0) {
       const targetAssoc = r.associationCode ? r.associationCode.toUpperCase().trim() : '';
-      const allowed = filters.associations.map((a) => a.toUpperCase().trim());
-      if (!allowed.includes(targetAssoc)) {
+      const targetClub = r.clubCode ? r.clubCode.toUpperCase().trim() : '';
+
+      const assocMatches = allowedAssocs.length > 0 && (
+        allowedAssocs.includes(targetAssoc) ||
+        (allowedAssocs.some((a) => a.includes('LARA') || a.includes('ADAEL') || a === 'LAR') &&
+          (targetAssoc.includes('LARA') || targetAssoc.includes('ADAEL') || targetAssoc === 'LAR'))
+      );
+
+      const clubMatches = allowedClubs.length > 0 && allowedClubs.includes(targetClub);
+
+      if (allowedAssocs.length > 0 && allowedClubs.length > 0) {
+        if (!assocMatches && !clubMatches) return false;
+      } else if (allowedAssocs.length > 0 && !assocMatches) {
+        return false;
+      } else if (allowedClubs.length > 0 && !clubMatches) {
         return false;
       }
     }
 
-    // Cálculo y filtro de edad (a fecha de corte o fecha del evento)
-    const refDate = filters.ageCutoffDate ?? r.meetDate;
+    // Regla de Edad Competitiva (Corte al 31 de Diciembre o al día del evento)
+    const refDate = ageMode === 'MEET_DATE' ? r.meetDate : cutoffDate;
     const competitiveAge = calculateAge(r.birthDate, refDate);
 
     if (filters.minAge !== undefined && competitiveAge < filters.minAge) return false;
@@ -129,7 +183,7 @@ export function generateSwimmerRanking(
   const bestBySwimmer = new Map<string, SwimResultRecord & { ageAtRecord: number }>();
 
   for (const record of validRecords) {
-    const refDate = filters.ageCutoffDate ?? record.meetDate;
+    const refDate = ageMode === 'MEET_DATE' ? record.meetDate : cutoffDate;
     const ageAtRecord = calculateAge(record.birthDate, refDate);
     const existing = bestBySwimmer.get(record.swimmerId);
 
@@ -138,7 +192,7 @@ export function generateSwimmerRanking(
     }
   }
 
-  // 3. Ordenamiento ascendente por tiempo y asignación de posición (manejo de empates)
+  // 3. Ordenamiento ascendente por tiempo y asignación de posición oficial (manejo de empates)
   const sorted = Array.from(bestBySwimmer.values()).sort((a, b) => a.timeMs - b.timeMs);
 
   let currentRank = 1;
@@ -154,6 +208,41 @@ export function generateSwimmerRanking(
 
   // 4. Recorte opcional Top N
   return filters.topN ? rankedList.slice(0, filters.topN) : rankedList;
+}
+
+/**
+ * Función preconfigurada para el Ranking Federado Oficial ADAEL Temporada 2026
+ */
+export function generateAdaelFederatedRanking2026(
+  allResults: SwimResultRecord[],
+  options: {
+    distance: number;
+    stroke: StrokeCode;
+    gender: 'M' | 'F';
+    course: 'LCM' | 'SCM';
+    minAge?: number;
+    maxAge?: number;
+    ageCalculationMode?: 'DEC_31' | 'MEET_DATE';
+    clubWhitelist?: string[];
+    topN?: number;
+  }
+): RankedSwimmerItem[] {
+  return generateSwimmerRanking(allResults, {
+    distance: options.distance,
+    stroke: options.stroke,
+    gender: options.gender,
+    course: options.course,
+    minAge: options.minAge,
+    maxAge: options.maxAge,
+    seasonYear: ADAEL_2026_SEASON.year,
+    startDate: ADAEL_2026_SEASON.startDate,
+    endDate: ADAEL_2026_SEASON.endDate,
+    ageCalculationMode: options.ageCalculationMode ?? 'DEC_31',
+    ageCutoffDate: ADAEL_2026_SEASON.ageCutoffDate,
+    associations: ['LARA', 'ADAEL', 'Lara (ADAEL)'],
+    clubWhitelist: options.clubWhitelist ?? KNOWN_ADAEL_CODES,
+    topN: options.topN,
+  });
 }
 
 /**

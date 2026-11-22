@@ -6,10 +6,9 @@ import { parseEventSetup } from "./event-setup";
 
 export type { ParsedFile } from "./types";
 
-/** Legacy Hy-Tek exports use Windows-1252; decoding as UTF-8 can shift fixed-width fields. */
+/** Fixed-width Hy-Tek (.hy3) and SDIF (.sd3, .cl2) records require ISO-8859-1 decoding to guarantee 1 byte per char and avoid shifting columns on accents and Ñ. */
 export function decodeHytek(bytes: Uint8Array): string {
-  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
-  catch { return new TextDecoder("windows-1252").decode(bytes); }
+  return new TextDecoder("iso-8859-1").decode(bytes);
 }
 
 export async function readSwimFileText(file: File): Promise<string> {

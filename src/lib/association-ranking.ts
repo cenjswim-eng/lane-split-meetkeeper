@@ -51,6 +51,9 @@ export interface AssociationRankingFilters {
   course: string; // 'all' | 'LCM' | 'SCM'
   gender: string; // 'all' | 'M' | 'F'
   ageMode: "libre" | "13-14" | "11-12" | "15-16" | "17+" | "custom";
+  ageCalculationMode?: "DEC_31" | "MEET_DATE"; // Default "DEC_31" (Federativo FEVEDA/ADAEL)
+  seasonStartDate?: string; // ISO 'YYYY-MM-DD' (ej. '2026-01-01')
+  seasonEndDate?: string; // ISO 'YYYY-MM-DD' (ej. '2026-12-31')
   customMinAge?: number;
   customMaxAge?: number;
   strokeFilter?: number; // 0 for all, 1-5 for specific stroke
@@ -499,7 +502,14 @@ export function calculateAssociationRankings(
     }
 
     // Meet year (competition date) represents the annual federation affiliation season
-    const meetYear = Number(r.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
+    const meetDate = r.meets?.start_date || null;
+    const meetYear = Number(meetDate?.slice(0, 4) || new Date().getFullYear());
+
+    // Ámbito de Temporada: comprobación estricta de fechas de competencia (ej. 2026-01-01 al 2026-12-31)
+    const seasonStart = filters.seasonStartDate ?? (filters.affiliationYear === 2026 ? "2026-01-01" : undefined);
+    const seasonEnd = filters.seasonEndDate ?? (filters.affiliationYear === 2026 ? "2026-12-31" : undefined);
+    if (seasonStart && meetDate && meetDate < seasonStart) continue;
+    if (seasonEnd && meetDate && meetDate > seasonEnd) continue;
 
     // Annual federation affiliation season filter
     if (
@@ -510,12 +520,15 @@ export function calculateAssociationRankings(
       continue;
     }
 
-    // Official federation age is evaluated at December 31 of the affiliation season / competition year
+    // Regla de Edad Competitiva: 31 de Diciembre del año federativo (por defecto) o al día del evento
     const evalYear =
       filters.affiliationYear && filters.affiliationYear !== "all"
         ? Number(filters.affiliationYear)
         : meetYear;
-    const athleteAge = ageAtDec31(athlete.birth_date, evalYear);
+    const isMeetDateMode = filters.ageCalculationMode === "MEET_DATE";
+    const athleteAge = isMeetDateMode && meetDate
+      ? calculateAge(athlete.birth_date, meetDate)
+      : ageAtDec31(athlete.birth_date, evalYear);
     if (athleteAge == null && filters.ageMode !== "libre") continue;
 
     // Age Mode check (Libre vs Cruce de edades)
@@ -564,7 +577,11 @@ export function calculateAssociationRankings(
     const top5: AssociationTopItem[] = topSwims.map((swim, index) => {
       const athlete = athleteMap.get(swim.athlete_id);
       const meetYear = Number(swim.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
-      const age = ageAtDec31(athlete?.birth_date, meetYear);
+      const swimMeetDate = swim.meets?.start_date || null;
+      const isMeetDateMode = filters.ageCalculationMode === "MEET_DATE";
+      const age = isMeetDateMode && swimMeetDate && athlete?.birth_date
+        ? calculateAge(athlete.birth_date, swimMeetDate)
+        : ageAtDec31(athlete?.birth_date, evalYear);
       const clubCode = (
         (swim as any).origin_team ||
         athlete?.clubs?.team_code ||
@@ -634,6 +651,7 @@ export function generateAssociationRankingPdf(
     courseLabel: string;
     genderLabel: string;
     affiliationYearLabel?: string;
+    ageCalculationMode?: "DEC_31" | "MEET_DATE";
     federationName?: string;
     participatingClubs?: string[];
     onlyAffiliatedClubs?: boolean;
@@ -669,8 +687,10 @@ export function generateAssociationRankingPdf(
   const criteriaText = options.onlyAffiliatedClubs
     ? "Solo Clubes Afiliados Oficiales"
     : "Todos los Clubes Participantes";
+  const isMeetDateMode = options.ageCalculationMode === "MEET_DATE";
+  const ageRuleText = isMeetDateMode ? "Edad al día del evento" : "Edad al 31 de Diciembre";
   doc.text(
-    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Padrón: ${criteriaText}`,
+    `Modalidad: ${options.ageModeLabel}  |  Piscina: ${options.courseLabel}  |  Sexo: ${options.genderLabel}  |  Padrón: ${criteriaText}  |  Cálculo: ${ageRuleText}`,
     14,
     23
   );
@@ -687,7 +707,7 @@ export function generateAssociationRankingPdf(
   doc.setFontSize(8);
   doc.setTextColor(120);
   doc.text(
-    `Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}  |  Regla: 1 mejor tiempo por atleta · Edad al 31 de Diciembre`,
+    `Fecha de emisión: ${new Date().toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })}  |  Regla: 1 mejor tiempo por atleta · ${ageRuleText}`,
     14,
     33
   );
@@ -710,11 +730,18 @@ export function generateAssociationRankingPdf(
       doc.text(event.eventLabel, 14, currentY);
       currentY += 4;
 
-      const headers = ["Pto.", "Atleta", "Club", "Asociación", "Edad (31/12)", "Tiempo", "Competencia", "Fecha"];
+      const ageColHeader = isMeetDateMode ? "Edad (Evento)" : "Edad (31/12)";
+      const headers = ["Pto.", "Atleta", "Club", "Asociación", ageColHeader, "Tiempo", "Competencia", "Fecha"];
       const rows = event.top5.map((item) => [
         item.rank.toString(),
         item.athleteName,
         `${item.clubCode} - ${item.clubName}`,
+        item.association,
+        item.ageAtDec31 > 0 ? item.ageAtDec31.toString() : "—",
+        item.formattedTime,
+        item.meetName,
+        item.meetDate || "—",
+      ]);
         item.association,
         item.ageAtDec31 > 0 ? item.ageAtDec31.toString() : "—",
         item.formattedTime,

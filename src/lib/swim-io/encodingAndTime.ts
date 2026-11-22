@@ -8,9 +8,22 @@ export function formatMsToSwimTime(ms: number | null, includeCourse?: 'L' | 'S' 
 export function normalizeSwimmerSlug(first: string, last: string, birth?: string | null) {
  return `${last}_${first}_${birth ?? ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
 }
-export function decodeSwimBytes(bytes: Uint8Array): { text: string; encoding: 'utf-8' | 'windows-1252' } {
- try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'utf-8' }; }
- catch { return { text: new TextDecoder('windows-1252').decode(bytes), encoding: 'windows-1252' }; }
+export function decodeSwimBytes(bytes: Uint8Array, fileName?: string): { text: string; encoding: string } {
+  // Para archivos .hy3, .sd3 y .cl2 de natación, la especificación de ancho fijo
+  // exige TextDecoder('iso-8859-1') para preservar 1 byte por carácter (acentos y letra Ñ)
+  // sin desplazar columnas fijas (130 columnas en HY3, 160 en SD3).
+  if (!fileName || /\.(hy3|sd3|cl2)$/i.test(fileName)) {
+    return { text: new TextDecoder('iso-8859-1').decode(bytes), encoding: 'iso-8859-1' };
+  }
+  try {
+    return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'utf-8' };
+  } catch {
+    return { text: new TextDecoder('iso-8859-1').decode(bytes), encoding: 'iso-8859-1' };
+  }
+}
+
+export function decodeHytekFileBytes(bytes: Uint8Array | ArrayBuffer): string {
+  return new TextDecoder('iso-8859-1').decode(bytes);
 }
 export async function readSwimFile(file: File) {
  if (!/\.(hy3|sd3|cl2|zip)$/i.test(file.name)) throw new Error('Selecciona HY3, SD3, CL2 o ZIP.');
@@ -30,7 +43,7 @@ export async function readSwimFile(file: File) {
   if (!entry) throw new Error('El ZIP no contiene HY3, SD3 o CL2.');
   [name, bytes] = entry;
   if (bytes.byteLength > 50*1024*1024) throw new Error('El archivo descomprimido supera 50 MB.');
-  return { name, hash, ...decodeSwimBytes(bytes), archiveNames: Object.keys(archive) };
+  return { name, hash, ...decodeSwimBytes(bytes, name), archiveNames: Object.keys(archive) };
  }
- return { name, hash, ...decodeSwimBytes(bytes), archiveNames: [name] };
+ return { name, hash, ...decodeSwimBytes(bytes, name), archiveNames: [name] };
 }

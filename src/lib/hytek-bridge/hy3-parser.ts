@@ -95,9 +95,19 @@ const col = (line: string, start: number, end: number): string => line.slice(sta
 const HY3_STROKES: Record<string, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
 
 /**
- * Parses full HY3 file text
+ * Decodes binary buffers for HY3 and SDIF files using ISO-8859-1.
+ * Preserves Spanish accents and the letter 'Ñ' with strictly 1 byte per character,
+ * preventing any fixed-width 130-column displacement.
  */
-export function parseHy3File(text: string): ParsedHy3Result {
+export function decodeHy3Bytes(input: Uint8Array | ArrayBuffer): string {
+  return new TextDecoder('iso-8859-1').decode(input);
+}
+
+/**
+ * Parses full HY3 file text or binary buffer
+ */
+export function parseHy3File(input: string | Uint8Array | ArrayBuffer): ParsedHy3Result {
+  const text = typeof input === 'string' ? input : decodeHy3Bytes(input);
   const result: ParsedHy3Result = {
     meet: {
       name: 'Torneo sin nombre',
