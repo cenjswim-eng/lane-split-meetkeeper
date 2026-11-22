@@ -83,11 +83,25 @@ export interface RankedSwimmerItem extends SwimResultRecord {
 
 /**
  * Códigos oficiales conocidos de clubes afiliados a ADAEL (Estado Lara, Venezuela).
+ * Incluye códigos canónicos de 5 letras y variantes históricas/truncadas de 4 letras.
  */
 export const KNOWN_ADAEL_CODES: string[] = [
-  'PIS', 'PBOL', 'PISBO', 'HISP', 'HIL', 'HHIS', 'HISPANO', 'CBL', 'BARQ',
-  'CDL', 'CDLARA', 'AQU', 'AQUALARA', 'TRIL', 'TRILARA', 'ADAL', 'ADAEL',
-  'CLAR', 'LARA', 'CSL', 'CSLAR', 'CVM', 'PALM', 'TAR', 'TARL', 'HOCAL', 'ACUAR',
+  'JSWIM', 'JSWI', 'JSW', 'J-SWIM',
+  'HOCAL', 'HOCA', 'HHIS', 'HISPANO', 'HIL', 'HISP',
+  'PIBOL', 'PIBO', 'PBOL', 'PIS', 'PISBO',
+  'LUSOL', 'LUSO', 'LUSITANO',
+  'BARQ', 'CBL', 'CDLARA', 'CDL',
+  'AQUALARA', 'AQU', 'CAQC', 'CAQ',
+  'TRILARA', 'TRIL', 'ADAL', 'ADAEL', 'LARA',
+  'CSLAR', 'CSL', 'CVM', 'PALM', 'TARL', 'TAR', 'ACUAR',
+  'GATLA', 'GATL', 'GATOS',
+  'CADIP', 'CADI',
+  'CNCAR', 'CNCA', 'CARORA',
+  'CCTRY', 'CCTR', 'COUNTRY',
+  'CIVLA', 'CIVL', 'ITALO',
+  'CAEL',
+  'DELFJ', 'DELF', 'JAVIER',
+  'HUNLA', 'HUNL', 'HUNTER',
 ];
 
 /**

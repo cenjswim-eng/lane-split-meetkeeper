@@ -21,6 +21,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { formatTime } from '@/lib/swim';
 import { KNOWN_ADAEL_CODES } from '@/lib/team-hub/ranking-engine';
+import { normalizeTeamCode } from '@/data/fevedaClubs';
 
 export type CourseType = 'LCM' | 'SCM';
 export type StrokeCode = 'FREE' | 'BACK' | 'BREAST' | 'FLY' | 'IM';
@@ -234,16 +235,32 @@ export async function getAdaelRanking2026(
     // Ámbito de temporada 2026 (01/01/2026 al 31/12/2026)
     if (r.meetDate < '2026-01-01' || r.meetDate > '2026-12-31') return false;
 
-    // REGLA 2: Solo atletas pertenecientes a clubes afiliados a adael_clubs
+    // REGLA 2: Solo atletas pertenecientes a clubes afiliados a adael_clubs / Estado Lara
     // (Incluso si la marca se obtuvo en un Torneo Nacional celebrado fuera de Lara)
     const clubCodeClean = (r.clubCode || '').toUpperCase().trim();
-    if (!targetClubCodes.has(clubCodeClean)) {
-      return false;
+    const normClub = normalizeTeamCode(clubCodeClean, r.clubName);
+    
+    // Si hay whitelist (ej. filtro de clubes de PDF), verificar si coincide con el código directo o normalizado
+    if (filters.clubWhitelist && filters.clubWhitelist.length > 0) {
+      const matchesWhitelist =
+        targetClubCodes.has(clubCodeClean) ||
+        targetClubCodes.has(normClub.code);
+      if (!matchesWhitelist) return false;
+    } else {
+      // Padrón general ADAEL / Lara
+      const isLaraClub =
+        targetClubCodes.has(clubCodeClean) ||
+        targetClubCodes.has(normClub.code) ||
+        normClub.state.toLowerCase() === 'lara' ||
+        normClub.lsc.toUpperCase() === 'ADAEL';
+      if (!isLaraClub) return false;
     }
 
     // Filtro opcional por club específico
     if (filters.clubCode && filters.clubCode !== 'all') {
-      if (clubCodeClean !== filters.clubCode.toUpperCase().trim()) {
+      const selectedClean = filters.clubCode.toUpperCase().trim();
+      const normSelected = normalizeTeamCode(selectedClean);
+      if (clubCodeClean !== selectedClean && normClub.code !== normSelected.code) {
         return false;
       }
     }
@@ -452,12 +469,18 @@ async function fetchAdaelRecordsFromDb(filters: AdaelRankingFilters): Promise<Ra
     return (fallbackData as any[]).map((r) => {
       const athlete = r.athletes;
       const meet = r.meets;
-      const clubCode = (
+      const rawTeam = (
         (r as any).origin_team ||
-        athlete?.clubs?.team_code ||
         athlete?.teams?.code ||
+        athlete?.clubs?.team_code ||
         'UN'
       ).toUpperCase().trim();
+
+      const norm = normalizeTeamCode(
+        rawTeam,
+        athlete?.teams?.name || athlete?.clubs?.full_name,
+        athlete?.teams?.lsc || athlete?.clubs?.region_lsc || 'LARA'
+      );
 
       const strokeCode = mapStrokeNumberToCode(r.events?.stroke);
 
@@ -468,9 +491,9 @@ async function fetchAdaelRecordsFromDb(filters: AdaelRankingFilters): Promise<Ra
         gender: athlete?.gender || 'M',
         birthDate: athlete?.birth_date || '2000-01-01',
         federationId: athlete?.federationId,
-        clubCode,
-        clubName: athlete?.clubs?.full_name || athlete?.teams?.name || clubCode,
-        associationCode: athlete?.clubs?.region_lsc || 'LARA',
+        clubCode: norm.code,
+        clubName: norm.name,
+        associationCode: norm.lsc || 'LARA',
         meetName: meet?.name || 'Competencia 2026',
         meetDate: meet?.start_date || '2026-01-01',
         meetLocation: meet?.location,

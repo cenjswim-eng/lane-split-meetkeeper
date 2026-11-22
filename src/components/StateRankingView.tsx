@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Trophy,
   Medal,
@@ -59,10 +61,71 @@ export function StateRankingView({
   const [stateOverride, setStateOverride] = useState<string>("auto");
   const [showPodiumAndMyClub, setShowPodiumAndMyClub] = useState<boolean>(false);
 
-  // Adaptación de resultados heterogéneos de la BD a la interfaz SwimResult
+  // Consulta opcional de resultados oficiales 2026 (por si se subieron torneos federativos vía ADAEL / PDF)
+  const { data: officialResults2026 = [] } = useQuery({
+    queryKey: ['official_results_2026_state_ranking'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('official_results_2026' as any)
+          .select(`
+            id,
+            swimmer_name,
+            federation_id,
+            birth_date,
+            gender,
+            club_code,
+            distance,
+            stroke,
+            course,
+            time_ms,
+            status,
+            wa_points,
+            round,
+            meets_2026:meet_id (
+              id,
+              name,
+              start_date,
+              course,
+              location
+            ),
+            adael_clubs:club_code (
+              code,
+              name,
+              association
+            )
+          `)
+          .eq('status', 'OK');
+        if (error || !data) return [];
+        return data as any[];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60000,
+  });
+
+  // Adaptación de resultados heterogéneos de la BD (estándar + federados) a la interfaz SwimResult
   const swimResults: SwimResult[] = useMemo(() => {
-    return adaptToSwimResults(results, athletes, clubs, teams);
-  }, [results, athletes, clubs, teams]);
+    const standardAdapted = adaptToSwimResults(results, athletes, clubs, teams);
+    const officialAdapted = adaptToSwimResults(officialResults2026, [], clubs, teams);
+
+    // Combinar y deduplicar por atleta + fecha + prueba + curso + tiempo
+    const dedupMap = new Map<string, SwimResult>();
+    for (const r of standardAdapted) {
+      const key = `${r.athleteName.toLowerCase()}_${r.meetDate}_${r.eventCode}_${r.course}_${r.timeMs}`;
+      if (!dedupMap.has(key)) {
+        dedupMap.set(key, r);
+      }
+    }
+    for (const r of officialAdapted) {
+      const key = `${r.athleteName.toLowerCase()}_${r.meetDate}_${r.eventCode}_${r.course}_${r.timeMs}`;
+      if (!dedupMap.has(key)) {
+        dedupMap.set(key, r);
+      }
+    }
+    return Array.from(dedupMap.values());
+  }, [results, athletes, clubs, teams, officialResults2026]);
 
   // Temporadas disponibles a partir de los torneos
   const availableSeasons = useMemo(() => {

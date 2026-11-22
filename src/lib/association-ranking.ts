@@ -354,15 +354,15 @@ export function extractDetectedClubs(
   // 3. Athletes
   const athleteClubMap = new Map<string, string>();
   for (const a of athletes) {
-    const code = (a.clubs?.team_code || a.teams?.code || "UN").toUpperCase().trim();
+    const code = (a.teams?.code || a.clubs?.team_code || "UN").toUpperCase().trim();
     athleteClubMap.set(a.id, code);
-    const assoc = normalizeAssociationName(a.clubs?.region_lsc || a.teams?.lsc);
+    const assoc = normalizeAssociationName(a.teams?.lsc || a.clubs?.region_lsc);
 
     if (!map.has(code) && code !== "UN") {
       map.set(code, {
-        id: a.clubs?.id || a.teams?.id || code,
+        id: a.teams?.id || a.clubs?.id || code,
         code,
-        name: a.clubs?.full_name || a.clubs?.name || a.teams?.name || code,
+        name: a.teams?.name || a.clubs?.full_name || a.clubs?.name || code,
         association: assoc,
         isClub: Boolean(a.clubs?.id),
         athleteCount: 0,
@@ -445,11 +445,11 @@ export function calculateAssociationRankings(
     const gender = athlete.gender || "M";
     if (filters.gender !== "all" && gender !== filters.gender) continue;
 
-    // Determine the club for this specific swim (origin_team from meet or athlete's club)
+    // Determine the club for this specific swim (origin_team from meet or athlete's team/club)
     const clubCode = (
       (r as any).origin_team ||
-      athlete.clubs?.team_code ||
       athlete.teams?.code ||
+      athlete.clubs?.team_code ||
       "UN"
     ).toUpperCase().trim();
 
@@ -589,8 +589,8 @@ export function calculateAssociationRankings(
         : ageAtDec31(athlete?.birth_date ?? null, swimEvalYear);
       const clubCode = (
         (swim as any).origin_team ||
-        athlete?.clubs?.team_code ||
         athlete?.teams?.code ||
+        athlete?.clubs?.team_code ||
         "UN"
       ).toUpperCase().trim();
       const clubInfo = clubByCode.get(clubCode);
@@ -872,8 +872,8 @@ export function extractClubsFromMeetResults(
     const athlete = athleteMap.get(r.athlete_id);
     const clubCode = (
       (r as any).origin_team ||
-      athlete?.clubs?.team_code ||
       athlete?.teams?.code ||
+      athlete?.clubs?.team_code ||
       "UN"
     ).toUpperCase().trim();
 
@@ -1216,8 +1216,8 @@ export function extractAthletesFromClubs(
 
     const clubCode = (
       (r as any).origin_team ||
-      athlete.clubs?.team_code ||
       athlete.teams?.code ||
+      athlete.clubs?.team_code ||
       "UN"
     ).toUpperCase().trim();
 

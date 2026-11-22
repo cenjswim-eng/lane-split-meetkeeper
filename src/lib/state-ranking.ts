@@ -74,9 +74,23 @@ export function getCompetitiveAge(birthDate: string, referenceYear: number): num
   return referenceYear - birthYear;
 }
 
-// Normalizador de estado para comparaciones flexibles (e.g. 'Lara' y 'Lara (ADAEL)')
+// Normalizador de estado para comparaciones flexibles (e.g. 'Lara' y 'Lara (ADAEL)' o 'ADAEL')
 export function cleanStateName(raw: string): string {
   if (!raw) return '';
+  const upper = raw.trim().toUpperCase();
+  if (upper === 'ADAEL' || upper === 'LARA' || upper.includes('LARA')) return 'lara';
+  if (upper === 'ADAEM' || upper === 'MIRANDA' || upper.includes('MIRANDA')) return 'miranda';
+  if (upper === 'ADADC' || upper === 'DISTRITO CAPITAL' || upper.includes('DISTRITO')) return 'distrito capital';
+  if (upper === 'ADAC' || upper === 'CARABOBO' || upper.includes('CARABOBO')) return 'carabobo';
+  if (upper === 'ADABOLIVAR' || upper === 'BOLIVAR' || upper.includes('BOLIVAR')) return 'bolivar';
+  if (upper === 'ADAZU' || upper === 'ZULIA' || upper.includes('ZULIA')) return 'zulia';
+  if (upper === 'ADAA' || upper === 'ARAGUA' || upper.includes('ARAGUA')) return 'aragua';
+  if (upper === 'ASODAMER' || upper === 'MERIDA' || upper.includes('MERIDA')) return 'merida';
+  if (upper === 'ADAANZ' || upper === 'ANZOATEGUI' || upper.includes('ANZOATEGUI')) return 'anzoategui';
+  if (upper === 'ADAY' || upper === 'YARACUY' || upper.includes('YARACUY')) return 'yaracuy';
+  if (upper === 'ADAPOR' || upper === 'PORTUGUESA' || upper.includes('PORTUGUESA')) return 'portuguesa';
+  if (upper === 'ADAFA' || upper === 'FALCON' || upper.includes('FALCON')) return 'falcon';
+  if (upper === 'ADAT' || upper === 'TACHIRA' || upper.includes('TACHIRA')) return 'tachira';
   return raw
     .trim()
     .toLowerCase()
@@ -264,15 +278,30 @@ export const QUICK_AGE_CATEGORIES = [
 
 /**
  * Adaptador: Convierte resultados heterogéneos de base de datos a SwimResult[]
+ * Admite:
+ * 1. Resultados estándar de la tabla `results` (con joins a athletes, meets, events, teams, clubs)
+ * 2. Resultados oficiales de la tabla `official_results_2026` (con meets_2026, adael_clubs)
  */
 export function adaptToSwimResults(
   results: readonly any[],
-  athletes: readonly any[],
+  athletes: readonly any[] = [],
   clubs: readonly any[] = [],
   teams: readonly any[] = []
 ): SwimResult[] {
-  const clubMap = new Map<string, { code: string; name: string; state: string }>();
+  // 1. Diccionario de equipos (teams de Meet Manager / torneos)
+  const teamMap = new Map<string, { code: string; name: string; state: string; lsc: string }>();
+  for (const t of teams) {
+    const rawCode = t.code || 'TEAM';
+    const norm = normalizeTeamCode(rawCode, t.name, t.lsc || 'Lara');
+    teamMap.set(t.id, norm);
+    teamMap.set(norm.code, norm);
+    if (rawCode.toUpperCase() !== norm.code) {
+      teamMap.set(rawCode.toUpperCase().trim(), norm);
+    }
+  }
 
+  // 2. Diccionario de clubes registrados (tenants / cuentas)
+  const clubMap = new Map<string, { code: string; name: string; state: string }>();
   for (const c of clubs) {
     const rawCode = c.team_code || c.short_name || c.name || 'CLUB';
     const norm = normalizeTeamCode(rawCode, c.full_name || c.name, c.region_lsc || c.region || 'Lara');
@@ -280,18 +309,6 @@ export function adaptToSwimResults(
     clubMap.set(norm.code, { code: norm.code, name: norm.name, state: norm.state });
     if (rawCode.toUpperCase() !== norm.code) {
       clubMap.set(rawCode.toUpperCase().trim(), { code: norm.code, name: norm.name, state: norm.state });
-    }
-  }
-
-  for (const t of teams) {
-    const rawCode = t.code || 'TEAM';
-    const norm = normalizeTeamCode(rawCode, t.name, t.lsc || 'Lara');
-    if (!clubMap.has(norm.code)) {
-      clubMap.set(t.id, { code: norm.code, name: norm.name, state: norm.state });
-      clubMap.set(norm.code, { code: norm.code, name: norm.name, state: norm.state });
-      if (rawCode.toUpperCase() !== norm.code) {
-        clubMap.set(rawCode.toUpperCase().trim(), { code: norm.code, name: norm.name, state: norm.state });
-      }
     }
   }
 
@@ -306,6 +323,39 @@ export function adaptToSwimResults(
   const adapted: SwimResult[] = [];
 
   for (const r of results) {
+    // Si es un registro de la tabla official_results_2026
+    if (r.swimmer_name && r.club_code) {
+      if (r.status !== 'OK' || !r.time_ms || r.time_ms <= 0) continue;
+      const rawCode = r.club_code;
+      const rawName = r.adael_clubs?.name || r.club_name;
+      const rawAssoc = r.adael_clubs?.association || 'Lara';
+      const norm = normalizeTeamCode(rawCode, rawName, rawAssoc);
+
+      const strokeStr = typeof r.stroke === 'string' ? r.stroke : (strokeNumToStr[r.stroke] || 'FREE');
+      const dist = r.distance || 100;
+      const eventCode = `${dist}_${strokeStr}`;
+
+      adapted.push({
+        id: r.id || `official-2026-${r.swimmer_name}-${r.time_ms}`,
+        athleteId: r.swimmer_name,
+        athleteName: r.swimmer_name,
+        birthDate: r.birth_date,
+        gender: r.gender || 'M',
+        clubCode: norm.code,
+        clubName: norm.name,
+        state: norm.state,
+        eventCode,
+        course: r.course === 'SCM' ? 'SCM' : 'LCM',
+        timeMs: r.time_ms,
+        timeFormatted: formatTime(r.time_ms),
+        meetName: r.meets_2026?.name || r.meet_name || 'Torneo Oficial 2026',
+        meetDate: r.meets_2026?.start_date || r.meet_date || '2026-01-01',
+        aquaPoints: r.wa_points ?? null,
+      });
+      continue;
+    }
+
+    // Registro estándar de la tabla results
     if (r.is_dq || !r.final_time_ms || r.final_time_ms <= 0) continue;
 
     const ath = athletes.find((a) => a.id === r.athlete_id) || r.athletes;
@@ -316,18 +366,57 @@ export function adaptToSwimResults(
     const strokeStr = strokeNumToStr[strokeNum] || 'FREE';
     const eventCode = `${distance}_${strokeStr}`;
 
-    const rawTeam = r.origin_team || ath.clubs?.team_code || ath.teams?.code || 'CLUB';
-    const normTeam = normalizeTeamCode(rawTeam, ath.clubs?.name || ath.teams?.name);
+    // RESOLUCIÓN PRIORITARIA DEL EQUIPO DEL ATLETA:
+    // 1. Origen explícito en el resultado de competencia (r.origin_team o r.club_code)
+    // 2. Equipo de competencia asignado al atleta (ath.teams?.code o ath.team_id lookup en teams)
+    // 3. ath.teamCode o ath.team_code (propiedades directas)
+    // 4. ath.clubs?.team_code (solo si no tiene equipo específico asignado)
+    let teamCodeCandidate = '';
+    let teamNameCandidate = '';
+    let teamStateCandidate = '';
 
-    const clubMeta =
-      (ath.club_id && clubMap.get(ath.club_id)) ||
-      (normTeam.code && clubMap.get(normTeam.code)) ||
-      (r.origin_team && clubMap.get(r.origin_team.toUpperCase().trim())) ||
-      (ath.clubs?.id && clubMap.get(ath.clubs.id));
+    if (r.origin_team && r.origin_team.trim()) {
+      teamCodeCandidate = r.origin_team.trim();
+    } else if (r.club_code && r.club_code.trim()) {
+      teamCodeCandidate = r.club_code.trim();
+    } else if (ath.teams?.code) {
+      teamCodeCandidate = ath.teams.code;
+      teamNameCandidate = ath.teams.name;
+      teamStateCandidate = ath.teams.lsc;
+    } else if (ath.team_id) {
+      const foundTeam = teamMap.get(ath.team_id) || teams.find((t) => t.id === ath.team_id);
+      if (foundTeam) {
+        teamCodeCandidate = foundTeam.code;
+        teamNameCandidate = foundTeam.name;
+        teamStateCandidate = (foundTeam as any).lsc || (foundTeam as any).state;
+      }
+    } else if (ath.teamCode || ath.team_code) {
+      teamCodeCandidate = ath.teamCode || ath.team_code;
+    } else if (ath.clubs?.team_code) {
+      teamCodeCandidate = ath.clubs.team_code;
+      teamNameCandidate = ath.clubs.full_name || ath.clubs.name;
+      teamStateCandidate = ath.clubs.region_lsc || ath.clubs.region;
+    } else if (ath.club_id && clubMap.has(ath.club_id)) {
+      const c = clubMap.get(ath.club_id)!;
+      teamCodeCandidate = c.code;
+      teamNameCandidate = c.name;
+      teamStateCandidate = c.state;
+    }
 
-    const clubCode = clubMeta?.code || normTeam.code;
-    const clubName = clubMeta?.name || normTeam.name;
-    const state = clubMeta?.state || normTeam.state;
+    if (!teamCodeCandidate) {
+      teamCodeCandidate = 'CLUB';
+    }
+
+    // Normalizar mediante el directorio canónico oficial de FEVEDA
+    const norm = normalizeTeamCode(
+      teamCodeCandidate,
+      teamNameCandidate || ath.teams?.name || ath.clubs?.name,
+      teamStateCandidate || ath.teams?.lsc || ath.clubs?.region_lsc || 'Lara'
+    );
+
+    const clubCode = norm.code;
+    const clubName = norm.name;
+    const state = norm.state;
 
     adapted.push({
       id: r.id || `${ath.id}-${r.final_time_ms}`,
