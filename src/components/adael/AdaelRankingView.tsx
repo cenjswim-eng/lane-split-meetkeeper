@@ -24,6 +24,8 @@ import {
   AlertCircle,
   HelpCircle,
   Award,
+  Building2,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -61,6 +63,7 @@ import {
 import { generateAdaelRankingPdf } from '@/lib/adael-ranking/export-ranking-pdf';
 import { generateAdaelRankingExcel } from '@/lib/adael-ranking/export-ranking-excel';
 import { AdaelBatchUploaderModal } from './AdaelBatchUploaderModal';
+import { AdaelClubPdfImporterModal } from './AdaelClubPdfImporterModal';
 import { downloadFile } from '@/lib/file-delivery';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -338,6 +341,7 @@ export function AdaelRankingView() {
   const [paraClass, setParaClass] = useState<string>('all');
   const [ageMode, setAgeMode] = useState<'DEC_31' | 'MEET_DATE'>('DEC_31');
   const [clubCode, setClubCode] = useState<string>('all');
+  const [pdfClubWhitelist, setPdfClubWhitelist] = useState<string[] | null>(null);
   const [standardComparison, setStandardComparison] = useState<'NONE' | NationalStandardType>('A');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [topN, setTopN] = useState<number>(0); // 0 = sin límite
@@ -366,6 +370,22 @@ export function AdaelRankingView() {
     }
   }, [stroke]);
 
+  // Lista de clubes disponibles en el selector (prioriza los clubes extraídos del PDF si están activos)
+  const availableClubsList = useMemo(() => {
+    if (!pdfClubWhitelist || pdfClubWhitelist.length === 0) {
+      return ADAEL_CLUBS_LIST;
+    }
+    const list = [{ code: 'all', name: `Todos los Clubes del PDF (${pdfClubWhitelist.length})` }];
+    pdfClubWhitelist.forEach((code) => {
+      const existing = ADAEL_CLUBS_LIST.find((c) => c.code === code);
+      list.push({
+        code,
+        name: existing ? existing.name : `${code} — Club ${code}`,
+      });
+    });
+    return list;
+  }, [pdfClubWhitelist]);
+
   // Si la distancia actual no es válida para el estilo seleccionado, auto-ajustar
   useEffect(() => {
     if (!validDistances.includes(distance)) {
@@ -387,6 +407,7 @@ export function AdaelRankingView() {
         paraClass: category === 'PARA_SWIMMING' ? paraClass : undefined,
         ageMode,
         clubCode: clubCode !== 'all' ? clubCode : undefined,
+        clubWhitelist: pdfClubWhitelist && pdfClubWhitelist.length > 0 ? pdfClubWhitelist : undefined,
         topN: topN > 0 ? topN : undefined,
       };
 
@@ -436,7 +457,7 @@ export function AdaelRankingView() {
 
   useEffect(() => {
     fetchRanking();
-  }, [course, gender, stroke, distance, category, singleAge, paraClass, ageMode, clubCode, topN]);
+  }, [course, gender, stroke, distance, category, singleAge, paraClass, ageMode, clubCode, topN, pdfClubWhitelist]);
 
   // Marca Mínima Nacional de referencia calculada
   const activeStandard = useMemo(() => {
@@ -503,6 +524,7 @@ export function AdaelRankingView() {
           category,
           ageMode,
           clubCode: clubCode !== 'all' ? clubCode : undefined,
+          clubWhitelist: pdfClubWhitelist && pdfClubWhitelist.length > 0 ? pdfClubWhitelist : undefined,
         },
         meetsCount,
         lastUpdatedDate,
@@ -536,6 +558,7 @@ export function AdaelRankingView() {
           category,
           ageMode,
           clubCode: clubCode !== 'all' ? clubCode : undefined,
+          clubWhitelist: pdfClubWhitelist && pdfClubWhitelist.length > 0 ? pdfClubWhitelist : undefined,
         },
         meetsCount,
         lastUpdatedDate,
@@ -589,6 +612,13 @@ export function AdaelRankingView() {
 
           {/* Acciones de Carga Masiva y Exportación */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <AdaelClubPdfImporterModal
+              onClubsConfirmed={(codes) => {
+                setPdfClubWhitelist(codes);
+                setClubCode('all');
+              }}
+            />
+
             <AdaelBatchUploaderModal
               triggerButton={
                 <Button variant="default" className="gap-2 shadow-sm">
@@ -658,6 +688,61 @@ export function AdaelRankingView() {
           </div>
         </div>
       </div>
+
+      {/* Banner de Filtro Activo por Listado PDF */}
+      {pdfClubWhitelist && pdfClubWhitelist.length > 0 && (
+        <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-foreground">
+                  Filtro de Clubes Oficiales desde PDF Activo
+                </p>
+                <Badge variant="secondary" className="font-mono text-xs font-bold bg-blue-500/20 text-blue-800 dark:text-blue-200">
+                  {pdfClubWhitelist.length} clubes
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Generando ranking exclusivamente con marcas de:{' '}
+                <span className="font-mono font-semibold text-foreground">
+                  {pdfClubWhitelist.slice(0, 10).join(', ')}
+                  {pdfClubWhitelist.length > 10 ? '...' : ''}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <AdaelClubPdfImporterModal
+              triggerButton={
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-blue-300">
+                  <Filter className="h-3.5 w-3.5" />
+                  Editar Listado
+                </Button>
+              }
+              onClubsConfirmed={(codes) => {
+                setPdfClubWhitelist(codes);
+                setClubCode('all');
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-muted-foreground hover:text-red-600 gap-1"
+              onClick={() => {
+                setPdfClubWhitelist(null);
+                toast.info('Se restableció el filtro a todos los clubes de ADAEL.');
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+              Restablecer
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 2. PANEL DE FILTROS FEDERATIVO */}
       <Card className="shadow-sm">
@@ -795,7 +880,7 @@ export function AdaelRankingView() {
                   <SelectValue placeholder="Todos los clubes" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ADAEL_CLUBS_LIST.map((c) => (
+                  {availableClubsList.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
                       {c.name}
                     </SelectItem>
