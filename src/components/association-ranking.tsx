@@ -27,6 +27,7 @@ import { CustomClubRankingSelectorModal } from "./custom-club-ranking-selector-m
 import { ClubAthletesExtractorModal } from "./club-athletes-extractor-modal";
 import { RankingDataCleanerModal } from "./ranking-data-cleaner-modal";
 import { SwimFileImporterModal } from "./imports/SwimFileImporterModal";
+import { AdaelBatchUploaderModal } from "./adael/AdaelBatchUploaderModal";
 import { downloadFile } from "@/lib/file-delivery";
 import type { DashboardResult } from "@/lib/dashboard-summary";
 
@@ -299,6 +300,7 @@ export function AssociationRanking({
                 <Sparkles className="size-4 text-amber-600 dark:text-amber-400" />
                 <span>Oficial ADAEL 2026</span>
               </Button>
+              <AdaelBatchUploaderModal />
               <AdaelTeamExtractor
                 clubs={detectedClubs}
                 onSelectAdael={() => setSelectedAssociation("Lara (ADAEL)")}
