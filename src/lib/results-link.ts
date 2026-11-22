@@ -10,24 +10,42 @@ const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"'
 export function htmlToLines(html: string): string[] {
   // Modern Meet Manager wrappers publish separate cells, including a difference
   // column. Rebuild canonical result lines using labelled columns, not positions.
-  const heading = html.match(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/i)?.[1];
-  if (heading && /(?:event|evento|prueba)\s+\d/i.test(heading) && /<th\b/i.test(html)) {
+  const headingMatch = html.match(/<(?:h[1-6]|caption|p|div)[^>]*>([\s\S]*?)<\/(?:h[1-6]|caption|p|div)>/i);
+  const heading = headingMatch?.[1];
+  const isEventHeading = heading && /(?:event|evento|prueba)\s*(?:n[°oº]\.?\s*|no\.?\s*|#\s*)?\d/i.test(heading);
+
+  if (isEventHeading && /<table\b/i.test(html)) {
     const plain = (s: string) => htmlToLines(s).join(" ").trim();
     const normalized = (s: string) => plain(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const rebuilt: string[] = [plain(heading)];
     for (const table of html.matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)) {
-      const headers = [...(table[1] ?? "").matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/gi)].map(m => normalized(m[1] ?? ""));
-      const name = headers.findIndex(h => /nombre|name/.test(h));
-      const team = headers.findIndex(h => /club|team|equipo/.test(h));
-      const final = headers.findIndex(h => /oficial|final|result/.test(h));
-      const seed = headers.findIndex(h => /insc|seed|entry/.test(h));
-      const age = headers.findIndex(h => /edad|age/.test(h));
-      const place = headers.findIndex(h => /lugar|place|pos/.test(h));
+      // 1. Buscar en <th>
+      let headers = [...(table[1] ?? "").matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/gi)].map(m => normalized(m[1] ?? ""));
+      // 2. Si no hay <th>, buscar en el primer <tr> con <td>
+      if (!headers.length) {
+        const firstTr = (table[1] ?? "").match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i)?.[1];
+        if (firstTr) {
+          headers = [...firstTr.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => normalized(m[1] ?? ""));
+        }
+      }
+      const name = headers.findIndex(h => /nombre|name|atleta|nadador|swimmer|apellido/.test(h));
+      const team = headers.findIndex(h => /club|team|equipo|entidad|asociacion|asoc|escuela|org/.test(h));
+      const final = headers.findIndex(h => /oficial|final|result|tiempo|marca|time|t\.?\s*final/.test(h));
+      const seed = headers.findIndex(h => /insc|seed|entry|prev|t\.?\s*prev/.test(h));
+      const age = headers.findIndex(h => /edad|age|cat|a[ñn]o/.test(h));
+      const place = headers.findIndex(h => /lugar|place|pos|puesto|#|pt/.test(h));
       if (name < 0 || team < 0 || final < 0) continue;
       for (const row of (table[1] ?? "").matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
         const cells = [...(row[1] ?? "").matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => plain(m[1] ?? ""));
         if (!cells[name] || !cells[final]) continue;
-        rebuilt.push(` ${cells[place] ?? "--"} ${cells[name]}  ${cells[age] || "FR"} ${cells[team] || "SIN-CLUB"}  ${cells[seed] || "NT"}  ${cells[final]}`);
+        const normName = cells[name].trim().toLowerCase();
+        if (normName === "nombre" || normName === "atleta" || normName === "name") continue;
+        const placeVal = cells[place] ?? "--";
+        const ageVal = cells[age] ? cells[age].trim() : "--";
+        const teamVal = cells[team] ? cells[team].trim() : "CLUB";
+        const seedVal = cells[seed] ? cells[seed].trim() : "NT";
+        const finalVal = cells[final].trim();
+        rebuilt.push(` ${placeVal} ${cells[name].trim()} ${ageVal} ${teamVal} ${seedVal} ${finalVal}`);
       }
     }
     if (rebuilt.length > 1) return rebuilt;

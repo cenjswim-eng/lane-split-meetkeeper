@@ -1,5 +1,6 @@
 import type { ParsedAthlete, ParsedFile, ParsedResult, ParsedTeam } from "@/lib/hytek/types";
 import { parseTime } from "@/lib/swim";
+import { normalizeTeamCode } from "@/data/fevedaClubs";
 
 /** Pure readers that turn PDF results (Meet Manager text or AI-extracted JSON) into the shared ParsedFile shape. */
 
@@ -10,14 +11,186 @@ const STROKE_WORDS: [RegExp, number][] = [
   [/breaststroke|\bbreast\b|pecho/i, 3],
   [/butterfly|\bfly\b|mariposa/i, 4],
 ];
-const TIME = String.raw`(?:\d{1,2}:)?\d{1,2}\.\d{2}`;
-// Age column may be a number or a US college class (FR/SO/JR/SR/5Y/GR); times may carry x/J/X prefixes and qualifier/points suffixes.
-const RESULT_LINE = new RegExp(String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([^,\d]+?),\s*([^\d]+?)\s+(\d{1,2}|FR|SO|JR|SR|5Y|GR)\s+(.+?)\s+[xXJ]?(${TIME}|NT|NS)?\s*[xXJ]?(${TIME}|DQ|NS|SCR|DFS|DNF|DSQ)\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`);
-// Soporte alternativo para tablas donde los nombres no tienen coma ("Perez Juan" o "Juan Perez")
-const RESULT_LINE_NO_COMMA = new RegExp(
-  String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+)?)\s+([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+)?)\s+(\d{1,2}|FR|SO|JR|SR|5Y|GR)\s+([A-Za-z0-9_-]{2,16})\s+[xXJ]?(${TIME}|NT|NS)?\s*[xXJ]?(${TIME}|DQ|NS|SCR|DFS|DNF|DSQ)\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`
+const TIME = String.raw`(?:\d{1,2}:)?\d{1,2}\.\d{1,2}`;
+const STATUS_CODES = String.raw`DQ|DSQ|DES|DESC|NS|NP|SCR|BAJ|BAJA|FOR|DFS|DNF|RET`;
+const PLACE_RE = String.raw`(?:\d{1,3}[\.\-\)]?|#\d{1,3}|-{1,3}|\*?\d{1,3}|[A-Za-z]\d{1,3})?`;
+const HEAT_LANE_RE = String.raw`(?:\d{1,2}[-/]\d{1,2}\s+|[Hh]\d{1,2}\s+[Ll]\d{1,2}\s+)?`;
+const ATH_ID_RE = String.raw`(?:\b[VEPJvepj]?[-]?\d{5,9}\b\s+)?`;
+const AGE_RE = String.raw`(\d{1,2}|FR|SO|JR|SR|5Y|GR|-{1,2})`;
+const TIME_OR_STATUS = String.raw`[xXJ]?(${TIME}|${STATUS_CODES})`;
+const SEED_TIME = String.raw`[xXJ]?(${TIME}|NT|NS)?`;
+
+// 1. Línea estándar Meet Manager con coma y edad: "1 1-4 Perez, Juan 12 PISBO 28.50 28.10 9.0"
+const RESULT_LINE = new RegExp(
+  String.raw`^\s*(${PLACE_RE})\s+${HEAT_LANE_RE}${ATH_ID_RE}([^,\d]+?),\s*([^\d]+?)\s+${AGE_RE}\s+(.+?)\s+${SEED_TIME}\s*${TIME_OR_STATUS}\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`
 );
+
+// 2. Línea sin coma: "1 Juan Perez 12 HOGAR CANARIO 28.50 28.10"
+const RESULT_LINE_NO_COMMA = new RegExp(
+  String.raw`^\s*(${PLACE_RE})\s+${HEAT_LANE_RE}${ATH_ID_RE}([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+){1,4})\s+${AGE_RE}\s+(.+?)\s+${SEED_TIME}\s*${TIME_OR_STATUS}\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`
+);
+
+// 3. Línea con coma pero sin columna de edad: "1 Perez, Juan PISBO 28.50 28.10"
+const RESULT_LINE_NO_AGE = new RegExp(
+  String.raw`^\s*(${PLACE_RE})\s+${HEAT_LANE_RE}${ATH_ID_RE}([^,\d]+?),\s*([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+)?)\s+([A-Za-z0-9_-]+(?:\s+[A-Za-z0-9_-]+)*)\s+${SEED_TIME}\s*${TIME_OR_STATUS}\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`
+);
+
 const SPLIT_LINE = new RegExp(String.raw`^\s+(?:(?:\d{2,4}m?:\s*)?${TIME}(?:\s*\(${TIME}\))?\s*)+$`);
+
+export function splitFullName(raw: string): { first: string; last: string } {
+  const trimmed = raw.trim();
+  if (trimmed.includes(",")) {
+    const [l, ...rest] = trimmed.split(",");
+    return {
+      last: l.trim(),
+      first: rest.join(",").trim() || "Atleta",
+    };
+  }
+
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) {
+    return { first: tokens[0] || "Atleta", last: "Desconocido" };
+  }
+  if (tokens.length === 2) {
+    return { first: tokens[0], last: tokens[1] };
+  }
+
+  const prefixIdx = tokens.findIndex(
+    (t, i) => i > 0 && /^(de|del|la|los|las|san|santa|da|dos|das)$/i.test(t)
+  );
+  if (prefixIdx > 0) {
+    return {
+      first: tokens.slice(0, prefixIdx).join(" "),
+      last: tokens.slice(prefixIdx).join(" "),
+    };
+  }
+
+  if (tokens.length === 3) {
+    return {
+      first: tokens.slice(0, 2).join(" "),
+      last: tokens[2],
+    };
+  }
+
+  const mid = Math.floor(tokens.length / 2);
+  return {
+    first: tokens.slice(0, mid).join(" "),
+    last: tokens.slice(mid).join(" "),
+  };
+}
+
+export function parseLineFallback(line: string): {
+  placeRaw?: string;
+  last?: string;
+  first?: string;
+  age?: string;
+  teamRaw?: string;
+  seedRaw?: string;
+  finalRaw?: string;
+} | null {
+  const trimmed = line.trim();
+  const timeOrStatusPattern = new RegExp(
+    String.raw`\b((?:\d{1,2}:)?\d{1,2}\.\d{1,2}|DQ|DSQ|DES|DESC|NS|NP|SCR|BAJ|BAJA|FOR|DFS|DNF|RET)\b`,
+    "i"
+  );
+  if (!timeOrStatusPattern.test(trimmed)) return null;
+
+  const rawTokens = trimmed.split(/\s+/).filter(Boolean);
+  if (rawTokens.length < 3) return null;
+
+  const tokens = [...rawTokens];
+
+  // 1. Quitar sufijo de puntos o flags al final (ej. 9.0, 10, q, Q, *)
+  if (tokens.length > 2) {
+    const lastTok = tokens[tokens.length - 1];
+    if (/^\d+(?:\.\d+)?$/.test(lastTok) || /^[a-z!*$%]{1,3}$/i.test(lastTok)) {
+      const prevTok = tokens[tokens.length - 2];
+      if (timeOrStatusPattern.test(prevTok)) {
+        tokens.pop();
+      }
+    }
+  }
+
+  // 2. Extraer tiempo oficial / final
+  if (tokens.length < 2) return null;
+  const finalCand = tokens.pop()!.replace(/^[xXJ]/, "");
+  if (!timeOrStatusPattern.test(finalCand)) return null;
+  const finalRaw = finalCand;
+
+  // 3. Extraer tiempo de inscripción (seed), si existe
+  let seedRaw: string | undefined;
+  if (tokens.length > 1) {
+    const prev = tokens[tokens.length - 1];
+    if (new RegExp(String.raw`^[xXJ]?(?:(?:\d{1,2}:)?\d{1,2}\.\d{1,2}|NT|NS)$`, "i").test(prev)) {
+      seedRaw = tokens.pop()!.replace(/^[xXJ]/, "");
+    }
+  }
+
+  // 4. Extraer lugar al inicio, si existe
+  let placeRaw: string | undefined;
+  if (tokens.length > 0 && /^(?:\d{1,3}[\.\-\)]?|#\d{1,3}|-{1,3}|\*?\d{1,3}|[A-Za-z]\d{1,3})$/.test(tokens[0])) {
+    placeRaw = tokens.shift();
+  }
+
+  // 5. Extraer heat/lane opcional al inicio (ej. 1-4, 2/3, H1 L4)
+  if (tokens.length > 0 && /^\d{1,2}[-/]\d{1,2}$/.test(tokens[0])) {
+    tokens.shift();
+  } else if (tokens.length > 1 && /^[Hh]\d{1,2}$/.test(tokens[0]) && /^[Ll]\d{1,2}$/.test(tokens[1])) {
+    tokens.shift();
+    tokens.shift();
+  }
+
+  // 6. Extraer Cédula / ID de atleta si existe
+  if (tokens.length > 0 && /^[VEPJvepj]?[-]?\d{5,9}$/.test(tokens[0])) {
+    tokens.shift();
+  }
+
+  if (tokens.length === 0) return null;
+
+  // 7. Buscar si hay token de edad (\d{1,2} o categoría FR/SO/JR/SR)
+  let age: string | undefined;
+  let ageIdx = -1;
+  for (let i = 0; i < tokens.length; i++) {
+    if (/^(?:\d{1,2}|FR|SO|JR|SR|5Y|GR|-{1,2})$/i.test(tokens[i])) {
+      if (i > 0 && i < tokens.length) {
+        ageIdx = i;
+        age = tokens[i];
+        break;
+      }
+    }
+  }
+
+  let nameRaw = "";
+  let teamRaw = "";
+
+  if (ageIdx !== -1) {
+    nameRaw = tokens.slice(0, ageIdx).join(" ");
+    teamRaw = tokens.slice(ageIdx + 1).join(" ");
+  } else {
+    if (tokens.length >= 2) {
+      teamRaw = tokens.pop()!;
+      nameRaw = tokens.join(" ");
+    } else {
+      nameRaw = tokens[0] || "Atleta Desconocido";
+      teamRaw = "CLUB";
+    }
+  }
+
+  if (!nameRaw) return null;
+  if (!teamRaw) teamRaw = "CLUB";
+
+  const { first, last } = splitFullName(nameRaw);
+
+  return {
+    placeRaw,
+    last,
+    first,
+    age,
+    teamRaw,
+    seedRaw,
+    finalRaw,
+  };
+}
 
 function isoFromMdy(m: string, d: string, y: string) {
   const dt = new Date(Date.UTC(+y, +m - 1, +d));
@@ -25,29 +198,39 @@ function isoFromMdy(m: string, d: string, y: string) {
 }
 
 export function parseEventHeader(line: string) {
-  let m = line.match(/^\s*(?:#\s*)?(?:event|evento|prueba)\s*#?\s*(\d+[A-Z]?)\s+(.*)$/i);
-  if (!m) {
-    // También admitir encabezados directos como "#1 50m Libre Femenino 12-13" o "50 Libre Masculino"
-    const directMatch = line.match(/^\s*(?:#\s*(\d+[A-Z]?)\s+)?(.*)$/i);
-    if (directMatch && directMatch[2]) {
-      const distCheck = directMatch[2].match(
-        /\b(25|50|100|200|400|800|1500|1650)(?:m\b|mts?\b| metros?\b|\b)/i
+  let m = line.match(
+    /^\s*(?:#\s*)?(?:event|evento|prueba)\s*(?:n[°oº]\.?\s*|nro\.?\s*|no\.?\s*|num\.?\s*|#\s*)?(\d+[A-Z]?)\s*[:.-]*\s+(.*)$/i
+  );
+  let eventNumber = "1";
+  let rest = "";
+
+  if (m) {
+    eventNumber = m[1] || "1";
+    rest = m[2] || "";
+  } else {
+    // También admitir encabezados directos como "#1 50m Libre Femenino 12-13" o "1.- 50 Libre Masculino"
+    const directMatch = line.match(/^\s*(?:#\s*(\d+[A-Z]?)|(\d+[A-Z]?)\s*[:.-]*)\s*(.*)$/i);
+    if (directMatch && directMatch[3]) {
+      const candidateRest = directMatch[3];
+      const distCheck = candidateRest.match(
+        /\b(25|50|100|200|400|800|1500|1650)\s*(?:m\b|mts?\b|metros?\b|\b)/i
       );
-      const strokeCheck = STROKE_WORDS.find(([re]) => directMatch[2] && re.test(directMatch[2]));
+      const strokeCheck = STROKE_WORDS.find(([re]) => re.test(candidateRest));
       if (distCheck && strokeCheck) {
-        m = directMatch;
+        eventNumber = directMatch[1] || directMatch[2] || "1";
+        rest = candidateRest;
       }
     }
   }
-  if (!m) return null;
-  const rest = m[2]!;
+
+  if (!rest) return null;
   if (/relay|relevo/i.test(rest)) return { relay: true as const };
-  const dist = rest.match(/\b(25|50|100|200|400|800|1500|1650)(?:m\b|mts?\b| metros?\b|\b)/i);
+  const dist = rest.match(/\b(25|50|100|200|400|800|1500|1650)\s*(?:m\b|mts?\b|metros?\b|\b)/i);
   const stroke = STROKE_WORDS.find(([re]) => re.test(rest))?.[1];
   if (!dist || !stroke) return null;
-  const gender = /girls|women|female|mujeres|damas|\bfem|niñas|hembras/i.test(rest)
+  const gender = /girls|women|female|mujeres|damas|\bfem|niñas|hembras|\b[Ff]\b|\([Ff]\)/i.test(rest)
     ? "F"
-    : /boys|\bmen\b|male|hombres|varones|caballeros|\bmasc|niños/i.test(rest)
+    : /boys|\bmen\b|male|hombres|varones|caballeros|\bmasc|niños|\b[Mm]\b|\([Mm]\)/i.test(rest)
     ? "M"
     : /mixed|mixto/i.test(rest)
     ? "X"
@@ -120,7 +303,7 @@ export function parseEventHeader(line: string) {
     ? "LCM"
     : null;
 
-  return { relay: false as const, number: m[1] || "1", distance: +dist[1]!, stroke, gender, minAge, maxAge, course };
+  return { relay: false as const, number: eventNumber, distance: +dist[1]!, stroke, gender, minAge, maxAge, course };
 }
 
 /** Reads a Meet Manager "Results" report from PDF text lines. Lines it cannot recognise are reported, never guessed. */
@@ -155,7 +338,7 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
   let event: ReturnType<typeof parseEventHeader> = null, skipped = 0, relays = 0;
   const courses = new Set<string>();
   for (const rawLine of lines) {
-    const line = rawLine.replace(/(\d),(\d{2})(?!\d)/g, "$1.$2");
+    const line = rawLine.replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2");
     const header = parseEventHeader(line);
     if (header) { event = header; if (header.relay) relays++; else if (header.course) courses.add(header.course); continue; }
     if (!event || event.relay) continue;
@@ -179,15 +362,30 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
     } else {
       const m2 = line.match(RESULT_LINE_NO_COMMA);
       if (m2) {
-        [, placeRaw, last, first, age, teamRaw, seedRaw, finalRaw] = m2;
+        let nameRaw: string;
+        [, placeRaw, nameRaw, age, teamRaw, seedRaw, finalRaw] = m2;
+        const splitted = splitFullName(nameRaw);
+        last = splitted.last;
+        first = splitted.first;
       } else {
-        if (/^\s*\d{1,3}\s+\S+/.test(line)) skipped++;
-        continue;
+        const m3 = line.match(RESULT_LINE_NO_AGE);
+        if (m3) {
+          [, placeRaw, last, first, teamRaw, seedRaw, finalRaw] = m3;
+        } else {
+          const fallback = parseLineFallback(line);
+          if (fallback) {
+            ({ placeRaw, last, first, age, teamRaw, seedRaw, finalRaw } = fallback);
+          } else {
+            if (/^\s*\d{1,3}\s+\S+/.test(line)) skipped++;
+            continue;
+          }
+        }
       }
     }
-    const team = teamRaw!.trim().replace(/\s+/g, " ");
-    const code = team.toUpperCase().slice(0, 16);
-    teams.set(code, { code, name: team });
+    const normClub = normalizeTeamCode(teamRaw!.trim(), teamRaw!.trim());
+    const code = normClub.code;
+    const teamName = normClub.name;
+    teams.set(code, { code, name: teamName });
     const key = `pdf:${last!.trim().toLowerCase()}|${first!.trim().toLowerCase()}|${code}`;
 
     // Cálculo de fecha de nacimiento estimada a partir de la edad y año del torneo
@@ -225,9 +423,25 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
         existingAth.gender = event.gender;
       }
     }
-    const dq = /^(DQ|DSQ|DFS|DNF)$/.test(finalRaw!);
-    const noSwim = /^(NS|SCR)$/.test(finalRaw!);
-    results.push({ athleteKey: key, eventNumber: event.number, distance: event.distance, stroke: event.stroke, gender: event.gender, minAge: event.minAge, maxAge: event.maxAge, seedMs: seedRaw && seedRaw !== "NT" ? parseTime(seedRaw) : null, finalMs: dq || noSwim ? null : parseTime(finalRaw), course: event.course ?? defaultCourse, place: placeRaw && /^\*?\d+$/.test(placeRaw) ? +placeRaw.replace("*", "") : null, isDq: dq, round: "F", splits: [] });
+    const dq = /^(DQ|DSQ|DES|DESC|DFS|DNF)$/i.test(finalRaw!);
+    const noSwim = /^(NS|SCR|NP|BAJ|BAJA|FOR|RET)$/i.test(finalRaw!);
+    const placeNum = placeRaw ? parseInt(placeRaw.replace(/[^\d]/g, ""), 10) || null : null;
+    results.push({
+      athleteKey: key,
+      eventNumber: event.number,
+      distance: event.distance,
+      stroke: event.stroke,
+      gender: event.gender,
+      minAge: event.minAge,
+      maxAge: event.maxAge,
+      seedMs: seedRaw && seedRaw !== "NT" ? parseTime(seedRaw) : null,
+      finalMs: dq || noSwim ? null : parseTime(finalRaw),
+      course: event.course ?? defaultCourse,
+      place: placeNum,
+      isDq: dq,
+      round: "F",
+      splits: [],
+    });
   }
   for (const r of results) {
     const n = r.splits.length;
