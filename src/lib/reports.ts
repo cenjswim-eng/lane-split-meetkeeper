@@ -166,7 +166,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
     head: [
       [
         {
-          content: `CUADRO CONSOLIDADO DE ASISTENCIA INDIVIDUAL — ${athleteName.toUpperCase()}`,
+          content: `CUADRO RESUMEN DE ASISTENCIA — ${athleteName.toUpperCase()}`,
           colSpan: 4,
           styles: {
             fillColor: primaryFill,
