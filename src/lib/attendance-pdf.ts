@@ -90,7 +90,7 @@ export function attendancePdf(
   doc.text('ÍNDICE DE ASISTENCIA DEL PERÍODO', marginX + 6, cardY + 5.5);
 
   const pctValue = summary.percentage == null ? '—' : `${summary.percentage}%`;
-  const pctColor =
+  const pctColor: [number, number, number] =
     summary.percentage == null
       ? [88, 104, 115]
       : summary.percentage >= 80

@@ -197,7 +197,7 @@ export function generateSwimmerRanking(
 
   let currentRank = 1;
   const rankedList: RankedSwimmerItem[] = sorted.map((item, index) => {
-    if (index > 0 && item.timeMs > sorted[index - 1].timeMs) {
+    if (index > 0 && item.timeMs > sorted[index - 1]!.timeMs) {
       currentRank = index + 1;
     }
     return {
@@ -232,8 +232,8 @@ export function generateAdaelFederatedRanking2026(
     stroke: options.stroke,
     gender: options.gender,
     course: options.course,
-    minAge: options.minAge,
-    maxAge: options.maxAge,
+    ...(options.minAge !== undefined ? { minAge: options.minAge } : {}),
+    ...(options.maxAge !== undefined ? { maxAge: options.maxAge } : {}),
     seasonYear: ADAEL_2026_SEASON.year,
     startDate: ADAEL_2026_SEASON.startDate,
     endDate: ADAEL_2026_SEASON.endDate,
@@ -241,7 +241,7 @@ export function generateAdaelFederatedRanking2026(
     ageCutoffDate: ADAEL_2026_SEASON.ageCutoffDate,
     associations: ['LARA', 'ADAEL', 'Lara (ADAEL)'],
     clubWhitelist: options.clubWhitelist ?? KNOWN_ADAEL_CODES,
-    topN: options.topN,
+    ...(options.topN !== undefined ? { topN: options.topN } : {}),
   });
 }
 
@@ -290,6 +290,8 @@ export function toSwimResultRecord(
     timeMs: result.final_time_ms,
     status: (result.status as ResultStatus) ?? 'OK',
     isExhibition: Boolean(result.is_exhibition),
-    finaPoints: result.aqua_points ?? result.fina_points ?? undefined,
+    ...((result.aqua_points ?? result.fina_points) != null
+      ? { finaPoints: (result.aqua_points ?? result.fina_points)! }
+      : {}),
   };
 }

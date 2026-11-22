@@ -16,10 +16,10 @@ import {RunResultExport} from './run-result-export';
 import type {ExportRow} from '@/lib/hytek/sdif';
 import {TechnicalDeskConsole, type HeatLaneSwimmerEntry} from '@/components/meet-engine/technical-desk-console';
 import {LiveResultsPortal, type PortalEvent, type PortalSwimmerResult, type PortalTeamScore} from '@/components/meet-engine/live-results-portal';
-import {EVENT_STATUS_CONFIG, type EventLiveStatus, transitionEventStatus, recordLiveScratch} from '@/lib/meet-engine/live-lifecycle';
+import {EVENT_STATUS_CONFIG, type EventLiveStatus, transitionEventStatus, recordLiveScratch, logLiveAuditEvent} from '@/lib/meet-engine/live-lifecycle';
 import {enqueueOfflineHeat, getOfflineTimingQueue, drainOfflineQueue, registerNetworkSyncListener} from '@/lib/meet-engine/offline-pool-sync';
 import {Badge} from '@/components/ui/badge';
-import {Wifi, WifiOff, UserMinus, QrCode} from 'lucide-react';
+import {Wifi, WifiOff, UserMinus, QrCode, Cloud, CloudOff, Flame} from 'lucide-react';
 interface LaneDraft {text:string;status:RunStatus;dqCode:string;splits:{distance:number;timeMs:number}[]}
 export function MeetRunConsole(){
  const {data}=useSuspenseQuery(seedingQuery),{data:results}=useSuspenseQuery(runResultsQuery);const client=useQueryClient();
@@ -142,7 +142,7 @@ export function MeetRunConsole(){
      seedTimeMs: e.savedTimeMs ?? e.seedTimeMs,
      timing: { touchpadMs: ms, watch1Ms: ms, watch2Ms: null, watch3Ms: null },
      status: v.status === 'EXH' ? 'OK' : v.status,
-     dqCode: v.dqCode || undefined,
+     ...(v.dqCode ? { dqCode: v.dqCode } : {}),
      officialTimeMs: ms,
    };
  });
@@ -230,10 +230,12 @@ export function MeetRunConsole(){
             seedTimeMs: r.seed_time_ms ?? null,
             finalTimeMs: r.final_time_ms ?? null,
             status: (r.status === 'EXH' ? 'OK' : r.status) as any,
-            dqCode: r.dq_code ?? undefined,
-            dqReason: dqReasons.find(d => d.code === r.dq_code)?.label,
+            ...(r.dq_code ? { dqCode: r.dq_code } : {}),
+            ...(dqReasons.find(d => d.code === r.dq_code)?.label
+              ? { dqReason: dqReasons.find(d => d.code === r.dq_code)!.label }
+              : {}),
             isPb: false,
-            splits: (r.splits ?? []).map(s => ({ distance: s.distance, timeMs: s.timeMs })),
+            splits: (r.splits ?? []).map(s => ({ distance: s.split_distance, timeMs: s.cumulative_time_ms })),
           };
         });
 
@@ -381,7 +383,7 @@ export function MeetRunConsole(){
             <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase text-muted-foreground">Estado en vivo:</span>
-                <Badge className={EVENT_STATUS_CONFIG[currentLiveStatus].color}>
+                <Badge className={EVENT_STATUS_CONFIG[currentLiveStatus].colorClass}>
                   {EVENT_STATUS_CONFIG[currentLiveStatus].label}
                 </Badge>
               </div>
@@ -700,8 +702,8 @@ export function MeetRunConsole(){
         <TabsContent value="live_portal">
           <LiveResultsPortal
             meetName={meet?.name ?? 'Torneo de Natación'}
-            location={meet?.location}
-            meetDate={meet?.start_date}
+            location={meet?.location ?? null}
+            meetDate={meet?.start_date ?? null}
             events={portalEvents}
             teamScores={portalTeamScores}
           />

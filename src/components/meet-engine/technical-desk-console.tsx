@@ -81,10 +81,11 @@ export function TechnicalDeskConsole({
       prev.map((entry) => {
         if (entry.laneNumber !== laneNumber) return entry;
         const official = calculateOfficialTime(entry.timing);
+        const nextDqCode = status === 'DQ' ? dqCode ?? entry.dqCode : undefined;
         return {
           ...entry,
           status,
-          dqCode: status === 'DQ' ? dqCode ?? entry.dqCode : undefined,
+          ...(nextDqCode ? { dqCode: nextDqCode } : {}),
           officialTimeMs: status === 'DQ' || status === 'NS' ? null : official.officialTimeMs,
         };
       })

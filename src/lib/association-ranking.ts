@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import { brandedTable as autoTable, setReportTableBrand } from "./report-table-theme";
 import type { ReportBrand } from "./report-brand";
 import { ageAtDec31, eventLabel, formatTime } from "./swim";
+import { calculateAge } from "./team-hub/ranking-engine";
 import type { DashboardResult } from "./dashboard-summary";
 export * from "./team-hub/ranking-engine";
 
@@ -579,9 +580,13 @@ export function calculateAssociationRankings(
       const meetYear = Number(swim.meets?.start_date?.slice(0, 4) || new Date().getFullYear());
       const swimMeetDate = swim.meets?.start_date || null;
       const isMeetDateMode = filters.ageCalculationMode === "MEET_DATE";
+      const swimEvalYear =
+        filters.affiliationYear && filters.affiliationYear !== "all"
+          ? Number(filters.affiliationYear)
+          : meetYear;
       const age = isMeetDateMode && swimMeetDate && athlete?.birth_date
         ? calculateAge(athlete.birth_date, swimMeetDate)
-        : ageAtDec31(athlete?.birth_date, evalYear);
+        : ageAtDec31(athlete?.birth_date ?? null, swimEvalYear);
       const clubCode = (
         (swim as any).origin_team ||
         athlete?.clubs?.team_code ||
@@ -737,13 +742,7 @@ export function generateAssociationRankingPdf(
         item.athleteName,
         `${item.clubCode} - ${item.clubName}`,
         item.association,
-        item.ageAtDec31 > 0 ? item.ageAtDec31.toString() : "—",
-        item.formattedTime,
-        item.meetName,
-        item.meetDate || "—",
-      ]);
-        item.association,
-        item.ageAtDec31 > 0 ? item.ageAtDec31.toString() : "—",
+        item.ageAtDec31 != null && item.ageAtDec31 > 0 ? item.ageAtDec31.toString() : "—",
         item.formattedTime,
         item.meetName,
         item.meetDate || "—",
@@ -927,7 +926,7 @@ export function extractClubsFromMeetResults(
     const meetsList = [...stats.meets];
     const meetName = meetsList.length > 0 ? meetsList.join(", ") : "Campeonato Estadal";
     const datesList = [...stats.meetDates].sort();
-    const meetDate = datesList.length > 0 ? datesList[0] : null;
+    const meetDate = datesList.length > 0 ? (datesList[0] ?? null) : null;
 
     items.push({
       code: stats.code,
@@ -1274,7 +1273,7 @@ export function extractAthletesFromClubs(
   for (const stats of athleteStats.values()) {
     const a = stats.athlete;
     const birthDate = a.birth_date || null;
-    const age = ageAtDec31(birthDate, currentYear);
+    const age = ageAtDec31(birthDate, currentYear) ?? 0;
     const category = getSwimmingCategoryLabel(age);
     const fullName =
       `${a.last_name || ""}, ${a.first_name || ""}`.trim().replace(/^,\s*|,\s*$/g, "") || "Nadador";

@@ -126,8 +126,8 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
       if (points.length > 1) {
         doc.setFillColor("#EBF5FB"); // Very soft brand tint
         for (let i = 0; i < points.length - 1; i++) {
-          const p1 = points[i];
-          const p2 = points[i + 1];
+          const p1 = points[i]!;
+          const p2 = points[i + 1]!;
           const baseY = top + height;
           // Shaded trapezoid under each segment
           if (typeof (doc as any).triangle === 'function') {
@@ -141,7 +141,9 @@ export function appendAthleteProgressCharts(doc: jsPDF, name: string, results: A
       doc.setDrawColor(primaryColor);
       doc.setLineWidth(0.8);
       for (let i = 0; i < points.length - 1; i++) {
-        doc.line(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+        const a = points[i]!;
+        const b = points[i + 1]!;
+        doc.line(a.x, a.y, b.x, b.y);
       }
 
       // Draw point markers

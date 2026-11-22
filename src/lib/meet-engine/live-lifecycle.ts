@@ -132,11 +132,11 @@ export function logLiveAuditEvent(
       user: meetIdOrConfig.actorName ?? meetIdOrConfig.user ?? 'Mesa Técnica',
       action: (meetIdOrConfig.actionType as any) ?? meetIdOrConfig.action ?? 'STATUS_CHANGE',
       eventId: meetIdOrConfig.eventId ?? '',
-      eventNumber: meetIdOrConfig.eventNumber,
-      heatNumber: meetIdOrConfig.heatNumber,
       details: meetIdOrConfig.description ?? meetIdOrConfig.details ?? '',
-      previousState: meetIdOrConfig.previousState,
-      newState: meetIdOrConfig.newState,
+      ...(meetIdOrConfig.eventNumber !== undefined ? { eventNumber: meetIdOrConfig.eventNumber } : {}),
+      ...(meetIdOrConfig.heatNumber !== undefined ? { heatNumber: meetIdOrConfig.heatNumber } : {}),
+      ...(meetIdOrConfig.previousState !== undefined ? { previousState: meetIdOrConfig.previousState } : {}),
+      ...(meetIdOrConfig.newState !== undefined ? { newState: meetIdOrConfig.newState } : {}),
     };
   }
 

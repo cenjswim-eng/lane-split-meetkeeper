@@ -69,7 +69,7 @@ function RelaysPage() {
       id: c.id,
       name: c.name,
       gender: ((athleteRecord?.athletes?.gender || 'M') === 'F' ? 'F' : 'M') as 'M' | 'F',
-      birthDate: athleteRecord?.athletes?.birth_date,
+      birthDate: athleteRecord?.athletes?.birth_date ?? null,
       bestTimes: c.best,
     };
   });

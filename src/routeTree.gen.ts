@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CalculadoraPuntosAquaRouteImport } from './routes/calculadora-puntos-aqua'
-import { Route as RankingAdael2026RouteImport } from './routes/ranking-adael-2026'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -23,6 +22,7 @@ import { Route as ParaClubesRouteImport } from './routes/para-clubes'
 import { Route as ParaEntrenadoresRouteImport } from './routes/para-entrenadores'
 import { Route as PreguntasFrecuentesRouteImport } from './routes/preguntas-frecuentes'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
+import { Route as RankingAdael2026RouteImport } from './routes/ranking-adael-2026'
 import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TerminosRouteImport } from './routes/terminos'
@@ -76,11 +76,6 @@ const CalculadoraPuntosAquaRoute = CalculadoraPuntosAquaRouteImport.update({
   path: '/calculadora-puntos-aqua',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RankingAdael2026Route = RankingAdael2026RouteImport.update({
-  id: '/ranking-adael-2026',
-  path: '/ranking-adael-2026',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
   id: '/como-funciona',
   path: '/como-funciona',
@@ -119,6 +114,11 @@ const PreguntasFrecuentesRoute = PreguntasFrecuentesRouteImport.update({
 const PrivacidadRoute = PrivacidadRouteImport.update({
   id: '/privacidad',
   path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingAdael2026Route = RankingAdael2026RouteImport.update({
+  id: '/ranking-adael-2026',
+  path: '/ranking-adael-2026',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RequestAccessRoute = RequestAccessRouteImport.update({
@@ -270,7 +270,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
-  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -279,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/para-entrenadores': typeof ParaEntrenadoresRoute
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/request-access': typeof RequestAccessRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
@@ -312,7 +312,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
-  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -321,6 +320,7 @@ export interface FileRoutesByTo {
   '/para-entrenadores': typeof ParaEntrenadoresRoute
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/request-access': typeof RequestAccessRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
@@ -357,7 +357,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
-  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -366,6 +365,7 @@ export interface FileRoutesById {
   '/para-entrenadores': typeof ParaEntrenadoresRoute
   '/preguntas-frecuentes': typeof PreguntasFrecuentesRoute
   '/privacidad': typeof PrivacidadRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/request-access': typeof RequestAccessRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
@@ -410,6 +410,7 @@ export interface FileRouteTypes {
     | '/para-entrenadores'
     | '/preguntas-frecuentes'
     | '/privacidad'
+    | '/ranking-adael-2026'
     | '/request-access'
     | '/sitemap.xml'
     | '/terminos'
@@ -451,6 +452,7 @@ export interface FileRouteTypes {
     | '/para-entrenadores'
     | '/preguntas-frecuentes'
     | '/privacidad'
+    | '/ranking-adael-2026'
     | '/request-access'
     | '/sitemap.xml'
     | '/terminos'
@@ -494,6 +496,7 @@ export interface FileRouteTypes {
     | '/para-entrenadores'
     | '/preguntas-frecuentes'
     | '/privacidad'
+    | '/ranking-adael-2026'
     | '/request-access'
     | '/sitemap.xml'
     | '/terminos'
@@ -530,7 +533,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
   CalculadoraPuntosAquaRoute: typeof CalculadoraPuntosAquaRoute
-  RankingAdael2026Route: typeof RankingAdael2026Route
   ComoFuncionaRoute: typeof ComoFuncionaRoute
   ContactoRoute: typeof ContactoRoute
   DemoRoute: typeof DemoRoute
@@ -539,6 +541,7 @@ export interface RootRouteChildren {
   ParaEntrenadoresRoute: typeof ParaEntrenadoresRoute
   PreguntasFrecuentesRoute: typeof PreguntasFrecuentesRoute
   PrivacidadRoute: typeof PrivacidadRoute
+  RankingAdael2026Route: typeof RankingAdael2026Route
   RequestAccessRoute: typeof RequestAccessRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TerminosRoute: typeof TerminosRoute
@@ -582,13 +585,6 @@ declare module '@tanstack/react-router' {
       path: '/calculadora-puntos-aqua'
       fullPath: '/calculadora-puntos-aqua'
       preLoaderRoute: typeof CalculadoraPuntosAquaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ranking-adael-2026': {
-      id: '/ranking-adael-2026'
-      path: '/ranking-adael-2026'
-      fullPath: '/ranking-adael-2026'
-      preLoaderRoute: typeof RankingAdael2026RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/como-funciona': {
@@ -645,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidad'
       fullPath: '/privacidad'
       preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking-adael-2026': {
+      id: '/ranking-adael-2026'
+      path: '/ranking-adael-2026'
+      fullPath: '/ranking-adael-2026'
+      preLoaderRoute: typeof RankingAdael2026RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/request-access': {
@@ -913,7 +916,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
   CalculadoraPuntosAquaRoute: CalculadoraPuntosAquaRoute,
-  RankingAdael2026Route: RankingAdael2026Route,
   ComoFuncionaRoute: ComoFuncionaRoute,
   ContactoRoute: ContactoRoute,
   DemoRoute: DemoRoute,
@@ -922,6 +924,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParaEntrenadoresRoute: ParaEntrenadoresRoute,
   PreguntasFrecuentesRoute: PreguntasFrecuentesRoute,
   PrivacidadRoute: PrivacidadRoute,
+  RankingAdael2026Route: RankingAdael2026Route,
   RequestAccessRoute: RequestAccessRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TerminosRoute: TerminosRoute,

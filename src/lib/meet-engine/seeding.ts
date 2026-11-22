@@ -167,7 +167,7 @@ export function seedMeetEvent(
       result.push({
         swimmerId: item.swimmer.id,
         name: item.swimmer.name,
-        clubCode: item.swimmer.clubCode,
+        ...(item.swimmer.clubCode !== undefined ? { clubCode: item.swimmer.clubCode } : {}),
         heatNumber: heatNum,
         laneNumber: lane,
         seedTimeMs: item.swimmer.seedTimeMs,

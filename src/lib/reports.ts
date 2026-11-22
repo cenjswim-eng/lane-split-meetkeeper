@@ -124,7 +124,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
 
   const primaryFill = brand?.primary ? (brand.primary as any) : [12, 74, 110];
   const pctStr = summary.percentage == null ? "—" : `${summary.percentage}%`;
-  const pctColor = (summary.percentage ?? 0) >= 80 ? [16, 120, 60] : (summary.percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
+  const pctColor: [number, number, number] = (summary.percentage ?? 0) >= 80 ? [16, 120, 60] : (summary.percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
 
   const statusLabel = (st: string) => {
     switch (st) {
@@ -285,7 +285,7 @@ export function dailyAttendancePdf(options: {
   const pctStr = percentage == null ? "—" : `${percentage}%`;
 
   const primaryFill = options.brand?.primary ? (options.brand.primary as any) : [12, 74, 110];
-  const pctColor = (percentage ?? 0) >= 80 ? [16, 120, 60] : (percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
+  const pctColor: [number, number, number] = (percentage ?? 0) >= 80 ? [16, 120, 60] : (percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
 
   const statusLabel = (st: string) => {
     switch (st) {
