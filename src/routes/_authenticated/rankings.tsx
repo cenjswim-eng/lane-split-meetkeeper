@@ -1,11 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { coachQuery } from '@/lib/coach-data';
 import { AquaRanking } from '@/components/aqua-ranking';
 import { AssociationRanking } from '@/components/association-ranking';
+import { AdaelRankingView } from '@/components/adael/AdaelRankingView';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceFilters, matchesResult } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
+import { Trophy, ExternalLink } from 'lucide-react';
 
 export const Route = createFileRoute('/_authenticated/rankings')({
   staticData: { sitemap: false },
@@ -38,14 +40,27 @@ function Rankings() {
             Clasificaciones oficiales por asociación regional, cruces de edad y puntuación World Aquatics
           </p>
         </div>
+        <Link
+          to="/ranking-adael-2026"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+        >
+          <Trophy className="h-4 w-4" />
+          Ranking Oficial ADAEL 2026
+          <ExternalLink className="h-3 w-3 opacity-70" />
+        </Link>
       </div>
 
       <Tabs defaultValue="association" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="association">Top 5 Asociación</TabsTrigger>
+          <TabsTrigger value="adael">Ranking ADAEL 2026</TabsTrigger>
           <TabsTrigger value="aqua">Ranking AQUA</TabsTrigger>
           <TabsTrigger value="teams">Equipos y Temporadas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="adael" className="space-y-6 pt-1">
+          <AdaelRankingView />
+        </TabsContent>
 
         <TabsContent value="association" className="space-y-6 pt-1">
           <AssociationRanking

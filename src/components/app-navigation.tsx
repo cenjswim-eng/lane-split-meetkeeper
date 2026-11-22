@@ -46,6 +46,7 @@ const items = [
   { to: "/run", label: "Torneo en Vivo", icon: Timer },
   // 3. Rendimiento y Reportes
   { to: "/rankings", label: "Rankings AQUA", icon: Trophy },
+  { to: "/ranking-adael-2026", label: "Ranking ADAEL 2026", icon: ShieldCheck },
   { to: "/standards", label: "Marcas Mínimas", icon: Target },
   { to: "/achievements", label: "Logros y Récords", icon: Medal },
   { to: "/reports", label: "Centro de Reportes", icon: BarChart3 },

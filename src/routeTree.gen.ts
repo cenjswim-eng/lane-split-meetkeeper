@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CalculadoraPuntosAquaRouteImport } from './routes/calculadora-puntos-aqua'
+import { Route as RankingAdael2026RouteImport } from './routes/ranking-adael-2026'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -73,6 +74,11 @@ const BlogRoute = BlogRouteImport.update({
 const CalculadoraPuntosAquaRoute = CalculadoraPuntosAquaRouteImport.update({
   id: '/calculadora-puntos-aqua',
   path: '/calculadora-puntos-aqua',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingAdael2026Route = RankingAdael2026RouteImport.update({
+  id: '/ranking-adael-2026',
+  path: '/ranking-adael-2026',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -349,6 +357,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/blog': typeof BlogRouteWithChildren
   '/calculadora-puntos-aqua': typeof CalculadoraPuntosAquaRoute
+  '/ranking-adael-2026': typeof RankingAdael2026Route
   '/como-funciona': typeof ComoFuncionaRoute
   '/contacto': typeof ContactoRoute
   '/demo': typeof DemoRoute
@@ -521,6 +530,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRouteWithChildren
   CalculadoraPuntosAquaRoute: typeof CalculadoraPuntosAquaRoute
+  RankingAdael2026Route: typeof RankingAdael2026Route
   ComoFuncionaRoute: typeof ComoFuncionaRoute
   ContactoRoute: typeof ContactoRoute
   DemoRoute: typeof DemoRoute
@@ -572,6 +582,13 @@ declare module '@tanstack/react-router' {
       path: '/calculadora-puntos-aqua'
       fullPath: '/calculadora-puntos-aqua'
       preLoaderRoute: typeof CalculadoraPuntosAquaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking-adael-2026': {
+      id: '/ranking-adael-2026'
+      path: '/ranking-adael-2026'
+      fullPath: '/ranking-adael-2026'
+      preLoaderRoute: typeof RankingAdael2026RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/como-funciona': {
@@ -896,6 +913,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BlogRoute: BlogRouteWithChildren,
   CalculadoraPuntosAquaRoute: CalculadoraPuntosAquaRoute,
+  RankingAdael2026Route: RankingAdael2026Route,
   ComoFuncionaRoute: ComoFuncionaRoute,
   ContactoRoute: ContactoRoute,
   DemoRoute: DemoRoute,
