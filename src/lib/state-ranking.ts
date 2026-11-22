@@ -1,322 +1,283 @@
 /**
- * Motor de Ranking Estadal — Swim Lane Coach
+ * Motor de Ranking Estadal Oficial — Swim Lane Coach
  * Ubicación: src/lib/state-ranking.ts
  *
- * Filtra automáticamente los resultados pertenecientes al mismo Estado configurado
- * en el perfil del club activo, deduplica por mejor marca personal de cada nadador,
- * calcula posiciones con salto de empates, diferencia vs. #1 y genera métricas de brecha
- * para el club del usuario.
+ * Contrato oficial y motor de cálculo de rankings por estado,
+ * deduplicación por mejor marca personal y análisis competitivo de Mi Club vs Rivales.
  */
 
 import { formatTime } from "./swim";
 import { normalizeAssociationName } from "./association-ranking";
 
-export interface StateRankingFilters {
-  distance: number;       // 50, 100, 200, 400, 800, 1500
-  stroke: number;         // 1=Libre, 2=Espalda, 3=Pecho, 4=Mariposa, 5=Combinado
-  course: "LCM" | "SCM";  // 50m LCM o 25m SCM
-  gender: "M" | "F";      // Masculino o Femenino
-  minAge?: number;        // Edad desde (flexible)
-  maxAge?: number;        // Edad hasta (flexible)
-  referenceYear?: number; // Año de referencia competitivo (por defecto año actual)
-  season?: string;        // 'all' o año ej. '2026'
-  startDate?: string;     // ISO 'YYYY-MM-DD'
-  endDate?: string;       // ISO 'YYYY-MM-DD'
-  stateOverride?: string; // Opcional para alternar estado si el usuario lo desea
+export interface SwimResult {
+  id: string;
+  athleteId: string;
+  athleteName: string;
+  birthDate: string;       // YYYY-MM-DD
+  gender: 'M' | 'F';
+  clubCode: string;        // Ej: 'JSWIM', 'ITEL', 'POLI'
+  clubName: string;
+  state: string;           // Ej: 'Lara'
+  eventCode: string;       // Ej: '100_FREE', '50_FLY'
+  course: 'SCM' | 'LCM';   // 25m o 50m
+  timeMs: number;          // Tiempo en milisegundos para ordenamiento exacto
+  timeFormatted: string;   // Ej: "58.42" o "1:04.15"
+  meetName: string;
+  meetDate: string;        // YYYY-MM-DD
+  aquaPoints?: number | null;
 }
 
-export interface StateRankingItem {
+export interface RankingFilters {
+  myClubCode: string;
+  state: string;
+  gender: 'M' | 'F';
+  eventCode: string;
+  course: 'SCM' | 'LCM';
+  minAge: number;
+  maxAge: number;
+  referenceYear: number;   // Año competitivo (ej: 2026)
+  seasonStart?: string;    // Opcional: filtrar desde fecha (ej: '2026-01-01')
+}
+
+export interface RankedSwimResult extends SwimResult {
   rank: number;
-  swimmerId: string;
-  athleteName: string;
-  gender: "M" | "F";
-  birthDate: string | null;
   age: number;
-  clubId: string;
-  clubCode: string;
-  clubName: string;
-  association: string;
   isMyClub: boolean;
-  distance: number;
-  stroke: number;
-  course: "LCM" | "SCM";
-  timeMs: number;
-  formattedTime: string;
-  diffVsLeader: string; // ej. "+0.00s" o "+1.42s"
-  diffVsLeaderMs: number;
-  aquaPoints?: number | null;
-  meetName: string;
-  meetDate: string | null;
+  diffFromLeader: string;  // '—' para el #1 o '+X.XXs' para los demás
 }
 
 export interface StateRankingSummary {
   activeState: string;
-  activeClubName: string;
-  activeClubCode: string;
+  myClubCode: string;
   totalSwimmers: number;
-  leaderSwimmer: StateRankingItem | null;
+  leader: RankedSwimResult | null;
   myClubTop8Count: number;
-  myClubBestSwimmer: StateRankingItem | null;
+  myClubBest: RankedSwimResult | null;
   myClubLeaderGapSeconds: number | null;
   myClubLeaderGapText: string;
 }
 
-export const STATE_EVENTS_LIST = [
-  { distance: 50, stroke: 1, label: "50m Libre" },
-  { distance: 100, stroke: 1, label: "100m Libre" },
-  { distance: 200, stroke: 1, label: "200m Libre" },
-  { distance: 400, stroke: 1, label: "400m Libre" },
-  { distance: 800, stroke: 1, label: "800m Libre" },
-  { distance: 1500, stroke: 1, label: "1500m Libre" },
-  { distance: 50, stroke: 2, label: "50m Espalda" },
-  { distance: 100, stroke: 2, label: "100m Espalda" },
-  { distance: 200, stroke: 2, label: "200m Espalda" },
-  { distance: 50, stroke: 3, label: "50m Pecho" },
-  { distance: 100, stroke: 3, label: "100m Pecho" },
-  { distance: 200, stroke: 3, label: "200m Pecho" },
-  { distance: 50, stroke: 4, label: "50m Mariposa" },
-  { distance: 100, stroke: 4, label: "100m Mariposa" },
-  { distance: 200, stroke: 4, label: "200m Mariposa" },
-  { distance: 100, stroke: 5, label: "100m Combinado (SCM)" },
-  { distance: 200, stroke: 5, label: "200m Combinado" },
-  { distance: 400, stroke: 5, label: "400m Combinado" },
-];
+// Calcula la edad competitiva al 31 de diciembre del año de referencia
+export function getCompetitiveAge(birthDate: string, referenceYear: number): number {
+  const birthYear = new Date(birthDate).getFullYear();
+  return referenceYear - birthYear;
+}
 
-export const QUICK_AGE_CATEGORIES = [
-  { label: "10 - 11", name: "Infantil A", min: 10, max: 11 },
-  { label: "12 - 13", name: "Infantil B", min: 12, max: 13 },
-  { label: "14 - 15", name: "Juvenil A", min: 14, max: 15 },
-  { label: "16 - 18", name: "Juvenil B", min: 16, max: 18 },
-  { label: "19+", name: "Máxima / Abierto", min: 19, max: 99 },
-];
+// Normalizador de estado para comparaciones flexibles (e.g. 'Lara' y 'Lara (ADAEL)')
+export function cleanStateName(raw: string): string {
+  if (!raw) return '';
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\(.*?\)\s*/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
 
 /**
- * Motor principal de cálculo del Ranking Estadal
+ * Motor Principal de Generación de Ranking Estadal
  */
 export function generateStateRanking(
-  allResults: readonly any[],
-  allAthletes: readonly any[],
-  allClubs: readonly any[] = [],
-  allTeams: readonly any[] = [],
-  activeClub: any = null,
-  filters: StateRankingFilters
-): { rankedList: StateRankingItem[]; summary: StateRankingSummary } {
-  const currentYear = filters.referenceYear ?? new Date().getFullYear();
+  allResults: SwimResult[],
+  filters: RankingFilters
+): RankedSwimResult[] {
+  const targetStateClean = cleanStateName(filters.state);
 
-  // 1. Determinar el Estado / Asociación del club activo
-  const fullActiveClub = allClubs.find((c) => c.id === activeClub?.id) || activeClub;
-  const activeClubCode = (fullActiveClub?.team_code || fullActiveClub?.short_name || fullActiveClub?.name || "MICLUB").toUpperCase().trim();
-  const activeClubName = fullActiveClub?.full_name || fullActiveClub?.name || "Mi Club";
+  // 1. Filtrar por estado, prueba, género, tipo de piscina, fecha y rango de edad
+  const filtered = allResults.filter((r) => {
+    const resultStateClean = cleanStateName(r.state);
+    const matchesState =
+      resultStateClean === targetStateClean ||
+      r.state.toLowerCase() === filters.state.toLowerCase() ||
+      resultStateClean.includes(targetStateClean) ||
+      targetStateClean.includes(resultStateClean);
 
-  const rawConfiguredState = fullActiveClub?.region_lsc || fullActiveClub?.region || "";
-  const detectedState = rawConfiguredState ? normalizeAssociationName(rawConfiguredState) : "Lara (ADAEL)";
-  const targetState = filters.stateOverride && filters.stateOverride !== "auto"
-    ? normalizeAssociationName(filters.stateOverride)
-    : detectedState;
-
-  // Mapa rápido de clubes y sus asociaciones
-  const clubAssocMap = new Map<string, { code: string; name: string; assoc: string; id: string }>();
-  for (const c of allClubs) {
-    const code = (c.team_code || c.short_name || c.name || "CLUB").toUpperCase().trim();
-    clubAssocMap.set(c.id, {
-      id: c.id,
-      code,
-      name: c.full_name || c.name,
-      assoc: normalizeAssociationName(c.region_lsc || c.region),
-    });
-    clubAssocMap.set(code, {
-      id: c.id,
-      code,
-      name: c.full_name || c.name,
-      assoc: normalizeAssociationName(c.region_lsc || c.region),
-    });
-  }
-
-  for (const t of allTeams) {
-    const code = (t.code || "TEAM").toUpperCase().trim();
-    if (!clubAssocMap.has(code)) {
-      clubAssocMap.set(code, {
-        id: t.id,
-        code,
-        name: t.name || code,
-        assoc: normalizeAssociationName(t.lsc),
-      });
-    }
-  }
-
-  // Helper para verificar si pertenece al estado objetivo
-  const matchesTargetState = (assoc: string) => {
-    if (!targetState || targetState === "Todas" || targetState === "all") return true;
-    const cleanTarget = targetState.toLowerCase().trim();
-    const cleanAssoc = assoc.toLowerCase().trim();
-    return cleanAssoc.includes(cleanTarget) || cleanTarget.includes(cleanAssoc);
-  };
-
-  // 2. Filtrado inicial de resultados
-  const validRecords = allResults.filter((r) => {
-    // Solo tiempos válidos (sin DQ ni DNS ni tiempos nulos)
-    if (r.is_dq || !r.final_time_ms || r.final_time_ms <= 0) return false;
-
-    // Filtro de piscina (LCM vs SCM)
+    if (!matchesState) return false;
+    if (r.eventCode !== filters.eventCode) return false;
+    if (r.gender !== filters.gender) return false;
     if (r.course !== filters.course) return false;
+    if (filters.seasonStart && r.meetDate < filters.seasonStart) return false;
 
-    // Filtro de distancia y estilo
-    const evDistance = r.events?.distance ?? r.distance;
-    const evStroke = r.events?.stroke ?? r.stroke;
-    if (evDistance !== filters.distance || evStroke !== filters.stroke) return false;
-
-    // Atleta asociado
-    const athlete = allAthletes.find((a) => a.id === r.athlete_id) || r.athletes;
-    if (!athlete) return false;
-
-    // Filtro de género
-    if (athlete.gender !== filters.gender) return false;
-
-    // Cálculo y filtro de edad (según año de nacimiento vs año competitivo)
-    if (athlete.birth_date) {
-      const birthYear = Number(athlete.birth_date.slice(0, 4));
-      const competitiveAge = currentYear - birthYear;
-      if (filters.minAge !== undefined && competitiveAge < filters.minAge) return false;
-      if (filters.maxAge !== undefined && competitiveAge > filters.maxAge) return false;
-    }
-
-    // Filtro de temporada o fechas
-    const meetDate = r.meets?.start_date || r.meet_date;
-    if (filters.season && filters.season !== "all") {
-      if (!meetDate || meetDate.slice(0, 4) !== filters.season) return false;
-    }
-    if (filters.startDate && meetDate && meetDate < filters.startDate) return false;
-    if (filters.endDate && meetDate && meetDate > filters.endDate) return false;
-
-    // Filtro estricto por Estado / Asociación
-    const clubInfo =
-      (athlete.club_id && clubAssocMap.get(athlete.club_id)) ||
-      (athlete.clubs?.id && clubAssocMap.get(athlete.clubs.id)) ||
-      (r.origin_team && clubAssocMap.get(r.origin_team.toUpperCase().trim())) ||
-      (athlete.clubs?.team_code && clubAssocMap.get(athlete.clubs.team_code.toUpperCase().trim()));
-
-    const athleteAssoc = clubInfo
-      ? clubInfo.assoc
-      : normalizeAssociationName(athlete.clubs?.region_lsc || athlete.clubs?.region || athlete.teams?.lsc);
-
-    if (!matchesTargetState(athleteAssoc)) {
-      return false;
-    }
-
-    return true;
+    const age = getCompetitiveAge(r.birthDate, filters.referenceYear);
+    return age >= filters.minAge && age <= filters.maxAge;
   });
 
-  // 3. Deduplicación: Conservar ÚNICAMENTE la MEJOR marca personal de cada nadador
-  const bestBySwimmer = new Map<string, any>();
-
-  for (const r of validRecords) {
-    const swimmerId = r.athlete_id || (r as any).swimmer_id || r.athletes?.id;
-    if (!swimmerId) continue;
-
-    const existing = bestBySwimmer.get(swimmerId);
-    if (!existing || r.final_time_ms < existing.final_time_ms) {
-      bestBySwimmer.set(swimmerId, r);
+  // 2. Quedarse solo con la MEJOR marca (menor timeMs) de cada atleta
+  const bestByAthlete = new Map<string, SwimResult>();
+  for (const result of filtered) {
+    const existing = bestByAthlete.get(result.athleteId);
+    if (!existing || result.timeMs < existing.timeMs) {
+      bestByAthlete.set(result.athleteId, result);
     }
   }
 
-  // 4. Ordenamiento ascendente por tiempo
-  const sorted = Array.from(bestBySwimmer.values()).sort(
-    (a, b) => a.final_time_ms - b.final_time_ms
+  // 3. Ordenar de menor a mayor tiempo
+  const sorted = Array.from(bestByAthlete.values()).sort(
+    (a, b) => a.timeMs - b.timeMs
   );
 
-  const leaderTimeMs = sorted.length > 0 ? sorted[0].final_time_ms : 0;
+  // 4. Enriquecer con posición, bandera de "Mi Club" y diferencial respecto al líder
+  const leaderTime = sorted.length > 0 ? sorted[0].timeMs : 0;
 
-  // 5. Asignación de rangos con manejo de empates y cálculo de Diferencia vs. #1
-  let currentRank = 1;
-  const rankedList: StateRankingItem[] = sorted.map((r, index) => {
-    if (index > 0 && r.final_time_ms > sorted[index - 1].final_time_ms) {
-      currentRank = index + 1;
-    }
-
-    const athlete = allAthletes.find((a) => a.id === r.athlete_id) || r.athletes;
-    const athleteName = athlete
-      ? `${athlete.last_name || ""}, ${athlete.first_name || ""}`.trim().replace(/^,\s*|,\s*$/g, "")
-      : "Atleta Desconocido";
-
-    const birthYear = athlete?.birth_date ? Number(athlete.birth_date.slice(0, 4)) : currentYear;
-    const age = currentYear - birthYear;
-
-    const clubMeta =
-      (athlete?.club_id && clubAssocMap.get(athlete.club_id)) ||
-      (r.origin_team && clubAssocMap.get(r.origin_team.toUpperCase().trim())) ||
-      (athlete?.clubs?.id && clubAssocMap.get(athlete.clubs.id));
-
-    const clubCode = clubMeta?.code || athlete?.clubs?.team_code || athlete?.teams?.code || r.origin_team || "CLUB";
-    const clubName = clubMeta?.name || athlete?.clubs?.full_name || athlete?.clubs?.name || athlete?.teams?.name || clubCode;
-    const association = clubMeta?.assoc || normalizeAssociationName(athlete?.clubs?.region_lsc || athlete?.teams?.lsc);
-
-    // Resaltado de Mi Club: coteja id de club o código de equipo
-    const isMyClub = Boolean(
-      (fullActiveClub?.id && athlete?.club_id === fullActiveClub.id) ||
-      (fullActiveClub?.team_code && clubCode.toUpperCase() === fullActiveClub.team_code.toUpperCase()) ||
-      (fullActiveClub?.name && clubName.toLowerCase() === fullActiveClub.name.toLowerCase())
-    );
-
-    const diffVsLeaderMs = r.final_time_ms - leaderTimeMs;
-    const diffVsLeader =
-      currentRank === 1
-        ? "+0.00s"
-        : `+${(diffVsLeaderMs / 1000).toFixed(2)}s`;
-
+  return sorted.map((entry, index) => {
+    const diffMs = entry.timeMs - leaderTime;
     return {
-      rank: currentRank,
-      swimmerId: athlete?.id || r.athlete_id,
-      athleteName,
-      gender: athlete?.gender || filters.gender,
-      birthDate: athlete?.birth_date || null,
-      age,
-      clubId: athlete?.club_id || "",
-      clubCode,
-      clubName,
-      association,
-      isMyClub,
-      distance: filters.distance,
-      stroke: filters.stroke,
-      course: filters.course,
-      timeMs: r.final_time_ms,
-      formattedTime: formatTime(r.final_time_ms),
-      diffVsLeader,
-      diffVsLeaderMs,
-      aquaPoints: r.aqua_points ?? null,
-      meetName: r.meets?.name || "Torneo Oficial",
-      meetDate: r.meets?.start_date || r.meet_date || null,
+      rank: index + 1,
+      ...entry,
+      age: getCompetitiveAge(entry.birthDate, filters.referenceYear),
+      isMyClub: entry.clubCode.toUpperCase().trim() === filters.myClubCode.toUpperCase().trim(),
+      diffFromLeader: index === 0 ? '—' : `+${(diffMs / 1000).toFixed(2)}s`,
     };
   });
+}
 
-  // 6. Métricas y KPIs de "Mi Club" frente a los clubes adversarios
-  const myClubSwimmers = rankedList.filter((item) => item.isMyClub);
-  const myClubTop8Count = myClubSwimmers.filter((item) => item.rank <= 8).length;
-  const myClubBestSwimmer = myClubSwimmers.length > 0 ? myClubSwimmers[0] : null;
+/**
+ * Cálculo de Resumen de KPIs de "Mi Club" frente al Estado
+ */
+export function calculateStateRankingSummary(
+  rankedResults: RankedSwimResult[],
+  filters: RankingFilters
+): StateRankingSummary {
+  const myClubSwimmers = rankedResults.filter((r) => r.isMyClub);
+  const myClubTop8Count = myClubSwimmers.filter((r) => r.rank <= 8).length;
+  const myClubBest = myClubSwimmers.length > 0 ? myClubSwimmers[0] : null;
+
+  const leader = rankedResults.length > 0 ? rankedResults[0] : null;
+  const leaderTime = leader ? leader.timeMs : 0;
 
   let myClubLeaderGapSeconds: number | null = null;
-  let myClubLeaderGapText = "Sin atletas de mi club clasificados en esta prueba";
+  let myClubLeaderGapText = 'Sin atletas de mi club clasificados en esta prueba';
 
-  if (myClubBestSwimmer) {
-    if (myClubBestSwimmer.rank === 1) {
+  if (myClubBest) {
+    if (myClubBest.rank === 1) {
       myClubLeaderGapSeconds = 0;
-      myClubLeaderGapText = `¡Líder Estadal! (por ${myClubBestSwimmer.athleteName})`;
+      myClubLeaderGapText = `¡Líder Estadal! (por ${myClubBest.athleteName})`;
     } else {
-      myClubLeaderGapSeconds = Number((myClubBestSwimmer.diffVsLeaderMs / 1000).toFixed(2));
-      myClubLeaderGapText = `+${myClubLeaderGapSeconds}s respecto al 1° (por ${myClubBestSwimmer.athleteName} · #${myClubBestSwimmer.rank})`;
+      myClubLeaderGapSeconds = Number(((myClubBest.timeMs - leaderTime) / 1000).toFixed(2));
+      myClubLeaderGapText = `+${myClubLeaderGapSeconds}s respecto al 1° (por ${myClubBest.athleteName} · #${myClubBest.rank})`;
     }
   }
 
-  const summary: StateRankingSummary = {
-    activeState: targetState,
-    activeClubName,
-    activeClubCode,
-    totalSwimmers: rankedList.length,
-    leaderSwimmer: rankedList.length > 0 ? rankedList[0] : null,
+  return {
+    activeState: filters.state,
+    myClubCode: filters.myClubCode,
+    totalSwimmers: rankedResults.length,
+    leader,
     myClubTop8Count,
-    myClubBestSwimmer,
+    myClubBest,
     myClubLeaderGapSeconds,
     myClubLeaderGapText,
   };
+}
 
-  return { rankedList, summary };
+/**
+ * Lista oficial de eventos de natación con código estandarizado
+ */
+export const STATE_EVENT_CODES = [
+  { eventCode: '50_FREE', label: '50m Libre', distance: 50, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '100_FREE', label: '100m Libre', distance: 100, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '200_FREE', label: '200m Libre', distance: 200, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '400_FREE', label: '400m Libre', distance: 400, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '800_FREE', label: '800m Libre', distance: 800, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '1500_FREE', label: '1500m Libre', distance: 1500, stroke: 'FREE', strokeNum: 1 },
+  { eventCode: '50_BACK', label: '50m Espalda', distance: 50, stroke: 'BACK', strokeNum: 2 },
+  { eventCode: '100_BACK', label: '100m Espalda', distance: 100, stroke: 'BACK', strokeNum: 2 },
+  { eventCode: '200_BACK', label: '200m Espalda', distance: 200, stroke: 'BACK', strokeNum: 2 },
+  { eventCode: '50_BREAST', label: '50m Pecho', distance: 50, stroke: 'BREAST', strokeNum: 3 },
+  { eventCode: '100_BREAST', label: '100m Pecho', distance: 100, stroke: 'BREAST', strokeNum: 3 },
+  { eventCode: '200_BREAST', label: '200m Pecho', distance: 200, stroke: 'BREAST', strokeNum: 3 },
+  { eventCode: '50_FLY', label: '50m Mariposa', distance: 50, stroke: 'FLY', strokeNum: 4 },
+  { eventCode: '100_FLY', label: '100m Mariposa', distance: 100, stroke: 'FLY', strokeNum: 4 },
+  { eventCode: '200_FLY', label: '200m Mariposa', distance: 200, stroke: 'FLY', strokeNum: 4 },
+  { eventCode: '100_IM', label: '100m Combinado (SCM)', distance: 100, stroke: 'IM', strokeNum: 5 },
+  { eventCode: '200_IM', label: '200m Combinado', distance: 200, stroke: 'IM', strokeNum: 5 },
+  { eventCode: '400_IM', label: '400m Combinado', distance: 400, stroke: 'IM', strokeNum: 5 },
+];
+
+export const QUICK_AGE_CATEGORIES = [
+  { label: '10 - 11', name: 'Infantil A', min: 10, max: 11 },
+  { label: '12 - 13', name: 'Infantil B', min: 12, max: 13 },
+  { label: '14 - 15', name: 'Juvenil A', min: 14, max: 15 },
+  { label: '16 - 18', name: 'Juvenil B', min: 16, max: 18 },
+  { label: '19+', name: 'Máxima / Abierto', min: 19, max: 99 },
+];
+
+/**
+ * Adaptador: Convierte resultados heterogéneos de base de datos a SwimResult[]
+ */
+export function adaptToSwimResults(
+  results: readonly any[],
+  athletes: readonly any[],
+  clubs: readonly any[] = [],
+  teams: readonly any[] = []
+): SwimResult[] {
+  const clubMap = new Map<string, { code: string; name: string; state: string }>();
+
+  for (const c of clubs) {
+    const code = (c.team_code || c.short_name || c.name || 'CLUB').toUpperCase().trim();
+    const state = normalizeAssociationName(c.region_lsc || c.region || 'Lara');
+    clubMap.set(c.id, { code, name: c.full_name || c.name, state });
+    clubMap.set(code, { code, name: c.full_name || c.name, state });
+  }
+
+  for (const t of teams) {
+    const code = (t.code || 'TEAM').toUpperCase().trim();
+    if (!clubMap.has(code)) {
+      const state = normalizeAssociationName(t.lsc || 'Lara');
+      clubMap.set(t.id, { code, name: t.name || code, state });
+      clubMap.set(code, { code, name: t.name || code, state });
+    }
+  }
+
+  const strokeNumToStr: Record<number, string> = {
+    1: 'FREE',
+    2: 'BACK',
+    3: 'BREAST',
+    4: 'FLY',
+    5: 'IM',
+  };
+
+  const adapted: SwimResult[] = [];
+
+  for (const r of results) {
+    if (r.is_dq || !r.final_time_ms || r.final_time_ms <= 0) continue;
+
+    const ath = athletes.find((a) => a.id === r.athlete_id) || r.athletes;
+    if (!ath || !ath.birth_date) continue;
+
+    const distance = r.events?.distance ?? r.distance ?? 100;
+    const strokeNum = r.events?.stroke ?? r.stroke ?? 1;
+    const strokeStr = strokeNumToStr[strokeNum] || 'FREE';
+    const eventCode = `${distance}_${strokeStr}`;
+
+    const clubMeta =
+      (ath.club_id && clubMap.get(ath.club_id)) ||
+      (r.origin_team && clubMap.get(r.origin_team.toUpperCase().trim())) ||
+      (ath.clubs?.id && clubMap.get(ath.clubs.id)) ||
+      (ath.clubs?.team_code && clubMap.get(ath.clubs.team_code.toUpperCase().trim()));
+
+    const clubCode = clubMeta?.code || ath.clubs?.team_code || ath.teams?.code || r.origin_team || 'CLUB';
+    const clubName = clubMeta?.name || ath.clubs?.full_name || ath.clubs?.name || ath.teams?.name || clubCode;
+    const state = clubMeta?.state || normalizeAssociationName(ath.clubs?.region_lsc || ath.teams?.lsc || 'Lara');
+
+    adapted.push({
+      id: r.id || `${ath.id}-${r.final_time_ms}`,
+      athleteId: ath.id || r.athlete_id,
+      athleteName: `${ath.last_name || ''}, ${ath.first_name || ''}`.trim().replace(/^,\s*|,\s*$/g, ''),
+      birthDate: ath.birth_date,
+      gender: ath.gender || 'M',
+      clubCode,
+      clubName,
+      state,
+      eventCode,
+      course: r.course === 'SCM' ? 'SCM' : 'LCM',
+      timeMs: r.final_time_ms,
+      timeFormatted: formatTime(r.final_time_ms),
+      meetName: r.meets?.name || 'Torneo Oficial',
+      meetDate: r.meets?.start_date || r.meet_date || '2026-01-01',
+      aquaPoints: r.aqua_points ?? null,
+    });
+  }
+
+  return adapted;
 }

@@ -22,10 +22,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   generateStateRanking,
-  STATE_EVENTS_LIST,
+  calculateStateRankingSummary,
+  adaptToSwimResults,
+  STATE_EVENT_CODES,
   QUICK_AGE_CATEGORIES,
-  type StateRankingFilters,
-  type StateRankingItem,
+  type SwimResult,
+  type RankingFilters,
+  type RankedSwimResult,
 } from "@/lib/state-ranking";
 import { downloadFile } from "@/lib/file-delivery";
 
@@ -43,7 +46,7 @@ export function StateRankingView({
   activeClub?: any;
 }) {
   // Filtros de estado
-  const [selectedEventKey, setSelectedEventKey] = useState<string>("100-1"); // 100m Libre default
+  const [selectedEventCode, setSelectedEventCode] = useState<string>("100_FREE"); // 100m Libre default
   const [selectedCourse, setSelectedCourse] = useState<"LCM" | "SCM">("LCM");
   const [selectedGender, setSelectedGender] = useState<"M" | "F">("M");
   const [minAge, setMinAge] = useState<string>("");
@@ -52,58 +55,70 @@ export function StateRankingView({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [stateOverride, setStateOverride] = useState<string>("auto");
 
+  // Adaptación de resultados heterogéneos de la BD a la interfaz SwimResult
+  const swimResults: SwimResult[] = useMemo(() => {
+    return adaptToSwimResults(results, athletes, clubs, teams);
+  }, [results, athletes, clubs, teams]);
+
   // Temporadas disponibles a partir de los torneos
   const availableSeasons = useMemo(() => {
     const years = new Set<string>();
-    for (const r of results) {
-      const d = r.meets?.start_date || r.meet_date;
-      if (d) years.add(d.slice(0, 4));
+    for (const r of swimResults) {
+      if (r.meetDate) years.add(r.meetDate.slice(0, 4));
     }
     years.add("2026");
     years.add("2025");
     return ["all", ...Array.from(years).sort((a, b) => b.localeCompare(a))];
-  }, [results]);
+  }, [swimResults]);
 
-  // Evento actual desglosado en distancia y estilo
-  const [currentDistance, currentStroke] = useMemo(() => {
-    const [d, s] = selectedEventKey.split("-").map(Number);
-    return [d || 100, s || 1];
-  }, [selectedEventKey]);
-
-  // Lista de estados detectados para permitir alternar opcionalmente
+  // Lista de estados detectados
   const detectedStates = useMemo(() => {
     const states = new Set<string>();
-    for (const c of clubs) {
-      if (c.region_lsc || c.region) states.add(c.region_lsc || c.region);
+    for (const r of swimResults) {
+      if (r.state) states.add(r.state);
     }
-    for (const t of teams) {
-      if (t.lsc) states.add(t.lsc);
-    }
-    states.add("Lara (ADAEL)");
-    states.add("Miranda (ADAEM)");
-    states.add("Distrito Capital (ASDAC)");
-    states.add("Carabobo (ASODENA)");
-    states.add("Zulia (AZUDA)");
+    states.add("Lara");
+    states.add("Miranda");
+    states.add("Distrito Capital");
+    states.add("Carabobo");
+    states.add("Zulia");
     return Array.from(states).sort();
-  }, [clubs, teams]);
+  }, [swimResults]);
 
-  // Filtros aplicados
-  const filters: StateRankingFilters = useMemo(() => ({
-    distance: currentDistance,
-    stroke: currentStroke,
-    course: selectedCourse,
+  // Club activo y código
+  const myClubCode = useMemo(() => {
+    return (activeClub?.team_code || activeClub?.short_name || activeClub?.name || "JSWIM").toUpperCase().trim();
+  }, [activeClub]);
+
+  const activeClubName = activeClub?.full_name || activeClub?.name || "Mi Club";
+
+  const resolvedState = useMemo(() => {
+    if (stateOverride !== "auto") return stateOverride;
+    return activeClub?.region_lsc || activeClub?.region || "Lara";
+  }, [stateOverride, activeClub]);
+
+  // Configuración de filtros del ranking
+  const rankingFilters: RankingFilters = useMemo(() => ({
+    myClubCode,
+    state: resolvedState,
     gender: selectedGender,
-    minAge: minAge !== "" ? Number(minAge) : undefined,
-    maxAge: maxAge !== "" ? Number(maxAge) : undefined,
+    eventCode: selectedEventCode,
+    course: selectedCourse,
+    minAge: minAge !== "" ? Number(minAge) : 0,
+    maxAge: maxAge !== "" ? Number(maxAge) : 99,
     referenceYear: selectedSeason !== "all" ? Number(selectedSeason) : new Date().getFullYear(),
-    season: selectedSeason,
-    stateOverride: stateOverride === "auto" ? undefined : stateOverride,
-  }), [currentDistance, currentStroke, selectedCourse, selectedGender, minAge, maxAge, selectedSeason, stateOverride]);
+    seasonStart: selectedSeason !== "all" ? `${selectedSeason}-01-01` : undefined,
+  }), [myClubCode, resolvedState, selectedGender, selectedEventCode, selectedCourse, minAge, maxAge, selectedSeason]);
 
-  // Ejecución del motor de ranking estadal
-  const { rankedList, summary } = useMemo(() => {
-    return generateStateRanking(results, athletes, clubs, teams, activeClub, filters);
-  }, [results, athletes, clubs, teams, activeClub, filters]);
+  // Ejecución del motor oficial de ranking estadal
+  const rankedList: RankedSwimResult[] = useMemo(() => {
+    return generateStateRanking(swimResults, rankingFilters);
+  }, [swimResults, rankingFilters]);
+
+  // Resumen de KPIs y métricas de Mi Club vs Rivales
+  const summary = useMemo(() => {
+    return calculateStateRankingSummary(rankedList, rankingFilters);
+  }, [rankedList, rankingFilters]);
 
   // Filtrado reactivo por texto de búsqueda en la tabla
   const displayedList = useMemo(() => {
@@ -157,8 +172,8 @@ export function StateRankingView({
       r.clubCode,
       `"${r.clubName}"`,
       r.isMyClub ? "SÍ" : "NO",
-      r.formattedTime,
-      r.diffVsLeader,
+      r.timeFormatted,
+      r.diffFromLeader,
       r.aquaPoints ?? "—",
       `"${r.meetName}"`,
       r.meetDate ?? "—",
@@ -166,7 +181,7 @@ export function StateRankingView({
 
     const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const filename = `ranking_estadal_${summary.activeState.replace(/[^a-z0-9]/gi, "_")}_${selectedCourse}_${selectedGender}_${currentDistance}m.csv`;
+    const filename = `ranking_estadal_${summary.activeState.replace(/[^a-z0-9]/gi, "_")}_${selectedCourse}_${selectedGender}_${selectedEventCode}.csv`;
     downloadFile(new File([blob], filename, { type: "text/csv" }));
   };
 
@@ -185,7 +200,7 @@ export function StateRankingView({
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Filtrado automático por el Estado configurado en el club activo ({summary.activeClubName} · {summary.activeClubCode}).
+            Filtrado automático por el Estado configurado en el club activo ({activeClubName} · {myClubCode}).
             Conserva únicamente la mejor marca personal de cada atleta sin duplicados.
           </p>
         </div>
@@ -200,8 +215,7 @@ export function StateRankingView({
                 <SelectValue placeholder="Estado automático" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto">Automático (Perfil Activo)</SelectItem>
-                <SelectItem value="all">Nacional / Todas las Asoc.</SelectItem>
+                <SelectItem value="auto">Automático ({activeClub?.region_lsc || "Perfil Activo"})</SelectItem>
                 {detectedStates.map((st) => (
                   <SelectItem key={st} value={st}>
                     {st}
@@ -235,8 +249,8 @@ export function StateRankingView({
           <CardContent className="p-4 pt-0">
             <p className="text-xs text-muted-foreground">
               {summary.myClubTop8Count > 0
-                ? `${summary.myClubTop8Count} nadadores de ${summary.activeClubCode} entre los 8 mejores del estado.`
-                : `Sin nadadores de ${summary.activeClubCode} en el Top 8 de esta prueba.`}
+                ? `${summary.myClubTop8Count} nadadores de ${summary.myClubCode} entre los 8 mejores del estado.`
+                : `Sin nadadores de ${summary.myClubCode} en el Top 8 de esta prueba.`}
             </p>
           </CardContent>
         </Card>
@@ -277,13 +291,13 @@ export function StateRankingView({
               <Medal className="h-4 w-4 text-amber-500" />
             </CardDescription>
             <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-mono">
-              {summary.leaderSwimmer ? summary.leaderSwimmer.formattedTime : "—"}
+              {summary.leader ? summary.leader.timeFormatted : "—"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <p className="text-xs text-muted-foreground truncate">
-              {summary.leaderSwimmer
-                ? `${summary.leaderSwimmer.athleteName} (${summary.leaderSwimmer.clubCode})`
+              {summary.leader
+                ? `${summary.leader.athleteName} (${summary.leader.clubCode})`
                 : "Sin tiempos registrados con estos filtros"}
             </p>
           </CardContent>
@@ -302,7 +316,7 @@ export function StateRankingView({
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <p className="text-xs text-muted-foreground">
-              {filters.course === "LCM" ? "Piscina Larga (50m)" : "Piscina Corta (25m)"} · {filters.gender === "M" ? "Masculino" : "Femenino"}
+              {rankingFilters.course === "LCM" ? "Piscina Larga (50m)" : "Piscina Corta (25m)"} · {rankingFilters.gender === "M" ? "Masculino" : "Femenino"}
             </p>
           </CardContent>
         </Card>
@@ -325,13 +339,13 @@ export function StateRankingView({
             {/* Prueba y Distancia */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground">Prueba y Distancia</label>
-              <Select value={selectedEventKey} onValueChange={setSelectedEventKey}>
+              <Select value={selectedEventCode} onValueChange={setSelectedEventCode}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Selecciona prueba" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  {STATE_EVENTS_LIST.map((ev) => (
-                    <SelectItem key={`${ev.distance}-${ev.stroke}`} value={`${ev.distance}-${ev.stroke}`}>
+                  {STATE_EVENT_CODES.map((ev) => (
+                    <SelectItem key={ev.eventCode} value={ev.eventCode}>
                       {ev.label}
                     </SelectItem>
                   ))}
@@ -494,7 +508,7 @@ export function StateRankingView({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-foreground">
-              Ranking Oficial — {STATE_EVENTS_LIST.find((e) => e.distance === currentDistance && e.stroke === currentStroke)?.label || "Prueba"} ({selectedCourse})
+              Ranking Oficial — {STATE_EVENT_CODES.find((e) => e.eventCode === selectedEventCode)?.label || "Prueba"} ({selectedCourse})
             </h3>
             <Badge variant="secondary" className="font-mono text-xs">
               {displayedList.length} {displayedList.length === 1 ? "nadador" : "nadadores"}
@@ -535,7 +549,7 @@ export function StateRankingView({
 
                 return (
                   <tr
-                    key={`${item.swimmerId}-${item.timeMs}`}
+                    key={`${item.athleteId}-${item.timeMs}`}
                     className={`transition-colors hover:bg-muted/40 ${
                       item.isMyClub
                         ? "bg-primary/10 border-l-4 border-l-primary font-medium dark:bg-primary/15"
@@ -596,15 +610,15 @@ export function StateRankingView({
 
                     {/* Tiempo */}
                     <td className="p-3 text-center font-mono font-bold text-xs text-foreground bg-muted/20">
-                      {item.formattedTime}
+                      {item.timeFormatted}
                     </td>
 
                     {/* Diferencia vs. #1 */}
                     <td className="p-3 text-center font-mono text-xs">
                       {item.rank === 1 ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">+0.00s</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">—</span>
                       ) : (
-                        <span className="text-muted-foreground">{item.diffVsLeader}</span>
+                        <span className="text-muted-foreground">{item.diffFromLeader}</span>
                       )}
                     </td>
 
@@ -646,7 +660,7 @@ export function StateRankingView({
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-primary" />
-              Atletas de Mi Club ({summary.activeClubCode}) resaltados
+              Atletas de Mi Club ({summary.myClubCode}) resaltados
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500" />
