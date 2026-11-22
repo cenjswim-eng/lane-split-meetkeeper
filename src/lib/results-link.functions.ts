@@ -1,44 +1,127 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizeResultsUrl } from "@/lib/feveda";
 
 const MAX_BYTES = 8_000_000;
 const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|\[?::1\]?$|.*\.local$|.*\.internal$)/i;
 
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,*/*;q=0.8",
+  "Accept-Language": "es-VE,es-419;q=0.9,es;q=0.8,en;q=0.7",
+  "Sec-Ch-Ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+  "Sec-Ch-Ua-Mobile": "?0",
+  "Sec-Ch-Ua-Platform": '"Windows"',
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
+  "Cache-Control": "max-age=0",
+};
+
 export const fetchResultsLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { url: string; allowBrowser?: boolean }) => {
+    const clean = normalizeResultsUrl(String(input?.url ?? ""));
     let u: URL;
-    try { u = new URL(String(input?.url ?? "").trim()); } catch { throw new Error("Escribe un enlace válido (https://…)."); }
-    if (!/^https?:$/.test(u.protocol) || PRIVATE_HOST.test(u.hostname)) throw new Error("Escribe un enlace público http o https.");
+    try {
+      u = new URL(clean);
+    } catch {
+      throw new Error("Escribe un enlace válido (https://…).");
+    }
+    if (!/^https?:$/.test(u.protocol) || PRIVATE_HOST.test(u.hostname)) {
+      throw new Error("Escribe un enlace público http o https.");
+    }
     return { url: u.toString(), allowBrowser: input.allowBrowser === true };
   })
   .handler(async ({ data, context }) => {
     const role = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (role.error || !role.data) throw new Error("No tienes permiso para importar resultados.");
-    let res: Response;
+
+    const doFetch = async (targetUrl: string) => {
+      return await fetch(targetUrl, {
+        redirect: "follow",
+        signal: AbortSignal.timeout(20_000),
+        headers: BROWSER_HEADERS,
+      });
+    };
+
+    let res: Response | null = null;
+    let finalRequestUrl = data.url;
+
     try {
-      res = await fetch(data.url, { redirect: "follow", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", Accept: "text/html,application/xhtml+xml,application/pdf,*/*;q=0.8", "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } });
+      res = await doFetch(finalRequestUrl);
+
+      // Si la URL es un directorio (ej. /2026/lara/) y dio 404, 403 o 530, probar archivos Meet Manager habituales
+      if (
+        !res.ok &&
+        [404, 403, 530].includes(res.status) &&
+        (finalRequestUrl.endsWith("/") || !/\.[a-z0-9]{2,5}$/i.test(new URL(finalRequestUrl).pathname))
+      ) {
+        const candidates = [
+          finalRequestUrl.replace(/\/?$/, "/evtindex.htm"),
+          finalRequestUrl.replace(/\/?$/, "/index.htm"),
+          finalRequestUrl.replace(/\/?$/, "/index.html"),
+        ];
+        for (const cand of candidates) {
+          try {
+            const candRes = await doFetch(cand);
+            if (candRes.ok) {
+              res = candRes;
+              finalRequestUrl = cand;
+              break;
+            }
+          } catch {
+            // Continuar con el siguiente candidato
+          }
+        }
+      }
     } catch {
-      if (!data.allowBrowser || /\.pdf(?:\?|$)/i.test(data.url)) throw new Error("No se pudo abrir el enlace. Puedes descargar el PDF y cargarlo sin créditos, o autorizar la lectura de páginas protegidas.");
+      if (!data.allowBrowser || /\.pdf(?:\?|$)/i.test(data.url)) {
+        throw new Error(
+          "No se pudo conectar con el servidor de resultados. Puedes descargar el archivo o copiar la tabla en tu navegador y pegarla directamente."
+        );
+      }
       return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
     }
-    if (!res.ok) {
-      // Anti-bot protections (e.g. Cloudflare challenges) reject server requests: read the page with a real browser instead.
-      if ([401, 403, 406, 429, 503].includes(res.status)) {
-        if (!data.allowBrowser || /\.pdf(?:\?|$)/i.test(data.url)) throw new Error(`El sitio bloquea la lectura (error ${res.status}). Descarga el PDF y cárgalo sin créditos, o autoriza la lectura de páginas protegidas.`);
-        return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+
+    if (!res || !res.ok) {
+      const status = res ? res.status : 0;
+      // Cloudflare y protecciones antibot / WAF (401, 403, 406, 429, 503, 520..530)
+      const isCloudflareOrWaf = [401, 403, 406, 429, 503, 520, 521, 522, 523, 524, 525, 526, 530].includes(status);
+      if (isCloudflareOrWaf) {
+        if (data.allowBrowser && !/\.pdf(?:\?|$)/i.test(data.url)) {
+          try {
+            return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+          } catch (e: any) {
+            throw new Error(
+              `Protección Cloudflare detectada (error ${status}). ${e?.message || ""} Te sugerimos copiar la tabla de resultados desde tu navegador y usar la pestaña 'Pegar Texto Directo'.`
+            );
+          }
+        }
+        let hostname = "el servidor";
+        try {
+          hostname = new URL(data.url).hostname;
+        } catch {}
+        throw new Error(
+          `El sitio ${hostname} tiene activado un escudo Cloudflare / antibot (error ${status}). Puedes abrir el enlace directamente en tu navegador personal, copiar los resultados y pegarlos en la pestaña 'Pegar Texto Directo' (no requiere servidor).`
+        );
       }
-      throw new Error(`La página respondió con error ${res.status}.`);
+      throw new Error(`La página respondió con error ${status}.`);
     }
+
     const buf = new Uint8Array(await res.arrayBuffer());
     if (buf.byteLength > MAX_BYTES) throw new Error("El documento del enlace pesa más de 8 MB.");
-    const isPdf = (res.headers.get("content-type") ?? "").includes("pdf") || new TextDecoder().decode(buf.slice(0, 5)) === "%PDF-";
+    const isPdf =
+      (res.headers.get("content-type") ?? "").includes("pdf") ||
+      new TextDecoder().decode(buf.slice(0, 5)) === "%PDF-";
     if (isPdf) {
       let bin = "";
       for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-      return { kind: "pdf" as const, base64: btoa(bin), url: res.url || data.url };
+      return { kind: "pdf" as const, base64: btoa(bin), url: res.url || finalRequestUrl };
     }
-    const finalUrl = res.url || data.url;
+    const finalUrl = res.url || finalRequestUrl;
     return { kind: "html" as const, html: decode(buf), url: finalUrl, via: "direct" as const };
   });
 

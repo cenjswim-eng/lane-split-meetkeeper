@@ -13,6 +13,10 @@ const STROKE_WORDS: [RegExp, number][] = [
 const TIME = String.raw`(?:\d{1,2}:)?\d{1,2}\.\d{2}`;
 // Age column may be a number or a US college class (FR/SO/JR/SR/5Y/GR); times may carry x/J/X prefixes and qualifier/points suffixes.
 const RESULT_LINE = new RegExp(String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([^,\d]+?),\s*([^\d]+?)\s+(\d{1,2}|FR|SO|JR|SR|5Y|GR)\s+(.+?)\s+[xXJ]?(${TIME}|NT|NS)?\s*[xXJ]?(${TIME}|DQ|NS|SCR|DFS|DNF|DSQ)\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`);
+// Soporte alternativo para tablas donde los nombres no tienen coma ("Perez Juan" o "Juan Perez")
+const RESULT_LINE_NO_COMMA = new RegExp(
+  String.raw`^\s*(\d{1,3}|-{1,3}|\*\d{1,3})?\s+([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+)?)\s+([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+)?)\s+(\d{1,2}|FR|SO|JR|SR|5Y|GR)\s+([A-Za-z0-9_-]{2,16})\s+[xXJ]?(${TIME}|NT|NS)?\s*[xXJ]?(${TIME}|DQ|NS|SCR|DFS|DNF|DSQ)\s*[A-Za-z!*$%]{0,3}\s*(?:\d+(?:\.\d+)?)?\s*$`
+);
 const SPLIT_LINE = new RegExp(String.raw`^\s+(?:(?:\d{2,4}m?:\s*)?${TIME}(?:\s*\(${TIME}\))?\s*)+$`);
 
 function isoFromMdy(m: string, d: string, y: string) {
@@ -21,7 +25,18 @@ function isoFromMdy(m: string, d: string, y: string) {
 }
 
 export function parseEventHeader(line: string) {
-  const m = line.match(/^\s*(?:#\s*)?(?:event|evento|prueba)\s+(\d+[A-Z]?)\s+(.*)$/i);
+  let m = line.match(/^\s*(?:#\s*)?(?:event|evento|prueba)\s*#?\s*(\d+[A-Z]?)\s+(.*)$/i);
+  if (!m) {
+    // También admitir encabezados directos como "#1 50m Libre Femenino 12-13" o "50 Libre Masculino"
+    const directMatch = line.match(/^\s*(?:#\s*(\d+[A-Z]?)\s+)?(.*)$/i);
+    if (directMatch && directMatch[2]) {
+      const distCheck = directMatch[2].match(/\b(25|50|100|200|400|800|1500|1650)\b/);
+      const strokeCheck = STROKE_WORDS.find(([re]) => directMatch[2] && re.test(directMatch[2]));
+      if (distCheck && strokeCheck) {
+        m = directMatch;
+      }
+    }
+  }
   if (!m) return null;
   const rest = m[2]!;
   if (/relay|relevo/i.test(rest)) return { relay: true as const };
@@ -35,7 +50,7 @@ export function parseEventHeader(line: string) {
   const under = rest.match(/\b(\d{1,2})\s*(?:&|y|and)\s*(?:under|menores)/i);
   if (range) { minAge = +range[1]!; maxAge = +range[2]!; } else if (over) minAge = +over[1]!; else if (under) maxAge = +under[1]!;
   const course = /yard|yarda/i.test(rest) ? "SCY" : /\bSC\b|short course|piscina corta|25\s*m/i.test(rest) ? "SCM" : /\bLC\b|long course|piscina larga|50\s*m/i.test(rest) ? "LCM" : null;
-  return { relay: false as const, number: m[1]!, distance: +dist[1]!, stroke, gender, minAge, maxAge, course };
+  return { relay: false as const, number: m[1] || "1", distance: +dist[1]!, stroke, gender, minAge, maxAge, course };
 }
 
 /** Reads a Meet Manager "Results" report from PDF text lines. Lines it cannot recognise are reported, never guessed. */
@@ -80,9 +95,26 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
       for (const ms of cum) last.splits.push({ distance: 0, cumulative_ms: ms });
       continue;
     }
+    let placeRaw: string | undefined;
+    let last: string | undefined;
+    let first: string | undefined;
+    let age: string | undefined;
+    let teamRaw: string | undefined;
+    let seedRaw: string | undefined;
+    let finalRaw: string | undefined;
+
     const m = line.match(RESULT_LINE);
-    if (!m) { if (/^\s*\d{1,3}\s+\S+,/.test(line)) skipped++; continue; }
-    const [, placeRaw, last, first, age, teamRaw, seedRaw, finalRaw] = m;
+    if (m) {
+      [, placeRaw, last, first, age, teamRaw, seedRaw, finalRaw] = m;
+    } else {
+      const m2 = line.match(RESULT_LINE_NO_COMMA);
+      if (m2) {
+        [, placeRaw, last, first, age, teamRaw, seedRaw, finalRaw] = m2;
+      } else {
+        if (/^\s*\d{1,3}\s+\S+/.test(line)) skipped++;
+        continue;
+      }
+    }
     const team = teamRaw!.trim().replace(/\s+/g, " ");
     const code = team.toUpperCase().slice(0, 16);
     teams.set(code, { code, name: team });

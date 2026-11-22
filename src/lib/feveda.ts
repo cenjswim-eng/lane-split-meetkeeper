@@ -7,10 +7,45 @@ export interface FevedaMeet {
   description?: string;
 }
 
+/**
+ * Normaliza y sanea URLs de resultados (FEVEDA, Natación Venezuela, Meet Manager, PDFs).
+ * - Corrige errores habituales de tipeo al copiar/pegar (ej. "atacionvenezuela.com" -> "natacionvenezuela.com").
+ * - Corrige URLs sin protocolo (agrega "https://").
+ * - Convierte enlaces compartidos de Google Drive o Dropbox en enlaces de descarga directa.
+ */
+export function normalizeResultsUrl(raw: string): string {
+  if (!raw) return "";
+  let clean = raw.trim();
+  // Eliminar delimitadores como <>, "", '', [] o espacios
+  clean = clean.replace(/^[<"'\s\[\(]+|[>"'\s\]\)]+$/g, "");
+  // Corregir tipeo común cuando se pierde la 'n' inicial al seleccionar "natacionvenezuela.com"
+  clean = clean.replace(/^(https?:\/\/)?(?:www\.)?atacionvenezuela\.com/i, "$1natacionvenezuela.com");
+  // Corregir tipeo común cuando se pierde la 'f' inicial al seleccionar "feveda.org"
+  clean = clean.replace(/^(https?:\/\/)?(?:www\.)?eveda\.org/i, "$1feveda.org");
+  // Si no tiene protocolo, agregar https://
+  if (!/^https?:\/\//i.test(clean)) {
+    clean = `https://${clean}`;
+  }
+  // Convertir enlaces compartidos de Google Drive en descarga directa
+  const gdriveMatch = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+  if (gdriveMatch?.[1]) {
+    return `https://drive.google.com/uc?export=download&id=${gdriveMatch[1]}`;
+  }
+  // Convertir enlaces compartidos de Dropbox a descarga directa (dl=1)
+  if (/dropbox\.com/i.test(clean)) {
+    if (!clean.includes("dl=1")) {
+      clean = clean.replace(/[?&]dl=0/, "");
+      clean += clean.includes("?") ? "&dl=1" : "?dl=1";
+    }
+  }
+  return clean;
+}
+
 /** Detects if a URL belongs to the Venezuelan Swimming Federation results network */
 export function isFevedaUrl(url: string): boolean {
   try {
-    const u = new URL(url.trim());
+    const normalized = normalizeResultsUrl(url);
+    const u = new URL(normalized);
     return /feveda\.org/i.test(u.hostname) || /natacionvenezuela\.com/i.test(u.hostname);
   } catch {
     return false;
@@ -21,7 +56,8 @@ export function isFevedaUrl(url: string): boolean {
 export function isFevedaDirectoryUrl(url: string): boolean {
   if (!isFevedaUrl(url)) return false;
   try {
-    const u = new URL(url.trim());
+    const normalized = normalizeResultsUrl(url);
+    const u = new URL(normalized);
     return /\/resultados\/?$/i.test(u.pathname) || /\/resultados-\d{4}\/?$/i.test(u.pathname) || u.pathname === "/" || u.pathname === "";
   } catch {
     return false;

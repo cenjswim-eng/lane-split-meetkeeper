@@ -10,7 +10,7 @@ import { readPdfLines } from "@/lib/club-document";
 import { parseMeetManagerResults } from "@/lib/pdf-results";
 import { browserBatchStatus, fetchResultsLink, startBrowserBatch } from "@/lib/results-link.functions";
 import { commaTimes, filterToRoster, htmlToLines, indexFrameUrl, meetEventPages, meetIndexInfo, type RosterAthlete } from "@/lib/results-link";
-import { isFevedaDirectoryUrl, parseFevedaDirectory, type FevedaMeet } from "@/lib/feveda";
+import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, type FevedaMeet } from "@/lib/feveda";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
@@ -86,7 +86,8 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
     setBlockedError(null);
 
     try {
-      const link = /^https?:\/\//i.test(inputUrl) ? inputUrl : `https://${inputUrl}`;
+      const link = normalizeResultsUrl(inputUrl);
+      setUrl(link);
 
       // 1. Check if it's the FEVEDA results portal directory
       if (isFevedaDirectoryUrl(link)) {
@@ -213,7 +214,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
       await finish(name, parsed);
     } catch (e) {
       const msg = (e as Error).message || "";
-      if (/403|bloquea/i.test(msg)) {
+      if (/530|403|401|406|429|503|520|521|522|523|524|525|526|cloudflare|escudo|bloque/i.test(msg)) {
         setBlockedError(msg);
       } else {
         toast.error(msg);
@@ -340,6 +341,17 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
               disabled={busy}
               className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
               onClick={() => {
+                setUrl("https://natacionvenezuela.com/2026/lara/");
+                read("https://natacionvenezuela.com/2026/lara/", "Campeonato Estadal Lara 2026");
+              }}
+            >
+              Estadal Lara 2026
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
                 setUrl("https://natacionvenezuela.com/2026/occidente/");
                 read("https://natacionvenezuela.com/2026/occidente/", "Campeonato Regional Occidente 2026");
               }}
@@ -425,15 +437,15 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         </div>
       )}
 
-      {/* Cloudflare 403 Solution Banner */}
+      {/* Cloudflare / WAF Solution Banner */}
       {blockedError && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200">
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <div className="space-y-2">
-              <div className="font-semibold">Protección Cloudflare detectada en FEVEDA (Bloqueo 403)</div>
+              <div className="font-semibold">Protección Cloudflare / Antibot Detectada (Error 530 / 403)</div>
               <p className="text-xs leading-relaxed opacity-90">
-                El servidor de <code>feveda.org</code> tiene activado un escudo antibot que rechaza las conexiones de servidores en la nube. 
+                El servidor remoto de la competencia tiene activado un escudo antibot que rechaza las conexiones automáticas de servidores en la nube. 
                 Sin embargo, <strong>tu navegador personal sí puede abrirlo con normalidad</strong>.
               </p>
               <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -441,12 +453,16 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
                   size="sm"
                   variant="default"
                   onClick={() => {
+                    if (url) {
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }
                     setMode("paste");
                     setBlockedError(null);
+                    toast.info("Enlace abierto. Selecciona la tabla de resultados, cópiala y pégala aquí.");
                   }}
                 >
                   <ClipboardPaste className="mr-1.5 size-3.5" />
-                  Solución rápida: Pegar resultados aquí
+                  Solución rápida: Abrir y Pegar resultados aquí
                 </Button>
                 {url && (
                   <a

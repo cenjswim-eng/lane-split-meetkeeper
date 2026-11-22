@@ -27,6 +27,7 @@ import {
   Calendar,
   X,
   ExternalLink,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ import {
 import { parseMeetManagerResults } from "@/lib/pdf-results";
 import { readPdfLines } from "@/lib/club-document";
 import { importParsed } from "@/lib/importer";
-import { isFevedaDirectoryUrl, parseFevedaDirectory, type FevedaMeet } from "@/lib/feveda";
+import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, type FevedaMeet } from "@/lib/feveda";
 import { normalizeTeamCode } from "@/data/fevedaClubs";
 import { formatTime } from "@/lib/swim";
 import type { ParsedFile } from "@/lib/hytek/types";
@@ -85,6 +86,7 @@ export function RivalResultsLinkExtractorModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressText, setProgressText] = useState<string | null>(null);
   const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [blockedError, setBlockedError] = useState<{ message: string; targetUrl: string; hostname: string } | null>(null);
 
   // Resultados parseados crudos
   const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null);
@@ -109,12 +111,16 @@ export function RivalResultsLinkExtractorModal({
       return;
     }
 
+    const cleanLink = normalizeResultsUrl(inputUrl);
+    setUrl(cleanLink);
+    setBlockedError(null);
+
     setIsProcessing(true);
     setProgressPercent(15);
     setProgressText("Conectando con el servidor de resultados...");
 
     try {
-      const link = /^https?:\/\//i.test(inputUrl) ? inputUrl : `https://${inputUrl}`;
+      const link = cleanLink;
 
       // 1. Fetch link (HTML or PDF)
       const res = await fetchLink({ data: { url: link, allowBrowser } });
@@ -265,7 +271,20 @@ export function RivalResultsLinkExtractorModal({
       setProgressPercent(100);
       toast.success(`Se extrajeron ${parsed.results.length} marcas de ${clubs.length} clubes`);
     } catch (err: any) {
-      toast.error(err?.message || "Error al procesar el enlace.");
+      const msg = err?.message || "Error al procesar el enlace.";
+      const isBlocked = /530|403|401|406|429|503|520|521|522|523|524|525|526|cloudflare|escudo|bloque/i.test(msg);
+      if (isBlocked) {
+        let host = "el servidor de resultados";
+        try {
+          host = new URL(cleanLink).hostname;
+        } catch {}
+        setBlockedError({
+          message: msg,
+          targetUrl: cleanLink,
+          hostname: host,
+        });
+      }
+      toast.error(msg);
     } finally {
       setIsProcessing(false);
       setProgressText(null);
@@ -274,6 +293,7 @@ export function RivalResultsLinkExtractorModal({
 
   // Manejar extracción desde texto pegado
   const handleExtractFromPasted = async () => {
+    setBlockedError(null);
     const text = pastedText.trim();
     if (!text) {
       toast.error("Pega primero la tabla o texto de resultados.");
@@ -608,9 +628,12 @@ export function RivalResultsLinkExtractorModal({
                 </label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="https://feveda.org/... o https://torneo/evtindex.htm o https://.../resultados.pdf"
+                    placeholder="https://natacionvenezuela.com/2026/lara/ o https://feveda.org/... o PDF"
                     value={url}
-                    onChange={(e) => setUrl(e.target.value)}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      if (blockedError) setBlockedError(null);
+                    }}
                     disabled={isProcessing}
                     className="font-mono text-xs"
                   />
@@ -621,7 +644,10 @@ export function RivalResultsLinkExtractorModal({
                     onClick={async () => {
                       try {
                         const clip = await navigator.clipboard.readText();
-                        if (clip) setUrl(clip.trim());
+                        if (clip) {
+                          setUrl(normalizeResultsUrl(clip.trim()));
+                          if (blockedError) setBlockedError(null);
+                        }
                       } catch {
                         toast.info("Pega el enlace con Ctrl + V.");
                       }
@@ -630,6 +656,104 @@ export function RivalResultsLinkExtractorModal({
                     Pegar
                   </Button>
                 </div>
+
+                {/* Formatos rápidos de ejemplo */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-muted-foreground font-medium">Formatos frecuentes:</span>
+                  <button
+                    type="button"
+                    className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border transition-colors font-mono"
+                    onClick={() => {
+                      setUrl("https://natacionvenezuela.com/2026/lara/");
+                      setMeetNameInput("Campeonato Estadal Lara 2026");
+                      setBlockedError(null);
+                    }}
+                  >
+                    natacionvenezuela.com/2026/lara/
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border transition-colors font-mono"
+                    onClick={() => {
+                      setUrl("https://natacionvenezuela.com/2026/occidente/");
+                      setMeetNameInput("Campeonato Regional Occidente 2026");
+                      setBlockedError(null);
+                    }}
+                  >
+                    Regional Occidente 2026
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border transition-colors font-mono"
+                    onClick={() => {
+                      setUrl("https://feveda.org/resultados/");
+                      setMeetNameInput("Directorio FEVEDA");
+                      setBlockedError(null);
+                    }}
+                  >
+                    feveda.org/resultados/
+                  </button>
+                </div>
+
+                {/* Banner de Solución Inmediata para Bloqueo Cloudflare / Error 530 / 403 */}
+                {blockedError && (
+                  <div className="rounded-lg border-2 border-amber-500/50 bg-amber-500/10 p-3.5 text-xs text-amber-950 dark:text-amber-100 shadow-sm animate-in fade-in duration-200">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-amber-500/20 p-2 text-amber-600 dark:text-amber-400 shrink-0">
+                        <ShieldAlert className="size-5" />
+                      </div>
+                      <div className="space-y-2 flex-1">
+                        <div className="font-semibold text-sm flex items-center gap-2">
+                          <span>Escudo Cloudflare / Antibot Detectado ({blockedError.hostname})</span>
+                          <Badge variant="outline" className="text-[10px] font-mono border-amber-600/40 text-amber-700 dark:text-amber-300">
+                            Error 530 / Bloqueo WAF
+                          </Badge>
+                        </div>
+                        <p className="leading-relaxed opacity-90 text-[11px]">
+                          El sitio <strong>{blockedError.hostname}</strong> bloquea las peticiones automáticas de servidores en la nube. 
+                          Sin embargo, <strong>tu navegador personal sí puede abrir la página normalmente</strong> sin restricciones.
+                        </p>
+                        <div className="rounded bg-background/70 p-2 text-[11px] space-y-1 text-foreground border border-border/50">
+                          <div className="font-semibold text-primary flex items-center gap-1 text-[11px]">
+                            <Sparkles className="size-3" /> Solución en 2 pasos (100% garantizada y sin servidores):
+                          </div>
+                          <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground text-[10px]">
+                            <li>Haz clic en el botón naranja de abajo para abrir el enlace en tu navegador.</li>
+                            <li>En la página abierta, selecciona la tabla o texto de resultados, presiona <kbd className="px-1 py-0.2 bg-muted rounded font-mono">Ctrl + C</kbd> y pégala en la pestaña <strong>"Pegar Texto Directo"</strong>. Nuestro motor extraerá todos los clubes rivales y sus mejores marcas al instante.</li>
+                          </ol>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs h-8"
+                            onClick={() => {
+                              if (blockedError.targetUrl) {
+                                window.open(blockedError.targetUrl, "_blank", "noopener,noreferrer");
+                              }
+                              setMode("paste");
+                              setBlockedError(null);
+                              toast.info("Página abierta. Copia la tabla de resultados y pégala aquí.");
+                            }}
+                          >
+                            <ClipboardPaste className="mr-1.5 size-3.5" />
+                            Abrir en mi navegador y Pegar Resultados
+                          </Button>
+                          {blockedError.targetUrl && (
+                            <a
+                              href={blockedError.targetUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:underline px-2 py-1"
+                            >
+                              Solo abrir enlace <ExternalLink className="size-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 pt-1">
                   <Checkbox
