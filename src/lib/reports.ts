@@ -115,85 +115,136 @@ export function meetPointsSummary(results: readonly AthleteReportResult[]): Meet
 export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, attendance: AttendanceReport, brand?: ReportBrand, _startY = 16) {
   const summary = attendanceSummary(attendance.rows);
   setProfessionalReportTheme(doc);
-  const headingY = reportHeading(doc, 'Asistencia a entrenamientos', `${athleteName} · ${attendance.from} al ${attendance.to}`, brand);
-  const contentY = reportMetrics(doc, [
-    {label: 'Asistencia del período', value: summary.percentage == null ? '—' : `${summary.percentage}%`},
-    {label: 'Sesiones registradas', value: String(summary.total)},
-    {label: 'Presentes + tarde', value: String(summary.attended)},
-    {label: 'Ausentes / justificadas', value: `${summary.absent} / ${summary.excused}`},
-  ], headingY, brand);
+  const headingY = reportHeading(
+    doc,
+    'Control Oficial de Asistencia a Entrenamientos',
+    `${athleteName} · Período: ${attendance.from} al ${attendance.to}`,
+    brand
+  );
+
+  const primaryFill = brand?.primary ? (brand.primary as any) : [12, 74, 110];
+  const pctStr = summary.percentage == null ? "—" : `${summary.percentage}%`;
+  const pctColor = (summary.percentage ?? 0) >= 80 ? [16, 120, 60] : (summary.percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
+
+  const statusLabel = (st: string) => {
+    switch (st) {
+      case 'present': return '✓ Presente';
+      case 'late': return '⏱ Tarde';
+      case 'absent': return '✗ Ausente';
+      case 'excused': return '✉ Justificada';
+      default: return '—';
+    }
+  };
+
+  const statusStyle = (st: string) => {
+    switch (st) {
+      case 'present': return { textColor: [16, 120, 60] as [number, number, number], fontStyle: 'bold' as const };
+      case 'late': return { textColor: [180, 100, 10] as [number, number, number], fontStyle: 'bold' as const };
+      case 'absent': return { textColor: [185, 28, 28] as [number, number, number], fontStyle: 'bold' as const };
+      case 'excused': return { textColor: [37, 99, 235] as [number, number, number], fontStyle: 'bold' as const };
+      default: return { textColor: [100, 116, 139] as [number, number, number], fontStyle: 'normal' as const };
+    }
+  };
 
   const notesRows = attendance.rows.filter(r => r.notes && r.notes.trim() && r.notes.trim() !== "—");
-  const observationsText = notesRows.length > 0
-    ? notesRows.map(r => `• ${r.training_date} (${trainingSessions[r.session]} · ${attendanceStatus[r.status]}): ${r.notes.trim()}`).join("\n")
+  const observationsSummary = notesRows.length > 0
+    ? notesRows.map(r => `• ${r.training_date} (${trainingSessions[r.session] ?? r.session} · ${attendanceStatus[r.status] ?? r.status}): ${r.notes.trim()}`).join("  |  ")
     : "Sin incidencias ni observaciones registradas en el período.";
 
-  const pct = summary.percentage == null ? "—" : `${summary.percentage}%`;
-  const pctDetail = summary.total > 0
-    ? `${pct} (${summary.attended} asistencias de ${summary.total} sesiones registradas · ${summary.present} presentes, ${summary.late} tarde, ${summary.absent} ausentes, ${summary.excused} justificadas)`
-    : "Sin sesiones registradas en este período";
+  const evaluationText = summary.total === 0
+    ? "Sin registros de asistencia en el período."
+    : (summary.percentage ?? 0) >= 85
+      ? `Excelente cumplimiento (${pctStr}). El atleta demuestra constancia y regularidad en los entrenamientos.`
+      : (summary.percentage ?? 0) >= 70
+        ? `Cumplimiento regular (${pctStr}). Se sugiere reforzar la puntualidad y asistencia continua.`
+        : `Atención requerida (${pctStr}). Asistencia por debajo del mínimo recomendado para el rendimiento deportivo.`;
 
-  // Visual graphical attendance progress bar
-  const barY = contentY;
-  const barW = 120;
-  const barH = 3.5;
-  const pctNum = summary.percentage ?? 0;
-  doc.setFillColor("#E2E8F0");
-  if (typeof doc.roundedRect === "function") {
-    doc.roundedRect(14, barY, barW, barH, 1, 1, "F");
-  } else {
-    doc.rect(14, barY, barW, barH, "F");
-  }
-  if (pctNum > 0) {
-    const fillW = Math.min(barW, Math.max(2, (pctNum / 100) * barW));
-    const pctColor = pctNum >= 80 ? [8, 115, 60] : pctNum >= 60 ? [180, 110, 0] : [180, 40, 30];
-    doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
-    if (typeof doc.roundedRect === "function") {
-      doc.roundedRect(14, barY, fillW, barH, 1, 1, "F");
-    } else {
-      doc.rect(14, barY, fillW, barH, "F");
-    }
-  }
-
+  // UN SOLO CUADRO CONSOLIDADO (Sin recuadros repetitivos)
   autoTable(doc, {
-    startY: contentY + 6.5,
+    startY: headingY,
     margin: { left: 14, right: 14, bottom: 25 },
-    head: [[
-      {
-        content: "CUADRO RESUMEN DE ASISTENCIA A ENTRENAMIENTOS",
-        colSpan: 2,
-        styles: {
-          fontSize: 9,
-          fontStyle: "bold",
-          halign: "left",
-          ...(brand?.primary ? { fillColor: brand.primary as any } : { fillColor: [12, 74, 110] as [number,number,number] }),
-          textColor: 255
-        }
-      }
-    ]],
-    body: [
+    head: [
       [
-        { content: "Fechas / Período:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
-        { content: `Del ${attendance.from} al ${attendance.to} (${summary.total} sesiones registradas)` }
-      ],
-      [
-        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         {
-          content: pctDetail,
+          content: `CUADRO CONSOLIDADO DE ASISTENCIA INDIVIDUAL — ${athleteName.toUpperCase()}`,
+          colSpan: 4,
           styles: {
-            fontStyle: "bold",
-            fontSize: 9,
-            textColor: (summary.percentage ?? 0) >= 80 ? [8, 115, 60] : (summary.percentage ?? 0) >= 60 ? [180, 110, 0] : [180, 40, 30]
+            fillColor: primaryFill,
+            textColor: 255,
+            fontSize: 9.5,
+            fontStyle: 'bold',
+            halign: 'left',
+            cellPadding: 3,
           }
         }
       ],
       [
-        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
-        { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
+        {
+          content: `PERÍODO EVALUADO\nDel ${attendance.from} al ${attendance.to}`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `SESIONES PROGRAMADAS\n${summary.total} Totales  |  ${summary.attended} Asistió (${summary.present} P · ${summary.late} T)`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `INASISTENCIAS\n${summary.absent} Ausencias  |  ${summary.excused} Justificadas`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `EFECTIVIDAD GLOBAL\n${pctStr}`,
+          styles: {
+            fillColor: (summary.percentage ?? 0) >= 80 ? [220, 252, 231] : (summary.percentage ?? 0) >= 60 ? [254, 243, 199] : [254, 226, 226],
+            textColor: pctColor,
+            fontStyle: 'bold',
+            fontSize: 8.5,
+            halign: 'center',
+            cellPadding: 2.5,
+          }
+        }
+      ],
+      [
+        { content: "Fecha", styles: { halign: 'center', cellWidth: 32, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Sesión", styles: { halign: 'center', cellWidth: 35, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Estado de Asistencia", styles: { halign: 'center', cellWidth: 42, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Observación / Novedad", styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } }
+      ]
+    ],
+    body: attendance.rows.length > 0 ? attendance.rows.map((r) => [
+      { content: r.training_date, styles: { halign: 'center', fontSize: 8 } },
+      { content: trainingSessions[r.session] ?? r.session, styles: { halign: 'center', fontSize: 8 } },
+      { content: statusLabel(r.status), styles: { halign: 'center', fontSize: 8, ...statusStyle(r.status) } },
+      { content: r.notes && r.notes.trim() ? r.notes.trim() : '—', styles: { fontSize: 7.5 } }
+    ]) : [
+      [
+        { content: 'Sin sesiones de entrenamiento registradas en el período evaluado.', colSpan: 4, styles: { halign: 'center', fontSize: 8, textColor: [100, 116, 139] } }
+      ]
+    ],
+    foot: [
+      [
+        { content: "Evaluación de Cumplimiento:", styles: { fontStyle: "bold", fillColor: reportPrint.surface, fontSize: 8, cellPadding: 3 } },
+        { content: `${evaluationText}\n${observationsSummary}`, colSpan: 3, styles: { fontSize: 7.5, cellPadding: 3 } }
+      ],
+      [
+        { content: "Certificación Técnica:", styles: { fontStyle: "bold", fillColor: reportPrint.surface, fontSize: 8, cellPadding: 3.5 } },
+        {
+          content: `Firma del Entrenador: _________________________________________        Fecha de Emisión: ${new Date().toLocaleDateString('es-VE')}`,
+          colSpan: 3,
+          styles: { fontSize: 7.5, cellPadding: 3.5, fontStyle: 'bold' }
+        }
       ]
     ],
     theme: "grid",
-    styles: { fontSize: 8.5, cellPadding: 3, lineColor: reportPrint.rule, lineWidth: 0.2, overflow: "linebreak" },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      lineColor: reportPrint.rule,
+      lineWidth: 0.2,
+      overflow: "linebreak",
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
   });
 }
 
@@ -216,7 +267,12 @@ export function dailyAttendancePdf(options: {
   const doc = new jsPDF({ orientation: "landscape" });
   setReportTableBrand(doc, options.brand);
   setProfessionalReportTheme(doc);
-  const headingY = reportHeading(doc, 'Asistencia a entrenamientos', `${options.clubName} · ${options.date} · ${trainingSessions[options.session]}`, options.brand);
+  const headingY = reportHeading(
+    doc,
+    'Control Oficial de Asistencia a Entrenamientos',
+    `${options.clubName} · Fecha: ${options.date} · Sesión: ${trainingSessions[options.session]}`,
+    options.brand
+  );
 
   const registered = options.rows.filter(r => r.status);
   const counts = { present: 0, late: 0, absent: 0, excused: 0 };
@@ -226,85 +282,122 @@ export function dailyAttendancePdf(options: {
   const total = registered.length;
   const attended = counts.present + counts.late;
   const percentage = total ? Math.round((attended / total) * 100) : null;
+  const pctStr = percentage == null ? "—" : `${percentage}%`;
+
+  const primaryFill = options.brand?.primary ? (options.brand.primary as any) : [12, 74, 110];
+  const pctColor = (percentage ?? 0) >= 80 ? [16, 120, 60] : (percentage ?? 0) >= 60 ? [180, 100, 10] : [185, 28, 28];
+
+  const statusLabel = (st: string) => {
+    switch (st) {
+      case 'present': return '✓ Presente';
+      case 'late': return '⏱ Tarde';
+      case 'absent': return '✗ Ausente';
+      case 'excused': return '✉ Justificada';
+      default: return '— Sin registrar';
+    }
+  };
+
+  const statusStyle = (st: string) => {
+    switch (st) {
+      case 'present': return { textColor: [16, 120, 60] as [number, number, number], fontStyle: 'bold' as const };
+      case 'late': return { textColor: [180, 100, 10] as [number, number, number], fontStyle: 'bold' as const };
+      case 'absent': return { textColor: [185, 28, 28] as [number, number, number], fontStyle: 'bold' as const };
+      case 'excused': return { textColor: [37, 99, 235] as [number, number, number], fontStyle: 'bold' as const };
+      default: return { textColor: [100, 116, 139] as [number, number, number], fontStyle: 'normal' as const };
+    }
+  };
 
   const notesRows = options.rows.filter(r => r.notes && r.notes.trim() && r.notes.trim() !== "—");
-  const observationsText = notesRows.length > 0
-    ? notesRows.map(r => `• ${r.athleteName} (${r.status ? attendanceStatus[r.status as keyof typeof attendanceStatus] : 'Sin estado'}): ${r.notes.trim()}`).join("\n")
-    : "Sin novedades ni observaciones registradas en esta sesión.";
+  const observationsSummary = notesRows.length > 0
+    ? notesRows.map(r => `• ${r.athleteName} (${r.status ? attendanceStatus[r.status as keyof typeof attendanceStatus] : 'Sin estado'}): ${r.notes.trim()}`).join("  |  ")
+    : "Sin novedades ni incidencias reportadas en la sesión.";
 
-  const pct = percentage == null ? "—" : `${percentage}%`;
-  const pctDetail = total > 0
-    ? `${pct} (${attended} de ${total} nadadores registrados · ${counts.present} presentes, ${counts.late} tarde, ${counts.absent} ausentes, ${counts.excused} justificadas)`
-    : "Sin asistencia registrada en esta sesión";
-
-  const contentY = reportMetrics(doc, [
-    {label: 'Asistencia de la sesión', value: pct},
-    {label: 'Nadadores registrados', value: String(total)},
-    {label: 'Presentes + tarde', value: String(attended)},
-    {label: 'Ausentes / justificadas', value: `${counts.absent} / ${counts.excused}`},
-  ], headingY, options.brand);
-
-  // Visual graphical attendance progress bar
-  const barY = contentY;
-  const barW = 120;
-  const barH = 3.5;
-  const pctNum = percentage ?? 0;
-  doc.setFillColor("#E2E8F0");
-  if (typeof doc.roundedRect === "function") {
-    doc.roundedRect(14, barY, barW, barH, 1, 1, "F");
-  } else {
-    doc.rect(14, barY, barW, barH, "F");
-  }
-  if (pctNum > 0) {
-    const fillW = Math.min(barW, Math.max(2, (pctNum / 100) * barW));
-    const pctColor = pctNum >= 80 ? [8, 115, 60] : pctNum >= 60 ? [180, 110, 0] : [180, 40, 30];
-    doc.setFillColor(pctColor[0], pctColor[1], pctColor[2]);
-    if (typeof doc.roundedRect === "function") {
-      doc.roundedRect(14, barY, fillW, barH, 1, 1, "F");
-    } else {
-      doc.rect(14, barY, fillW, barH, "F");
-    }
-  }
-
+  // UN SOLO CUADRO MAESTRO CONSOLIDADO (Sin recuadros repetitivos)
   autoTable(doc, {
-    startY: contentY + 6.5,
+    startY: headingY,
     margin: { left: 14, right: 14, bottom: 25 },
-    head: [[
-      {
-        content: "CUADRO RESUMEN DE ASISTENCIA A ENTRENAMIENTOS",
-        colSpan: 2,
-        styles: {
-          fontSize: 9,
-          fontStyle: "bold",
-          halign: "left",
-          ...(options.brand?.primary ? { fillColor: options.brand.primary as any } : { fillColor: [12, 74, 110] as [number,number,number] }),
-          textColor: 255
-        }
-      }
-    ]],
-    body: [
+    head: [
       [
-        { content: "Fechas / Sesión:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
-        { content: `${options.date} · Sesión de ${trainingSessions[options.session]} (${total} nadadores registrados)` }
-      ],
-      [
-        { content: "Porcentaje de Asistencia:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
         {
-          content: pctDetail,
+          content: `CUADRO RESUMIDO DE ASISTENCIA — ${options.clubName.toUpperCase()}`,
+          colSpan: 4,
           styles: {
-            fontStyle: "bold",
-            fontSize: 9,
-            textColor: (percentage ?? 0) >= 80 ? [8, 115, 60] : (percentage ?? 0) >= 60 ? [180, 110, 0] : [180, 40, 30]
+            fillColor: primaryFill,
+            textColor: 255,
+            fontSize: 9.5,
+            fontStyle: 'bold',
+            halign: 'left',
+            cellPadding: 3,
           }
         }
       ],
       [
-        { content: "Observaciones:", styles: { fontStyle: "bold", cellWidth: 50, fillColor: reportPrint.surface } },
-        { content: observationsText, styles: { fontSize: 8, cellPadding: 3.5 } }
+        {
+          content: `FECHA Y SESIÓN\n${options.date} · ${trainingSessions[options.session]}`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `CONVOCADOS Y PRESENTES\n${total} Registrados  |  ${attended} Asistieron (${counts.present} P · ${counts.late} T)`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `AUSENTES Y JUSTIFICADAS\n${counts.absent} Ausentes  |  ${counts.excused} Justificadas`,
+          styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 }
+        },
+        {
+          content: `EFECTIVIDAD DE LA SESIÓN\n${pctStr}`,
+          styles: {
+            fillColor: (percentage ?? 0) >= 80 ? [220, 252, 231] : (percentage ?? 0) >= 60 ? [254, 243, 199] : [254, 226, 226],
+            textColor: pctColor,
+            fontStyle: 'bold',
+            fontSize: 8.5,
+            halign: 'center',
+            cellPadding: 2.5,
+          }
+        }
+      ],
+      [
+        { content: "#", styles: { halign: 'center', cellWidth: 12, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Atleta / Nadador", styles: { halign: 'left', cellWidth: 70, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Estado de Asistencia", styles: { halign: 'center', cellWidth: 42, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+        { content: "Observación / Novedad en Entrenamiento", styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } }
+      ]
+    ],
+    body: options.rows.length > 0 ? options.rows.map((r, i) => [
+      { content: String(i + 1), styles: { halign: 'center', fontSize: 8 } },
+      { content: r.athleteName, styles: { fontStyle: 'bold', fontSize: 8 } },
+      { content: statusLabel(r.status), styles: { halign: 'center', fontSize: 8, ...statusStyle(r.status) } },
+      { content: r.notes && r.notes.trim() ? r.notes.trim() : '—', styles: { fontSize: 7.5 } }
+    ]) : [
+      [
+        { content: 'No hay nadadores registrados para esta sesión.', colSpan: 4, styles: { halign: 'center', fontSize: 8, textColor: [100, 116, 139] } }
+      ]
+    ],
+    foot: [
+      [
+        { content: "Observaciones Generales de la Sesión:", styles: { fontStyle: "bold", fillColor: reportPrint.surface, fontSize: 8, cellPadding: 3 } },
+        { content: observationsSummary, colSpan: 3, styles: { fontSize: 7.5, cellPadding: 3 } }
+      ],
+      [
+        { content: "Certificación Técnica:", styles: { fontStyle: "bold", fillColor: reportPrint.surface, fontSize: 8, cellPadding: 3.5 } },
+        {
+          content: `Firma del Entrenador Responsable: _________________________________________        Fecha de Emisión: ${new Date().toLocaleDateString('es-VE')}`,
+          colSpan: 3,
+          styles: { fontSize: 7.5, cellPadding: 3.5, fontStyle: 'bold' }
+        }
       ]
     ],
     theme: "grid",
-    styles: { fontSize: 8.5, cellPadding: 3, lineColor: reportPrint.rule, lineWidth: 0.2, overflow: "linebreak" },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      lineColor: reportPrint.rule,
+      lineWidth: 0.2,
+      overflow: "linebreak",
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
   });
 
   finishReport(doc, options.brand);
