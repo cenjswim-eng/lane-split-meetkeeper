@@ -87,11 +87,27 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
     const code = team.toUpperCase().slice(0, 16);
     teams.set(code, { code, name: team });
     const key = `pdf:${last!.trim().toLowerCase()}|${first!.trim().toLowerCase()}|${code}`;
-    if (!athletes.has(key)) athletes.set(key, { key, tmId: null, federationId: null, firstName: first!.trim(), lastName: last!.trim(), birthDate: null, gender: event.gender === "X" ? null : event.gender, teamCode: code });
+
+    // Cálculo de fecha de nacimiento estimada a partir de la edad y año del torneo
+    const meetYear = startDate ? Number(startDate.slice(0, 4)) : new Date().getFullYear();
+    const numAge = /^\d{1,2}$/.test(age?.trim() || "") ? Number(age.trim()) : (event.maxAge || event.minAge || null);
+    const estimatedBirthDate = numAge ? `${meetYear - numAge}-01-01` : null;
+
+    if (!athletes.has(key)) {
+      athletes.set(key, {
+        key,
+        tmId: null,
+        federationId: null,
+        firstName: first!.trim(),
+        lastName: last!.trim(),
+        birthDate: estimatedBirthDate,
+        gender: event.gender === "X" ? null : event.gender,
+        teamCode: code,
+      });
+    }
     const dq = /^(DQ|DSQ|DFS|DNF)$/.test(finalRaw!);
     const noSwim = /^(NS|SCR)$/.test(finalRaw!);
     results.push({ athleteKey: key, eventNumber: event.number, distance: event.distance, stroke: event.stroke, gender: event.gender, minAge: event.minAge, maxAge: event.maxAge, seedMs: seedRaw && seedRaw !== "NT" ? parseTime(seedRaw) : null, finalMs: dq || noSwim ? null : parseTime(finalRaw), course: event.course ?? defaultCourse, place: placeRaw && /^\*?\d+$/.test(placeRaw) ? +placeRaw.replace("*", "") : null, isDq: dq, round: "F", splits: [] });
-    void age;
   }
   for (const r of results) {
     const n = r.splits.length;

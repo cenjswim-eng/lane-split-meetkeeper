@@ -64,6 +64,7 @@ import { generateAdaelRankingPdf } from '@/lib/adael-ranking/export-ranking-pdf'
 import { generateAdaelRankingExcel } from '@/lib/adael-ranking/export-ranking-excel';
 import { AdaelBatchUploaderModal } from './AdaelBatchUploaderModal';
 import { AdaelClubPdfImporterModal } from './AdaelClubPdfImporterModal';
+import { RivalResultsLinkExtractorModal } from '@/components/rankings/RivalResultsLinkExtractorModal';
 import { downloadFile } from '@/lib/file-delivery';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -612,6 +613,8 @@ export function AdaelRankingView() {
 
           {/* Acciones de Carga Masiva y Exportación */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <RivalResultsLinkExtractorModal onResultsImported={() => fetchRanking()} />
+
             <AdaelClubPdfImporterModal
               onClubsConfirmed={(codes) => {
                 setPdfClubWhitelist(codes);

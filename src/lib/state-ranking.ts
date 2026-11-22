@@ -68,9 +68,10 @@ export interface StateRankingSummary {
   top8ClubDistribution: Top8ClubItem[];
 }
 
-// Calcula la edad competitiva al 31 de diciembre del año de referencia
+// Calcula la edad competitiva al 31 de diciembre del año de referencia (inmune a desfases de zona horaria)
 export function getCompetitiveAge(birthDate: string, referenceYear: number): number {
-  const birthYear = new Date(birthDate).getFullYear();
+  if (!birthDate) return 0;
+  const birthYear = parseInt(birthDate.slice(0, 4), 10) || new Date(birthDate).getUTCFullYear();
   return referenceYear - birthYear;
 }
 

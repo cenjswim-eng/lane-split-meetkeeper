@@ -1,5 +1,6 @@
 import type { ParsedFile } from "@/lib/hytek/types";
 import { matchScore, HIGH_MATCH, nameSimilarity, nameTokens } from "@/lib/history-match";
+import { normalizeTeamCode } from "@/data/fevedaClubs";
 
 export interface RosterAthlete { id: string; first_name: string; last_name: string; birth_date: string | null; gender: string | null; federation_id: string | null; tm_athlete_id: string | null }
 
@@ -103,4 +104,119 @@ function truncatedScore(r: RosterAthlete, a: { firstName: string; lastName: stri
   const rosterTokens = nameTokens(`${r.first_name} ${r.last_name}`);
   if (!first.length || !first.every((t) => rosterTokens.some((x) => x.startsWith(t)))) return 0;
   return HIGH_MATCH;
+}
+
+export interface DetectedMeetClub {
+  code: string;
+  name: string;
+  state: string;
+  lsc: string;
+  athleteCount: number;
+  resultCount: number;
+  isMyClub: boolean;
+}
+
+/**
+ * Extrae y agrupa todos los clubes presentes en un archivo de resultados parseado (PDF o web).
+ * Normaliza los códigos mediante el catálogo oficial FEVEDA para evitar truncamientos.
+ */
+export function extractAllClubsFromParsed(
+  parsed: ParsedFile,
+  myClubCode = "JSWIM"
+): DetectedMeetClub[] {
+  const normMyClub = normalizeTeamCode(myClubCode).code;
+  const clubMap = new Map<string, DetectedMeetClub>();
+
+  for (const team of parsed.teams) {
+    const norm = normalizeTeamCode(team.code, team.name);
+    if (!clubMap.has(norm.code)) {
+      clubMap.set(norm.code, {
+        code: norm.code,
+        name: norm.name,
+        state: norm.state,
+        lsc: norm.lsc,
+        athleteCount: 0,
+        resultCount: 0,
+        isMyClub: norm.code === normMyClub,
+      });
+    }
+  }
+
+  const athleteClubMap = new Map<string, string>();
+  for (const ath of parsed.athletes) {
+    const norm = normalizeTeamCode(ath.teamCode || "CLUB");
+    athleteClubMap.set(ath.key, norm.code);
+
+    if (!clubMap.has(norm.code)) {
+      clubMap.set(norm.code, {
+        code: norm.code,
+        name: norm.name,
+        state: norm.state,
+        lsc: norm.lsc,
+        athleteCount: 0,
+        resultCount: 0,
+        isMyClub: norm.code === normMyClub,
+      });
+    }
+    clubMap.get(norm.code)!.athleteCount += 1;
+  }
+
+  for (const res of parsed.results) {
+    const clubCode = athleteClubMap.get(res.athleteKey);
+    if (clubCode && clubMap.has(clubCode)) {
+      clubMap.get(clubCode)!.resultCount += 1;
+    }
+  }
+
+  return Array.from(clubMap.values()).sort((a, b) => b.resultCount - a.resultCount);
+}
+
+/**
+ * Filtra el archivo parseado para conservar únicamente los nadadores y marcas
+ * pertenecientes a los códigos de clubes seleccionados (ej. clubes rivales).
+ */
+export function filterParsedByClubCodes(
+  parsed: ParsedFile,
+  selectedClubCodes: string[]
+): ParsedFile {
+  const targetCodes = new Set(selectedClubCodes.map((c) => c.toUpperCase().trim()));
+
+  const athleteKeyToNorm = new Map<string, string>();
+  for (const ath of parsed.athletes) {
+    const norm = normalizeTeamCode(ath.teamCode || "CLUB");
+    athleteKeyToNorm.set(ath.key, norm.code);
+  }
+
+  const athletes = parsed.athletes
+    .filter((a) => {
+      const normCode = athleteKeyToNorm.get(a.key);
+      return normCode && targetCodes.has(normCode);
+    })
+    .map((a) => {
+      const norm = normalizeTeamCode(a.teamCode || "CLUB");
+      return {
+        ...a,
+        teamCode: norm.code,
+      };
+    });
+
+  const athleteKeys = new Set(athletes.map((a) => a.key));
+  const results = parsed.results.filter((r) => athleteKeys.has(r.athleteKey));
+
+  const teams = Array.from(
+    new Map(
+      athletes.map((a) => {
+        const norm = normalizeTeamCode(a.teamCode || "CLUB");
+        return [norm.code, { code: norm.code, name: norm.name, lsc: norm.lsc }];
+      })
+    ).values()
+  );
+
+  return {
+    ...parsed,
+    athletes,
+    results,
+    teams,
+    warnings: parsed.warnings.filter((w) => !/fecha de nacimiento/.test(w)),
+  };
 }

@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   FileText,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +37,7 @@ import {
 } from "@/lib/state-ranking";
 import { generateStateRankingPdf } from "@/lib/export-state-ranking-pdf";
 import { downloadFile } from "@/lib/file-delivery";
+import { RivalResultsLinkExtractorModal } from "@/components/rankings/RivalResultsLinkExtractorModal";
 
 export function StateRankingView({
   results = [],
@@ -320,6 +322,8 @@ export function StateRankingView({
               </SelectContent>
             </Select>
           </div>
+
+          <RivalResultsLinkExtractorModal myClubCode={myClubCode} />
 
           <Button
             variant="outline"
@@ -623,6 +627,27 @@ export function StateRankingView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Banner de Extracción de Resultados de Clubes Rivales */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-primary/20 bg-primary/5 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+            <Globe className="h-4 w-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              Extraer Marcas de Nadadores de Otros Clubes
+              <Badge variant="outline" className="text-[10px] bg-background">
+                Por Enlace / Web
+              </Badge>
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Pega el link de resultados de FEVEDA, Meet Manager o PDF oficial para extraer y registrar automáticamente a los competidores rivales en este ranking.
+            </p>
+          </div>
+        </div>
+        <RivalResultsLinkExtractorModal myClubCode={myClubCode} />
+      </div>
 
       {/* 4. TABLA DE RESULTADOS DE RANKING */}
       <div className="space-y-3">

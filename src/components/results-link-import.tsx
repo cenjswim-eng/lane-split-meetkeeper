@@ -15,6 +15,7 @@ import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
   const [mode, setMode] = useState<"link" | "paste">("link");
+  const [includeAllClubs, setIncludeAllClubs] = useState(false);
   const [url, setUrl] = useState("");
   const [pastedText, setPastedText] = useState("");
   const [meetNameInput, setMeetNameInput] = useState("");
@@ -43,8 +44,16 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
     parsed.meet.endDate = parsed.meet.endDate || parsed.meet.startDate;
     parsed.meet.course = (parsed.meet.course === "LCM" || parsed.meet.course === "SCM" || parsed.meet.course === "SCY") ? parsed.meet.course : "LCM";
 
+    // Si el usuario activó la extracción de atletas de otros clubes / rivales para el ranking
+    if (includeAllClubs) {
+      const clubsCount = new Set(parsed.teams.map((t) => t.code)).size;
+      setSummary(`¡Éxito! Se extrajeron ${parsed.results.length} resultados de ${total} nadadores pertenecientes a ${clubsCount} clubes (incluyendo clubes rivales). Revisa la competencia abajo y pulsa «Confirmar e importar».`);
+      onParsed(parsed.meet.name, parsed);
+      return true;
+    }
+
     if (roster.length === 0) {
-      setSummary(`Se leyeron ${parsed.results.length} resultados de ${total} nadadores, pero aún no tienes atletas registrados en tu club. Registra primero a tus atletas para poder vincularlos e importar sus tiempos.`);
+      setSummary(`Se leyeron ${parsed.results.length} resultados de ${total} nadadores, pero aún no tienes atletas registrados en tu club. Registra primero a tus atletas para poder vincularlos e importar sus tiempos, o activa la opción de extraer todos los clubes.`);
       return false;
     }
 
@@ -253,7 +262,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         <div>
           <h2 className="text-xl font-semibold uppercase">Extracción de Resultados FEVEDA / Meet Manager</h2>
           <p className="text-xs text-muted-foreground">
-            Extrae de forma automática <strong>únicamente los tiempos de los atletas registrados en tu club</strong>.
+            Extrae resultados por enlace o texto copiado. Puedes extraer solo tu club o <strong>atletas de todos los clubes rivales para el Ranking</strong>.
           </p>
         </div>
         {/* Toggle between Link mode and Direct Paste mode */}
@@ -277,6 +286,17 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
         </div>
       </div>
 
+      {/* Opción de alcance: Solo mi club vs Todos los clubes rivales */}
+      <label className="flex items-center gap-2 p-2 rounded-md bg-muted/40 text-xs font-semibold text-foreground cursor-pointer border border-primary/20">
+        <input
+          type="checkbox"
+          checked={includeAllClubs}
+          disabled={busy}
+          onChange={(e) => setIncludeAllClubs(e.target.checked)}
+        />
+        <span>Extraer atletas de todos los clubes rivales (para Ranking Estadal y análisis de adversarios)</span>
+      </label>
+
       {mode === "link" ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -297,7 +317,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
             />
             <Button type="submit" disabled={busy || disabled || !url.trim()}>
               {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Link2 className="mr-2 size-4" />}
-              Extraer mis atletas
+              {includeAllClubs ? "Extraer todos los clubes" : "Extraer mis atletas"}
             </Button>
           </form>
 
@@ -399,7 +419,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
               onClick={() => readPasted()}
             >
               {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ClipboardPaste className="mr-2 size-4" />}
-              Extraer marcas de mis atletas
+              {includeAllClubs ? "Extraer todos los clubes" : "Extraer marcas de mis atletas"}
             </Button>
           </div>
         </div>
