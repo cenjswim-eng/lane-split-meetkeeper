@@ -70,19 +70,8 @@ export function attendancePdf(
   const activeSwimmers = athletes.filter((a) => rows.some((r) => r.athlete_id === a.id));
   const swimmersToDisplay = activeSwimmers.length > 0 ? activeSwimmers : athletes;
 
-  // Extraer notas e incidencias relevantes de manera condensada
-  const notesRows = rows.filter((r) => r.notes && r.notes.trim() && r.notes.trim() !== '—');
-  const incidentsSummary =
-    notesRows.length > 0
-      ? notesRows
-          .slice(0, 8)
-          .map((r) => {
-            const ath = athletes.find((a) => a.id === r.athlete_id);
-            const athName = ath ? `${ath.last_name}` : '';
-            return `• ${r.training_date} (${trainingSessions[r.session] ?? r.session}${athName ? ` · ${athName}` : ''} · ${attendanceStatus[r.status] ?? r.status}): ${r.notes.trim()}`;
-          })
-          .join('   |   ') + (notesRows.length > 8 ? `   |   (+${notesRows.length - 8} notas adicionales)` : '')
-      : 'Sin incidencias ni justificaciones especiales registradas en el período.';
+  // Filtrar incidencias, justificaciones o notas de entrenamiento
+  const incidentRows = rows.filter((r) => (r.notes && r.notes.trim() && r.notes.trim() !== '—') || r.status === 'excused');
 
   // Status badges formatter
   const statusLabel = (st: string) => {
@@ -105,9 +94,13 @@ export function attendancePdf(
     }
   };
 
-  // Generación de CUADRO ÚNICO CONSOLIDADO (Sin tablas separadas ni recuadros dispersos)
+  // Generación de TABLAS SEPARADAS (Tabla de Asistencia y Tabla de Incidencias)
   if (!isSingleSwimmer) {
+    // =========================================================================
     // CASO MULTI-ATLETA (GRUPO / CLUB COMPLETO)
+    // =========================================================================
+
+    // TABLA 1: CONTROL GENERAL DE ASISTENCIA
     const tableBody = swimmersToDisplay.map((a, idx) => {
       const s = attendanceSummary(rows.filter((r) => r.athlete_id === a.id));
       const swimmerPct = s.percentage == null ? '—' : `${s.percentage}%`;
@@ -213,15 +206,11 @@ export function attendancePdf(
           { content: evalLabel, styles: { halign: 'center', fontStyle: 'bold', fillColor: reportPrint.surface, fontSize: 7.5 } },
         ],
         [
-          { content: 'Incidencias del Período:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252], fontSize: 7.5, cellPadding: 2.5 } },
-          { content: incidentsSummary, colSpan: 8, styles: { fontSize: 7.5, cellPadding: 2.5 } },
-        ],
-        [
-          { content: 'Certificación Técnica:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252], fontSize: 7.5, cellPadding: 3 } },
+          { content: 'Certificación:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252], fontSize: 7.5, cellPadding: 2.5 } },
           {
             content: `Firma del Entrenador: _________________________________________        Fecha de Emisión: ${new Date().toLocaleDateString('es-VE')}`,
             colSpan: 8,
-            styles: { fontSize: 7.5, cellPadding: 3, fontStyle: 'bold' },
+            styles: { fontSize: 7.5, cellPadding: 2.5, fontStyle: 'bold' },
           },
         ],
       ],
@@ -237,20 +226,97 @@ export function attendancePdf(
         fillColor: [248, 250, 252],
       },
     });
+
+    // TABLA 2: REGISTRO SEPARADO DE INCIDENCIAS Y OBSERVACIONES
+    let incidentsStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : headingY + 80;
+    if (incidentsStartY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      incidentsStartY = 16;
+    }
+
+    const incidentTableBody = incidentRows.length > 0 ? incidentRows.map((r, idx) => {
+      const ath = athletes.find((a) => a.id === r.athlete_id);
+      const athName = ath ? `${ath.last_name}, ${ath.first_name}` : 'Atleta';
+      const detail = r.notes && r.notes.trim() && r.notes.trim() !== '—'
+        ? r.notes.trim()
+        : r.status === 'excused'
+        ? 'Inasistencia justificada debidamente acreditada.'
+        : '—';
+
+      return [
+        { content: String(idx + 1), styles: { halign: 'center', fontSize: 7.5 } },
+        { content: r.training_date, styles: { halign: 'center', fontSize: 7.5 } },
+        { content: trainingSessions[r.session] ?? r.session, styles: { halign: 'center', fontSize: 7.5 } },
+        { content: athName, styles: { fontStyle: 'bold', fontSize: 7.5 } },
+        { content: statusLabel(r.status), styles: { halign: 'center', fontSize: 7.5, ...statusStyle(r.status) } },
+        { content: detail, styles: { fontSize: 7.5 } },
+      ];
+    }) : [
+      [
+        {
+          content: 'No se registraron incidencias, novedades médicas ni justificaciones en el período evaluado.',
+          colSpan: 6,
+          styles: { halign: 'center', textColor: [100, 116, 139], fontStyle: 'italic', fontSize: 7.5, cellPadding: 3 },
+        },
+      ],
+    ];
+
+    brandedTable(doc, {
+      startY: incidentsStartY,
+      margin: { left: 14, right: 14, bottom: 20 },
+      head: [
+        [
+          {
+            content: `REGISTRO DE INCIDENCIAS Y OBSERVACIONES — ${title.toUpperCase()}`,
+            colSpan: 6,
+            styles: {
+              fillColor: primaryFill,
+              textColor: 255,
+              fontSize: 9,
+              fontStyle: 'bold',
+              halign: 'left',
+              cellPadding: 2.5,
+            },
+          },
+        ],
+        [
+          { content: '#', styles: { halign: 'center', cellWidth: 10, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Fecha', styles: { halign: 'center', cellWidth: 26, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Sesión', styles: { halign: 'center', cellWidth: 28, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Nadador / Atleta', styles: { cellWidth: 55, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Estado', styles: { halign: 'center', cellWidth: 32, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Detalle de la Incidencia / Observación', styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+        ],
+      ],
+      body: incidentTableBody,
+      theme: 'grid',
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2,
+        lineColor: reportPrint.rule,
+        lineWidth: 0.15,
+        overflow: 'linebreak',
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+    });
   } else {
+    // =========================================================================
     // CASO INDIVIDUAL (UN SOLO ATLETA)
+    // =========================================================================
     const singleAthlete = athletes[0]!;
     const athleteRows = rows.filter((r) => r.athlete_id === singleAthlete.id);
 
+    // TABLA 1: ASISTENCIA POR SESIÓN DEL ATLETA
     const bodyRows = athleteRows.length > 0 ? athleteRows.map((r, i) => [
       { content: String(i + 1), styles: { halign: 'center', fontSize: 8 } },
       { content: r.training_date, styles: { halign: 'center', fontSize: 8 } },
       { content: trainingSessions[r.session] ?? r.session, styles: { halign: 'center', fontSize: 8 } },
       { content: statusLabel(r.status), styles: { halign: 'center', fontSize: 8, ...statusStyle(r.status) } },
-      { content: r.notes && r.notes.trim() ? r.notes.trim() : '—', styles: { fontSize: 7.5 } },
     ]) : [
       [
-        { content: 'Sin sesiones de entrenamiento registradas en el período evaluado.', colSpan: 5, styles: { halign: 'center', fontSize: 8, textColor: [100, 116, 139] } },
+        { content: 'Sin sesiones de entrenamiento registradas en el período evaluado.', colSpan: 4, styles: { halign: 'center', fontSize: 8, textColor: [100, 116, 139] } },
       ],
     ];
 
@@ -261,7 +327,7 @@ export function attendancePdf(
         [
           {
             content: `CUADRO RESUMIDO DE ASISTENCIA — ${title.toUpperCase()}`,
-            colSpan: 5,
+            colSpan: 4,
             styles: {
               fillColor: primaryFill,
               textColor: 255,
@@ -280,7 +346,7 @@ export function attendancePdf(
           },
           {
             content: `SESIONES CONVOCADAS\n${summary.total} Registros (${summary.attended} Asistió: ${summary.present} P · ${summary.late} T)`,
-            colSpan: 2,
+            colSpan: 1,
             styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7.5, halign: 'center', cellPadding: 2.5 },
           },
           {
@@ -302,24 +368,23 @@ export function attendancePdf(
           },
         ],
         [
-          { content: '#', styles: { halign: 'center', cellWidth: 12, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
-          { content: 'Fecha', styles: { halign: 'center', cellWidth: 28, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
-          { content: 'Sesión', styles: { halign: 'center', cellWidth: 32, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
-          { content: 'Estado de Asistencia', styles: { halign: 'center', cellWidth: 42, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
-          { content: 'Observación / Justificación', styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+          { content: '#', styles: { halign: 'center', cellWidth: 14, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+          { content: 'Fecha', styles: { halign: 'center', cellWidth: 32, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+          { content: 'Sesión', styles: { halign: 'center', cellWidth: 38, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
+          { content: 'Estado de Asistencia', styles: { halign: 'center', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
         ],
       ],
       body: bodyRows,
       foot: [
         [
           { content: 'Evaluación:', styles: { fontStyle: 'bold', fillColor: reportPrint.surface, fontSize: 8, cellPadding: 2.5 } },
-          { content: `${evalLabel}. Cumplimiento del ${pctValue} en ${summary.total} sesiones programadas.`, colSpan: 4, styles: { fontSize: 7.5, cellPadding: 2.5 } },
+          { content: `${evalLabel}. Cumplimiento del ${pctValue} en ${summary.total} sesiones programadas.`, colSpan: 3, styles: { fontSize: 7.5, cellPadding: 2.5 } },
         ],
         [
           { content: 'Certificación:', styles: { fontStyle: 'bold', fillColor: reportPrint.surface, fontSize: 8, cellPadding: 3 } },
           {
             content: `Firma del Entrenador: _________________________________________        Fecha: ${new Date().toLocaleDateString('es-VE')}`,
-            colSpan: 4,
+            colSpan: 3,
             styles: { fontSize: 7.5, cellPadding: 3, fontStyle: 'bold' },
           },
         ],
@@ -327,6 +392,66 @@ export function attendancePdf(
       theme: 'grid',
       styles: {
         fontSize: 8,
+        cellPadding: 2,
+        lineColor: reportPrint.rule,
+        lineWidth: 0.15,
+        overflow: 'linebreak',
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+    });
+
+    // TABLA 2: REGISTRO SEPARADO DE INCIDENCIAS DEL ATLETA
+    let incidentsStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : headingY + 80;
+    if (incidentsStartY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      incidentsStartY = 16;
+    }
+
+    const singleIncidents = athleteRows.filter((r) => (r.notes && r.notes.trim() && r.notes.trim() !== '—') || r.status === 'excused');
+    const singleIncidentsBody = singleIncidents.length > 0 ? singleIncidents.map((r, i) => [
+      { content: String(i + 1), styles: { halign: 'center', fontSize: 7.5 } },
+      { content: r.training_date, styles: { halign: 'center', fontSize: 7.5 } },
+      { content: trainingSessions[r.session] ?? r.session, styles: { halign: 'center', fontSize: 7.5 } },
+      { content: statusLabel(r.status), styles: { halign: 'center', fontSize: 7.5, ...statusStyle(r.status) } },
+      { content: r.notes && r.notes.trim() ? r.notes.trim() : 'Inasistencia justificada', styles: { fontSize: 7.5 } },
+    ]) : [
+      [
+        { content: 'Sin incidencias ni justificaciones registradas en el período evaluado.', colSpan: 5, styles: { halign: 'center', fontSize: 7.5, textColor: [100, 116, 139], fontStyle: 'italic', cellPadding: 3 } },
+      ],
+    ];
+
+    brandedTable(doc, {
+      startY: incidentsStartY,
+      margin: { left: 14, right: 14, bottom: 20 },
+      head: [
+        [
+          {
+            content: `REGISTRO DE INCIDENCIAS Y OBSERVACIONES — ${title.toUpperCase()}`,
+            colSpan: 5,
+            styles: {
+              fillColor: primaryFill,
+              textColor: 255,
+              fontSize: 9,
+              fontStyle: 'bold',
+              halign: 'left',
+              cellPadding: 2.5,
+            },
+          },
+        ],
+        [
+          { content: '#', styles: { halign: 'center', cellWidth: 14, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Fecha', styles: { halign: 'center', cellWidth: 32, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Sesión', styles: { halign: 'center', cellWidth: 38, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Estado', styles: { halign: 'center', cellWidth: 42, fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+          { content: 'Detalle de la Incidencia / Observación', styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
+        ],
+      ],
+      body: singleIncidentsBody,
+      theme: 'grid',
+      styles: {
+        fontSize: 7.5,
         cellPadding: 2,
         lineColor: reportPrint.rule,
         lineWidth: 0.15,
