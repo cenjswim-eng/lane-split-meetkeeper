@@ -61,7 +61,7 @@ import {
 import { parseMeetManagerResults } from "@/lib/pdf-results";
 import { readPdfLines } from "@/lib/club-document";
 import { importParsed } from "@/lib/importer";
-import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, type FevedaMeet } from "@/lib/feveda";
+import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, parseMeetUrlInfo, type FevedaMeet } from "@/lib/feveda";
 import { normalizeTeamCode } from "@/data/fevedaClubs";
 import { formatTime } from "@/lib/swim";
 import { getCategoryNameByAge } from "@/lib/state-ranking";
@@ -128,8 +128,10 @@ export function RivalResultsLinkExtractorModal({
       setProgressPercent(40);
       setProgressText("Descargando contenido de la competencia...");
 
+      const urlInfo = parseMeetUrlInfo(cleanLink);
       const name =
         meetNameInput.trim() ||
+        urlInfo.meetName ||
         decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Torneo Oficial").replace(
           /\.(pdf|html?)$/i,
           ""
@@ -244,10 +246,10 @@ export function RivalResultsLinkExtractorModal({
       }
 
       const today = new Date().toISOString().slice(0, 10);
-      parsed.meet.name = meetNameInput.trim() || info?.title || parsed.meet.name || name;
-      parsed.meet.startDate = meetDateInput || info?.startDate || parsed.meet.startDate || today;
+      parsed.meet.name = meetNameInput.trim() || info?.title || urlInfo.meetName || parsed.meet.name || name;
+      parsed.meet.startDate = meetDateInput || info?.startDate || parsed.meet.startDate || `${urlInfo.year || 2026}-01-01`;
       parsed.meet.endDate = parsed.meet.endDate || parsed.meet.startDate;
-      parsed.meet.course = meetCourseInput || parsed.meet.course || "LCM";
+      parsed.meet.course = meetCourseInput || parsed.meet.course || urlInfo.course || "LCM";
 
       if (!parsed.results.length) {
         toast.warning("No se reconocieron tiempos de natación en la página indicada.");
@@ -652,11 +654,22 @@ export function RivalResultsLinkExtractorModal({
                 </label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="https://natacionvenezuela.com/2026/lara/ o https://feveda.org/... o PDF"
+                    placeholder="https://www.adael.com.ve/3erEstadalADAEL2026/index.htm o https://natacionvenezuela.com/2026/lara/ o PDF"
                     value={url}
                     onChange={(e) => {
-                      setUrl(e.target.value);
+                      const val = e.target.value;
+                      setUrl(val);
                       if (blockedError) setBlockedError(null);
+                      const parsedMeta = parseMeetUrlInfo(val);
+                      if (parsedMeta.meetName && (!meetNameInput || meetNameInput.startsWith("Torneo") || meetNameInput === "index")) {
+                        setMeetNameInput(parsedMeta.meetName);
+                      }
+                      if (parsedMeta.year && meetDateInput.endsWith("-01-01")) {
+                        setMeetDateInput(`${parsedMeta.year}-01-01`);
+                      }
+                      if (parsedMeta.course) {
+                        setMeetCourseInput(parsedMeta.course);
+                      }
                     }}
                     disabled={isProcessing}
                     className="font-mono text-xs"
@@ -669,8 +682,19 @@ export function RivalResultsLinkExtractorModal({
                       try {
                         const clip = await navigator.clipboard.readText();
                         if (clip) {
-                          setUrl(normalizeResultsUrl(clip.trim()));
+                          const clean = normalizeResultsUrl(clip.trim());
+                          setUrl(clean);
                           if (blockedError) setBlockedError(null);
+                          const parsedMeta = parseMeetUrlInfo(clean);
+                          if (parsedMeta.meetName && (!meetNameInput || meetNameInput.startsWith("Torneo") || meetNameInput === "index")) {
+                            setMeetNameInput(parsedMeta.meetName);
+                          }
+                          if (parsedMeta.year && meetDateInput.endsWith("-01-01")) {
+                            setMeetDateInput(`${parsedMeta.year}-01-01`);
+                          }
+                          if (parsedMeta.course) {
+                            setMeetCourseInput(parsedMeta.course);
+                          }
                         }
                       } catch {
                         toast.info("Pega el enlace con Ctrl + V.");
@@ -686,10 +710,24 @@ export function RivalResultsLinkExtractorModal({
                   <span className="text-[10px] text-muted-foreground font-medium">Formatos frecuentes:</span>
                   <button
                     type="button"
+                    className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors font-mono font-semibold"
+                    onClick={() => {
+                      setUrl("https://www.adael.com.ve/3erEstadalADAEL2026/index.htm");
+                      setMeetNameInput("3er Estadal ADAEL 2026");
+                      setMeetDateInput("2026-01-01");
+                      setMeetCourseInput("LCM");
+                      setBlockedError(null);
+                    }}
+                  >
+                    adael.com.ve/3erEstadalADAEL2026/index.htm
+                  </button>
+                  <button
+                    type="button"
                     className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground border transition-colors font-mono"
                     onClick={() => {
                       setUrl("https://natacionvenezuela.com/2026/lara/");
                       setMeetNameInput("Campeonato Estadal Lara 2026");
+                      setMeetDateInput("2026-01-01");
                       setBlockedError(null);
                     }}
                   >
@@ -701,6 +739,7 @@ export function RivalResultsLinkExtractorModal({
                     onClick={() => {
                       setUrl("https://natacionvenezuela.com/2026/occidente/");
                       setMeetNameInput("Campeonato Regional Occidente 2026");
+                      setMeetDateInput("2026-01-01");
                       setBlockedError(null);
                     }}
                   >

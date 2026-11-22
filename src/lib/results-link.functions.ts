@@ -51,19 +51,46 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
     let finalRequestUrl = data.url;
 
     try {
-      res = await doFetch(finalRequestUrl);
+      try {
+        res = await doFetch(finalRequestUrl);
+      } catch (sslErr: any) {
+        // Si falló por error de certificado SSL en https://, probar en http://
+        if (finalRequestUrl.startsWith("https://")) {
+          const httpCand = finalRequestUrl.replace(/^https:/i, "http:");
+          try {
+            const httpRes = await doFetch(httpCand);
+            if (httpRes.ok) {
+              res = httpRes;
+              finalRequestUrl = httpCand;
+            }
+          } catch {}
+        }
+        if (!res) throw sslErr;
+      }
 
-      // Si la URL es un directorio (ej. /2026/lara/) y dio 404, 403 o 530, probar archivos Meet Manager habituales
-      if (
-        !res.ok &&
-        [404, 403, 530].includes(res.status) &&
-        (finalRequestUrl.endsWith("/") || !/\.[a-z0-9]{2,5}$/i.test(new URL(finalRequestUrl).pathname))
-      ) {
-        const candidates = [
-          finalRequestUrl.replace(/\/?$/, "/evtindex.htm"),
-          finalRequestUrl.replace(/\/?$/, "/index.htm"),
-          finalRequestUrl.replace(/\/?$/, "/index.html"),
-        ];
+      // Si dio 404, 403 o 530, probar alternativas de Meet Manager (index.htm, evtindex.htm, con/sin slash)
+      if (!res.ok && [404, 403, 530].includes(res.status)) {
+        const u = new URL(finalRequestUrl);
+        const candidates: string[] = [];
+
+        if (finalRequestUrl.endsWith("/") || !/\.[a-z0-9]{2,5}$/i.test(u.pathname)) {
+          candidates.push(
+            finalRequestUrl.replace(/\/?$/, "/index.htm"),
+            finalRequestUrl.replace(/\/?$/, "/evtindex.htm"),
+            finalRequestUrl.replace(/\/?$/, "/index.html")
+          );
+        } else if (u.pathname.endsWith("/index.htm") || u.pathname.endsWith("/index.html")) {
+          candidates.push(
+            finalRequestUrl.replace(/\/index\.html?$/i, "/evtindex.htm"),
+            finalRequestUrl.replace(/\/index\.html?$/i, "/")
+          );
+        }
+
+        // Si la URL es https://adael.com.ve o https://www.adael.com.ve, probar http:// y viceversa
+        if (finalRequestUrl.startsWith("https://")) {
+          candidates.push(finalRequestUrl.replace(/^https:/i, "http:"));
+        }
+
         for (const cand of candidates) {
           try {
             const candRes = await doFetch(cand);
@@ -72,9 +99,7 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
               finalRequestUrl = cand;
               break;
             }
-          } catch {
-            // Continuar con el siguiente candidato
-          }
+          } catch {}
         }
       }
     } catch {

@@ -10,7 +10,7 @@ import { readPdfLines } from "@/lib/club-document";
 import { parseMeetManagerResults } from "@/lib/pdf-results";
 import { browserBatchStatus, fetchResultsLink, startBrowserBatch } from "@/lib/results-link.functions";
 import { commaTimes, filterToRoster, htmlToLines, indexFrameUrl, meetEventPages, meetIndexInfo, type RosterAthlete } from "@/lib/results-link";
-import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, type FevedaMeet } from "@/lib/feveda";
+import { isFevedaDirectoryUrl, parseFevedaDirectory, normalizeResultsUrl, parseMeetUrlInfo, type FevedaMeet } from "@/lib/feveda";
 import type { ParsedFile } from "@/lib/hytek/types";
 
 export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; onParsed: (name: string, parsed: ParsedFile) => void }) {
@@ -105,7 +105,8 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
 
       // 2. Fetch the meet URL (PDF or Meet Manager HTML)
       const res = await fetchLink({ data: { url: link, allowBrowser } });
-      const name = customName || decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Resultados").replace(/\.(pdf|html?)$/i, "") || "Resultados";
+      const urlMeta = parseMeetUrlInfo(link);
+      const name = customName || urlMeta.meetName || decodeURIComponent(new URL(res.url).pathname.split("/").filter(Boolean).pop() ?? "Resultados").replace(/\.(pdf|html?)$/i, "") || "Resultados";
       let lines: string[];
       let eventParsed: ParsedFile[] | null = null;
       let info: ReturnType<typeof meetIndexInfo> | null = null;
@@ -310,7 +311,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
               inputMode="url"
               autoCapitalize="none"
               autoCorrect="off"
-              placeholder="https://feveda.org/resultados/ o enlace de resultados"
+              placeholder="https://www.adael.com.ve/3erEstadalADAEL2026/index.htm o https://feveda.org/..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               aria-label="Enlace de resultados"
@@ -324,7 +325,18 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
 
           {/* Quick shortcuts for Venezuelan FEVEDA circuits */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">Accesos directos FEVEDA:</span>
+            <span className="font-medium">Accesos directos:</span>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+              onClick={() => {
+                setUrl("https://www.adael.com.ve/3erEstadalADAEL2026/index.htm");
+                read("https://www.adael.com.ve/3erEstadalADAEL2026/index.htm", "3er Estadal ADAEL 2026");
+              }}
+            >
+              🏊 3er Estadal ADAEL 2026
+            </button>
             <button
               type="button"
               disabled={busy}
@@ -334,7 +346,7 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
                 read("https://feveda.org/resultados/");
               }}
             >
-              🇻🇪 Explorar Directorio FEVEDA
+              🇻🇪 Directorio FEVEDA
             </button>
             <button
               type="button"

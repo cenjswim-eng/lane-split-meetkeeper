@@ -87,11 +87,55 @@ export function filterToRoster(parsed: ParsedFile, roster: RosterAthlete[]) {
 
 /** Meet Manager web results: a frameset whose index frame links one page per event (e.g. 260813F001.htm). */
 export function indexFrameUrl(html: string, base: string): string | null {
-  const src = html.match(/<(?:i?frame)[^>]+src=["']?([^"' >]*(?:evtindex|index|pruebas|events)[^"' >]*)/i)?.[1]
-    ?? html.match(/href=["']([^"']*(?:evtindex|index|pruebas|events)\.html?(?:\?[^"']*)?)["']/i)?.[1];
-  if (!src) return null;
-  const url = new URL(src.replace(/&amp;/g, "&"), base).toString();
-  return url === base ? null : url;
+  // 1. Meta-refresh tag (ej. <meta http-equiv="refresh" content="0;url=evtindex.htm">)
+  const metaRefresh = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]*content=["']?[^"'>]*url=([^"'>\s]+)/i)?.[1];
+  if (metaRefresh) {
+    try {
+      const u = new URL(metaRefresh.replace(/&amp;/g, "&"), base).toString();
+      if (u !== base) return u;
+    } catch {}
+  }
+
+  // 2. Javascript location redirect
+  const jsRedirect = html.match(/(?:window\.location(?:\.replace|\.href)?|location\.href)\s*=\s*["']([^"']+)["']/i)?.[1];
+  if (jsRedirect) {
+    try {
+      const u = new URL(jsRedirect.replace(/&amp;/g, "&"), base).toString();
+      if (u !== base) return u;
+    } catch {}
+  }
+
+  // 3. Frame src matching evtindex, index, pruebas, events, menu, left
+  const frameSrc =
+    html.match(/<(?:i?frame)[^>]+src=["']?([^"' >]*(?:evtindex|index|pruebas|events|menu|left)[^"' >]*)/i)?.[1] ??
+    html.match(/<(?:i?frame)[^>]+name=["']?(?:left|leftFrame|menu|tree|index|nav)["']?[^>]+src=["']?([^"' >]+)/i)?.[1] ??
+    html.match(/<(?:i?frame)[^>]+src=["']?([^"' >]+)[^>]+name=["']?(?:left|leftFrame|menu|tree|index|nav)["']/i)?.[1];
+
+  if (frameSrc) {
+    try {
+      const u = new URL(frameSrc.replace(/&amp;/g, "&"), base).toString();
+      if (u !== base) return u;
+    } catch {}
+  }
+
+  // 4. Anchor href matching evtindex, pruebas, events, menu
+  const anchorHref = html.match(/href=["']([^"']*(?:evtindex|pruebas|events|menu)\.html?(?:\?[^"']*)?)["']/i)?.[1];
+  if (anchorHref) {
+    try {
+      const u = new URL(anchorHref.replace(/&amp;/g, "&"), base).toString();
+      if (u !== base) return u;
+    } catch {}
+  }
+
+  // 5. Si contiene <frameset y no hubo coincidencia previa, probar evtindex.htm relativo a la base
+  if (/<frameset/i.test(html)) {
+    try {
+      const u = new URL("evtindex.htm", base).toString();
+      if (u !== base) return u;
+    } catch {}
+  }
+
+  return null;
 }
 
 export function meetEventPages(indexHtml: string, base: string): string[] {

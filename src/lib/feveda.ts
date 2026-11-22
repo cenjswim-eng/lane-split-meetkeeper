@@ -18,6 +18,8 @@ export function normalizeResultsUrl(raw: string): string {
   let clean = raw.trim();
   // Eliminar delimitadores como <>, "", '', [] o espacios
   clean = clean.replace(/^[<"'\s\[\(]+|[>"'\s\]\)]+$/g, "");
+  // Corregir tipeo común cuando se pierde la 'a' inicial al seleccionar "adael.com.ve"
+  clean = clean.replace(/^(https?:\/\/)?(?:www\.)?dael\.com\.ve/i, "$1adael.com.ve");
   // Corregir tipeo común cuando se pierde la 'n' inicial al seleccionar "natacionvenezuela.com"
   clean = clean.replace(/^(https?:\/\/)?(?:www\.)?atacionvenezuela\.com/i, "$1natacionvenezuela.com");
   // Corregir tipeo común cuando se pierde la 'f' inicial al seleccionar "feveda.org"
@@ -41,14 +43,96 @@ export function normalizeResultsUrl(raw: string): string {
   return clean;
 }
 
-/** Detects if a URL belongs to the Venezuelan Swimming Federation results network */
+/** Detects if a URL belongs to the Venezuelan Swimming Federation or State Associations (ADAEL, ADAEM, ADADC, ADAC) */
 export function isFevedaUrl(url: string): boolean {
   try {
     const normalized = normalizeResultsUrl(url);
     const u = new URL(normalized);
-    return /feveda\.org/i.test(u.hostname) || /natacionvenezuela\.com/i.test(u.hostname);
+    return (
+      /feveda\.org/i.test(u.hostname) ||
+      /natacionvenezuela\.com/i.test(u.hostname) ||
+      /adael\.com\.ve/i.test(u.hostname) ||
+      /adaem\.com\.ve/i.test(u.hostname) ||
+      /adadc\.com\.ve/i.test(u.hostname) ||
+      /adac\.com\.ve/i.test(u.hostname)
+    );
   } catch {
     return false;
+  }
+}
+
+export interface ParsedMeetUrlInfo {
+  meetName?: string;
+  state?: string;
+  association?: string;
+  year?: number;
+  course?: "LCM" | "SCM";
+}
+
+/**
+ * Extrae metadatos inteligentes de la URL de una competencia
+ * (ej. "https://www.adael.com.ve/3erEstadalADAEL2026/index.htm" ->
+ * Nombre: "3er Estadal ADAEL 2026", Estado: "Lara", Asociación: "ADAEL", Año: 2026)
+ */
+export function parseMeetUrlInfo(rawUrl: string): ParsedMeetUrlInfo {
+  try {
+    const clean = normalizeResultsUrl(rawUrl);
+    const u = new URL(clean);
+    const segments = u.pathname.split("/").filter(Boolean);
+    if (!segments.length) return {};
+
+    let candidate = segments[segments.length - 1] ?? "";
+    if (/(?:index|evtindex|default|home|resultados|pruebas|events)\.[a-z0-9]+$/i.test(candidate)) {
+      candidate = segments.length > 1 ? segments[segments.length - 2]! : candidate;
+    }
+    candidate = decodeURIComponent(candidate).replace(/\.[a-z0-9]+$/i, "");
+
+    const yearMatch = candidate.match(/\b(202\d)\b/) || u.pathname.match(/\b(202\d)\b/);
+    const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+
+    let state = "Lara";
+    let association = "ADAEL";
+
+    if (/adael/i.test(u.hostname) || /adael/i.test(u.pathname)) {
+      state = "Lara";
+      association = "ADAEL";
+    } else if (/adaem/i.test(u.hostname) || /adaem/i.test(u.pathname) || /miranda/i.test(u.pathname)) {
+      state = "Miranda";
+      association = "ADAEM";
+    } else if (/adadc/i.test(u.hostname) || /adadc/i.test(u.pathname) || /distrito/i.test(u.pathname)) {
+      state = "Distrito Capital";
+      association = "ADADC";
+    } else if (/adac/i.test(u.hostname) || /carabobo/i.test(u.pathname)) {
+      state = "Carabobo";
+      association = "ADAC";
+    }
+
+    let formattedName = candidate;
+    const estadalMatch = candidate.match(/^(\d+(?:er|do|ro|to|mo)?)\s*estadal\s*([a-z]+)?\s*(\d{4})?$/i);
+    if (estadalMatch) {
+      const ordinal = estadalMatch[1];
+      const assoc = estadalMatch[2] ? estadalMatch[2].toUpperCase() : association;
+      const yr = estadalMatch[3] || year;
+      formattedName = `${ordinal} Estadal ${assoc} ${yr}`;
+    } else {
+      formattedName = candidate
+        .replace(/(\d+)(er|do|ro|to|mo)/gi, "$1$2 ")
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/([A-Z]+)(\d{4})/g, "$1 $2")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    return {
+      meetName: formattedName || `Torneo Oficial ${association} ${year}`,
+      state,
+      association,
+      year,
+      course: /piscina[-_ ]?corta|25m|scm/i.test(candidate) ? "SCM" : "LCM",
+    };
+  } catch {
+    return {};
   }
 }
 
