@@ -1,22 +1,28 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { coachQuery } from '@/lib/coach-data';
+import { profileQuery } from '@/lib/profile';
 import { AquaRanking } from '@/components/aqua-ranking';
 import { AssociationRanking } from '@/components/association-ranking';
 import { AdaelRankingView } from '@/components/adael/AdaelRankingView';
+import { StateRankingView } from '@/components/StateRankingView';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceFilters, matchesResult } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
-import { Trophy, ExternalLink } from 'lucide-react';
+import { Trophy, ExternalLink, Medal } from 'lucide-react';
 
 export const Route = createFileRoute('/_authenticated/rankings')({
   staticData: { sitemap: false },
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === 'string' ? search.tab : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: 'Rankings y Top 5 — Swim Lane Coach' },
-      { name: 'description', content: 'Ranking oficial por asociación, cruces de edad y clasificación AQUA.' },
-      { property: 'og:title', content: 'Rankings y Top 5 — Swim Lane Coach' },
-      { property: 'og:description', content: 'Clasificación de atletas por asociación, cruces de edad y puntos AQUA.' },
+      { title: 'Ranking Estadal y Clasificaciones — Swim Lane Coach' },
+      { name: 'description', content: 'Ranking oficial estadal filtrado por asociación, cruces de edad y clasificación AQUA.' },
+      { property: 'og:title', content: 'Ranking Estadal y Clasificaciones — Swim Lane Coach' },
+      { property: 'og:description', content: 'Ranking oficial por estado según club activo, cruces de edad y puntos AQUA.' },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ],
@@ -27,6 +33,16 @@ export const Route = createFileRoute('/_authenticated/rankings')({
 
 function Rankings() {
   const { data } = useSuspenseQuery(coachQuery);
+  const { data: profileData } = useQuery(profileQuery);
+  const search = Route.useSearch();
+  const [activeTab, setActiveTab] = useState(search.tab || 'estadal');
+
+  useEffect(() => {
+    if (search.tab) {
+      setActiveTab(search.tab);
+    }
+  }, [search.tab]);
+
   const { filters } = useWorkspaceFilters();
   const categories = useSwimCategories();
   const results = data.results.filter((r) => matchesResult(r, filters, categories));
@@ -37,7 +53,7 @@ function Rankings() {
         <div>
           <h1 className="text-4xl font-bold">Rankings</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Clasificaciones oficiales por asociación regional, cruces de edad y puntuación World Aquatics
+            Ranking oficial estadal según el club activo, clasificaciones regionales y puntuación World Aquatics
           </p>
         </div>
         <Link
@@ -50,13 +66,27 @@ function Rankings() {
         </Link>
       </div>
 
-      <Tabs defaultValue="association" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
+          <TabsTrigger value="estadal" className="flex items-center gap-1.5 font-bold">
+            <Medal className="h-3.5 w-3.5 text-primary" />
+            Ranking Estadal
+          </TabsTrigger>
           <TabsTrigger value="association">Top 5 Asociación</TabsTrigger>
           <TabsTrigger value="adael">Ranking ADAEL 2026</TabsTrigger>
           <TabsTrigger value="aqua">Ranking AQUA</TabsTrigger>
           <TabsTrigger value="teams">Equipos y Temporadas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="estadal" className="space-y-6 pt-1">
+          <StateRankingView
+            results={data.results}
+            athletes={data.athletes}
+            clubs={(data as any).clubs || []}
+            teams={(data as any).teams || []}
+            activeClub={profileData?.club}
+          />
+        </TabsContent>
 
         <TabsContent value="adael" className="space-y-6 pt-1">
           <AdaelRankingView />
