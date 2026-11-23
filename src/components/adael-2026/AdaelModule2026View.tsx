@@ -4,9 +4,16 @@
  *
  * Módulo de software deportivo especializado para la Asociación de Deportes Acuáticos del Estado Lara (ADAEL)
  * Diseñado bajo estándares FEVEDA / World Aquatics / Hy-Tek Meet Manager.
+ *
+ * Incluye:
+ * - Motor de Importación Universal Drag & Drop (Zero-Skip Parser) para .hy3, .sd3, .cl2, .mdb, .pdf, .zip
+ * - Consola de Auditoría Post-Importación
+ * - Vista 1: Directorio de Equipos ADAEL con Medallero y Puntos Totales
+ * - Vista 2: Padrón de Atletas Fichados 2026 con Edades al 31/12/2026 y Exportación Excel/CSV
+ * - Vista 3: Buscador y Ranking de Resultados 2026 con Mejores Marcas (PB) y Evolución de Parciales (Splits)
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   ShieldCheck,
   Building2,
@@ -36,6 +43,9 @@ import {
   Globe,
   Layers,
   ArrowUpDown,
+  FileText,
+  TrendingUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -59,7 +69,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import {
   type AdaelClub2026,
   type AdaelAthlete2026,
@@ -69,61 +79,59 @@ import {
   type GenderType,
   type RoundType,
   type ResultStatus,
-  DEFAULT_ADAEL_CLUBS_2026,
 } from "@/lib/adael-2026/types";
 import {
   getAdaelClubs2026,
   getAdaelAthletes2026,
   getAdaelResults2026,
-  upsertAdaelClubs2026,
   upsertAdaelAthletes2026,
-  upsertAdaelResults2026,
-  ingestOfficialAdaelBatch,
-  resolveAdaelClub,
   normalizeAthleteName,
   calculateAgeGroup2026,
   formatMillisecondsToTime,
-  parseTimeToMilliseconds,
-  calculateFinaPoints,
 } from "@/lib/adael-2026/service";
+import {
+  parseUniversalAdaelFiles,
+  type UniversalParseReport,
+} from "@/lib/adael-2026/universal-parser";
+import { AuditConsoleModal } from "./AuditConsoleModal";
 import { downloadFile } from "@/lib/file-delivery";
-import { UnifiedResultsImportHub } from "@/components/imports/UnifiedResultsImportHub";
 
 export function AdaelModule2026View() {
-  const [activeTab, setActiveTab] = useState<string>("padron");
+  const [activeTab, setActiveTab] = useState<string>("equipos");
   const [loading, setLoading] = useState(false);
 
-  // Estados de datos
+  // Estados de datos principales
   const [clubs, setClubs] = useState<AdaelClub2026[]>([]);
   const [athletes, setAthletes] = useState<AdaelAthlete2026[]>([]);
   const [results, setResults] = useState<AdaelResult2026[]>([]);
 
-  // Filtros Tab 1: Padrón
+  // Vista 1: Filtros Directorio Equipos
+  const [searchClub, setSearchClub] = useState("");
+
+  // Vista 2: Filtros Padrón de Atletas
   const [searchAthlete, setSearchAthlete] = useState("");
   const [filterClub, setFilterClub] = useState("all");
   const [filterAgeGroup, setFilterAgeGroup] = useState<string>("all");
   const [filterGender, setFilterGender] = useState<string>("all");
   const [filterFederated, setFilterFederated] = useState<string>("all");
 
-  // Filtros Tab 2: Resultados
+  // Vista 3: Filtros Buscador y Ranking de Resultados
   const [filterMeet, setFilterMeet] = useState<string>("all");
   const [filterCourse, setFilterCourse] = useState<string>("all");
-  const [filterEvent, setFilterEvent] = useState<string>("all");
+  const [filterStroke, setFilterStroke] = useState<string>("all");
+  const [filterDistance, setFilterDistance] = useState<string>("all");
+  const [filterResultAgeGroup, setFilterResultAgeGroup] = useState<string>("all");
   const [filterResultClub, setFilterResultClub] = useState<string>("all");
+  const [filterOnlyPB, setFilterOnlyPB] = useState(true);
 
-  // Filtros Tab 3: Ranking
-  const [rankingGender, setRankingGender] = useState<GenderType>("M");
-  const [rankingCourse, setRankingCourse] = useState<CourseType>("LCM");
-  const [rankingEvent, setRankingEvent] = useState<string>("50m Libre");
-  const [rankingAgeGroup, setRankingAgeGroup] = useState<string>("all");
-
-  // Importador rápido en pestaña 4
-  const [importUrl, setImportUrl] = useState("");
-  const [importMeetName, setImportMeetName] = useState("III Estadal ADAEL 2026 (Piscinas Bolivarianas)");
-  const [importMeetDate, setImportMeetDate] = useState("2026-03-20");
-  const [importCourse, setImportCourse] = useState<CourseType>("LCM");
-  const [importRawText, setImportRawText] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
+  // Estado Drag & Drop Universal Parser
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState("");
+  const [auditReport, setAuditReport] = useState<UniversalParseReport | null>(null);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal nuevo atleta
   const [newAthleteOpen, setNewAthleteOpen] = useState(false);
@@ -165,42 +173,77 @@ export function AdaelModule2026View() {
     return m;
   }, [clubs]);
 
-  // Lista de eventos oficiales disponibles en los resultados
-  const availableEvents = useMemo(() => {
-    const set = new Set<string>();
-    results.forEach((r) => set.add(r.event_code));
-    if (set.size === 0) {
-      return [
-        "50m Libre",
-        "100m Libre",
-        "200m Libre",
-        "400m Libre",
-        "800m Libre",
-        "1500m Libre",
-        "50m Espalda",
-        "100m Espalda",
-        "200m Espalda",
-        "50m Pecho",
-        "100m Pecho",
-        "200m Pecho",
-        "50m Mariposa",
-        "100m Mariposa",
-        "200m Mariposa",
-        "200m C.I.",
-        "400m C.I.",
-      ];
-    }
-    return Array.from(set).sort();
-  }, [results]);
+  // Mapa de atletas para acceso rápido O(1)
+  const athleteMap = useMemo(() => {
+    const m = new Map<string, AdaelAthlete2026>();
+    athletes.forEach((a) => m.set(a.id, a));
+    return m;
+  }, [athletes]);
 
-  // Torneos oficiales disponibles
-  const availableMeets = useMemo(() => {
-    const set = new Set<string>();
-    results.forEach((r) => set.add(r.meet_name));
-    return Array.from(set);
-  }, [results]);
+  // =========================================================================
+  // VISTA 1: DIRECTORIO DE EQUIPOS ADAEL CON MEDALLERO Y PUNTOS
+  // =========================================================================
+  const clubDirectoryStats = useMemo(() => {
+    const FEVEDA_POINTS = [9, 7, 6, 5, 4, 3, 2, 1]; // Puntos para 1° al 8° puesto
 
-  // Atletas filtrados para el Padrón
+    return clubs.map((club) => {
+      const clubAthletes = athletes.filter((a) => a.club_id === club.id);
+      const maleCount = clubAthletes.filter((a) => a.gender === "M").length;
+      const femaleCount = clubAthletes.filter((a) => a.gender === "F").length;
+      const federatedCount = clubAthletes.filter((a) => a.is_federated).length;
+
+      const clubResults = results.filter((r) => r.club_id === club.id && r.status === "OK");
+
+      let gold = 0;
+      let silver = 0;
+      let bronze = 0;
+      let totalPoints = 0;
+
+      for (const res of clubResults) {
+        if (res.rank === 1) gold++;
+        else if (res.rank === 2) silver++;
+        else if (res.rank === 3) bronze++;
+
+        if (res.rank && res.rank >= 1 && res.rank <= 8) {
+          totalPoints += FEVEDA_POINTS[res.rank - 1] || 0;
+        }
+      }
+
+      return {
+        club,
+        totalAthletes: clubAthletes.length,
+        maleCount,
+        femaleCount,
+        federatedCount,
+        totalResults: clubResults.length,
+        gold,
+        silver,
+        bronze,
+        totalMedals: gold + silver + bronze,
+        totalPoints,
+      };
+    }).sort((a, b) => {
+      // Ordenar por puntos totales descendente, luego por oro
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      if (b.gold !== a.gold) return b.gold - a.gold;
+      return b.totalAthletes - a.totalAthletes;
+    });
+  }, [clubs, athletes, results]);
+
+  const filteredClubDirectory = useMemo(() => {
+    if (!searchClub.trim()) return clubDirectoryStats;
+    const q = searchClub.trim().toUpperCase();
+    return clubDirectoryStats.filter(
+      (c) =>
+        c.club.club_code.toUpperCase().includes(q) ||
+        c.club.club_name.toUpperCase().includes(q) ||
+        c.club.aliases?.some((a) => a.toUpperCase().includes(q))
+    );
+  }, [clubDirectoryStats, searchClub]);
+
+  // =========================================================================
+  // VISTA 2: PADRÓN DE ATLETAS FICHADOS 2026
+  // =========================================================================
   const filteredAthletes = useMemo(() => {
     return athletes.filter((ath) => {
       if (filterClub !== "all" && ath.club_id !== filterClub) return false;
@@ -222,97 +265,115 @@ export function AdaelModule2026View() {
     });
   }, [athletes, filterClub, filterAgeGroup, filterGender, filterFederated, searchAthlete, clubMap]);
 
-  // Resultados filtrados para Tab 2
+  // =========================================================================
+  // VISTA 3: BUSCADOR Y RANKING DE RESULTADOS 2026 (PB & PARCIALES)
+  // =========================================================================
+  const availableMeets = useMemo(() => {
+    const s = new Set<string>();
+    results.forEach((r) => s.add(r.meet_name));
+    return Array.from(s);
+  }, [results]);
+
   const filteredResults = useMemo(() => {
-    return results.filter((res) => {
-      if (filterMeet !== "all" && res.meet_name !== filterMeet) return false;
-      if (filterCourse !== "all" && res.pool_course !== filterCourse) return false;
-      if (filterEvent !== "all" && res.event_code !== filterEvent) return false;
-      if (filterResultClub !== "all" && res.club_id !== filterResultClub) return false;
-      return true;
-    });
-  }, [results, filterMeet, filterCourse, filterEvent, filterResultClub]);
+    // 1. Filtrado básico
+    let subset = results.filter((r) => {
+      if (filterMeet !== "all" && r.meet_name !== filterMeet) return false;
+      if (filterCourse !== "all" && r.pool_course !== filterCourse) return false;
+      if (filterResultClub !== "all" && r.club_id !== filterResultClub) return false;
 
-  // Ranking calculado para Tab 3: Mejor marca por atleta en prueba y curso seleccionado
-  const computedRanking = useMemo(() => {
-    const athLookup = new Map<string, AdaelAthlete2026>();
-    athletes.forEach((a) => athLookup.set(a.id, a));
-
-    // Filtrar resultados válidos
-    const valid = results.filter((r) => {
-      if (r.pool_course !== rankingCourse) return false;
-      if (r.event_code !== rankingEvent) return false;
-      if (r.status === "DQ" || r.status === "NS" || r.status === "DNF") return false;
-      if (!r.final_time_ms || r.final_time_ms <= 0) return false;
-
-      const ath = athLookup.get(r.athlete_id);
-      if (!ath) return false;
-      if (ath.gender !== rankingGender) return false;
-      if (rankingAgeGroup !== "all" && ath.age_group_2026 !== rankingAgeGroup) return false;
-
-      return true;
-    });
-
-    // Deduplicar: Conservar la mejor marca (menor final_time_ms) de cada nadador
-    const bestPerSwimmer = new Map<string, AdaelResult2026>();
-    for (const r of valid) {
-      const existing = bestPerSwimmer.get(r.athlete_id);
-      if (!existing || r.final_time_ms < existing.final_time_ms) {
-        bestPerSwimmer.set(r.athlete_id, r);
+      // Filtro estilo
+      if (filterStroke !== "all") {
+        if (!r.event_code.toLowerCase().includes(filterStroke.toLowerCase())) return false;
       }
+      // Filtro distancia
+      if (filterDistance !== "all") {
+        if (!r.event_code.startsWith(`${filterDistance}m`)) return false;
+      }
+
+      // Filtro categoría atleta
+      if (filterResultAgeGroup !== "all") {
+        const ath = athleteMap.get(r.athlete_id);
+        if (!ath || ath.age_group_2026 !== filterResultAgeGroup) return false;
+      }
+
+      return true;
+    });
+
+    // 2. Si Solo PB está activo: Agrupar por atleta + event_code + pool_course y conservar menor tiempo
+    if (filterOnlyPB) {
+      const bestMap = new Map<string, AdaelResult2026>();
+      for (const res of subset) {
+        if (!res.final_time_ms || res.final_time_ms <= 0) continue;
+        const key = `${res.athlete_id}_${res.event_code}_${res.pool_course}`;
+        const existing = bestMap.get(key);
+        if (!existing || res.final_time_ms < existing.final_time_ms) {
+          bestMap.set(key, res);
+        }
+      }
+      subset = Array.from(bestMap.values());
     }
 
-    // Ordenar de más rápido a más lento
-    const sorted = Array.from(bestPerSwimmer.values()).sort(
-      (a, b) => a.final_time_ms - b.final_time_ms
-    );
+    // Ordenar de menor a mayor tiempo
+    return subset.sort((a, b) => (a.final_time_ms || 999999) - (b.final_time_ms || 999999));
+  }, [results, filterMeet, filterCourse, filterResultClub, filterStroke, filterDistance, filterResultAgeGroup, filterOnlyPB, athleteMap]);
 
-    const leaderTime = sorted[0]?.final_time_ms || 0;
+  // =========================================================================
+  // GESTIÓN DRAG & DROP MULTI-ARCHIVO
+  // =========================================================================
+  const handleFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
 
-    return sorted.map((res, index) => {
-      const ath = athLookup.get(res.athlete_id);
-      const club = clubMap.get(res.club_id);
-      const diffMs = index === 0 ? 0 : res.final_time_ms - leaderTime;
-      const diffFormatted = index === 0 ? "+0.00" : `+${(diffMs / 1000).toFixed(2)}`;
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadStage("Preparando archivos...");
 
-      return {
-        rank: index + 1,
-        result: res,
-        athlete: ath,
-        club,
-        diffFormatted,
-      };
-    });
-  }, [results, athletes, clubMap, rankingGender, rankingCourse, rankingEvent, rankingAgeGroup]);
+    try {
+      const report = await parseUniversalAdaelFiles(files, {
+        onProgress: (pct, stage) => {
+          setUploadProgress(pct);
+          setUploadStage(stage);
+        },
+      });
 
-  // Métricas para los KPIs
-  const stats = useMemo(() => {
-    const totalClubs = clubs.length;
-    const totalAthletes = athletes.length;
-    const federatedCount = athletes.filter((a) => a.is_federated).length;
-    const masificationCount = totalAthletes - federatedCount;
-    const maleAthletes = athletes.filter((a) => a.gender === "M").length;
-    const femaleAthletes = athletes.filter((a) => a.gender === "F").length;
-    const totalResults = results.length;
-    const lcmResults = results.filter((r) => r.pool_course === "LCM").length;
-    const scmResults = results.filter((r) => r.pool_course === "SCM").length;
+      setAuditReport(report);
+      setAuditModalOpen(true);
+      await loadAllData();
+      toast.success(
+        `Importación Universal completada: ${report.totalClubsDetected} clubes, ${report.totalAthletesEnrolled} atletas y ${report.totalResultsImported} marcas.`
+      );
+    } catch (err: any) {
+      console.error("Error en importación universal:", err);
+      toast.error(`Error procesando archivos: ${err?.message || "Fallo inesperado"}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadStage("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
-    return {
-      totalClubs,
-      totalAthletes,
-      federatedCount,
-      masificationCount,
-      maleAthletes,
-      femaleAthletes,
-      totalResults,
-      lcmResults,
-      scmResults,
-    };
-  }, [clubs, athletes, results]);
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
 
   // Exportar padrón a CSV
-  const handleExportAthletesCSV = () => {
-    if (athletes.length === 0) {
+  const handleExportCSV = () => {
+    if (filteredAthletes.length === 0) {
       toast.info("No hay atletas en el padrón para exportar.");
       return;
     }
@@ -345,7 +406,57 @@ export function AdaelModule2026View() {
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
     downloadFile(csvContent, "Padron_Oficial_ADAEL_2026.csv", "text/csv;charset=utf-8;");
-    toast.success("Padrón exportado exitosamente.");
+    toast.success("Padrón exportado en formato CSV exitosamente.");
+  };
+
+  // Exportar padrón a Excel (XML Spreadsheet)
+  const handleExportExcel = () => {
+    if (filteredAthletes.length === 0) {
+      toast.info("No hay atletas en el padrón para exportar.");
+      return;
+    }
+
+    const rowsXml = filteredAthletes
+      .map((a) => {
+        const club = clubMap.get(a.club_id);
+        return `<Row>
+          <Cell><Data ss:Type="String">${a.faveda_adael_id || ""}</Data></Cell>
+          <Cell><Data ss:Type="String">${a.full_name}</Data></Cell>
+          <Cell><Data ss:Type="String">${a.gender}</Data></Cell>
+          <Cell><Data ss:Type="Number">${a.birth_year}</Data></Cell>
+          <Cell><Data ss:Type="String">${a.age_group_2026}</Data></Cell>
+          <Cell><Data ss:Type="String">${club?.club_code || ""}</Data></Cell>
+          <Cell><Data ss:Type="String">${club?.club_name || ""}</Data></Cell>
+          <Cell><Data ss:Type="String">${a.is_federated ? "Federado" : "Masificación"}</Data></Cell>
+          <Cell><Data ss:Type="String">${a.status}</Data></Cell>
+        </Row>`;
+      })
+      .join("\n");
+
+    const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Padrón ADAEL 2026">
+  <Table>
+   <Row>
+    <Cell><Data ss:Type="String">ID FEVEDA / ADAEL</Data></Cell>
+    <Cell><Data ss:Type="String">Nombre Oficial</Data></Cell>
+    <Cell><Data ss:Type="String">Género</Data></Cell>
+    <Cell><Data ss:Type="String">Año Nacimiento</Data></Cell>
+    <Cell><Data ss:Type="String">Categoría al 31/12/2026</Data></Cell>
+    <Cell><Data ss:Type="String">Código Club</Data></Cell>
+    <Cell><Data ss:Type="String">Nombre Club</Data></Cell>
+    <Cell><Data ss:Type="String">Condición</Data></Cell>
+    <Cell><Data ss:Type="String">Estatus</Data></Cell>
+   </Row>
+   ${rowsXml}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    downloadFile(xml, "Padron_Oficial_ADAEL_2026.xls", "application/vnd.ms-excel;charset=utf-8;");
+    toast.success("Padrón exportado en formato Excel exitosamente.");
   };
 
   // Crear nuevo atleta manual
@@ -388,139 +499,43 @@ export function AdaelModule2026View() {
     }
   };
 
-  // Ingestión rápida desde pestaña 4
-  const handleProcessImport = async () => {
-    if (!importRawText.trim() && !importUrl.trim()) {
-      toast.error("Ingresa un enlace de resultados o pega el texto del reporte.");
-      return;
-    }
-
-    setIsImporting(true);
-    try {
-      // Simulación de parsing o lectura de texto tabulado
-      const lines = importRawText.split("\n").filter((l) => l.trim().length > 0);
-      const parsedRecords: Parameters<typeof ingestOfficialAdaelBatch>[0]["records"] = [];
-
-      for (const line of lines) {
-        // Formato básico o delimitado por comas / tabulaciones:
-        // Nombre, Sexo, Año, Club, Prueba, Tiempo
-        const parts = line.split(/[,;\t]/).map((s) => s.trim());
-        if (parts.length >= 5) {
-          const name = parts[0];
-          const gender: GenderType = parts[1].toUpperCase() === "F" ? "F" : "M";
-          const year = parseInt(parts[2], 10) || 2010;
-          const clubCode = parts[3];
-          const event = parts[4];
-          const time = parts[5] || parts[4];
-
-          parsedRecords.push({
-            athleteName: name,
-            gender,
-            birthYear: year,
-            clubCodeOrAlias: clubCode,
-            eventCode: event.includes("m") ? event : `${event} Libre`,
-            finalTime: time,
-          });
-        }
-      }
-
-      if (parsedRecords.length === 0) {
-        // Demostración pre-cargada para Estadales Piscinas Bolivarianas
-        parsedRecords.push(
-          {
-            athleteName: "García, Juan Pablo",
-            gender: "M",
-            birthYear: 2011,
-            clubCodeOrAlias: "JSWIM",
-            eventCode: "50m Libre",
-            finalTime: "28.45",
-            rank: 1,
-            splits: [{ distance_m: 50, split_time: "28.45", split_ms: 28450 }],
-          },
-          {
-            athleteName: "Mendoza, Valeria",
-            gender: "F",
-            birthYear: 2012,
-            clubCodeOrAlias: "HOCALAR",
-            eventCode: "50m Libre",
-            finalTime: "30.12",
-            rank: 1,
-            splits: [{ distance_m: 50, split_time: "30.12", split_ms: 30120 }],
-          },
-          {
-            athleteName: "Torres, Diego",
-            gender: "M",
-            birthYear: 2009,
-            clubCodeOrAlias: "POLIDEPORTIVO",
-            eventCode: "100m Mariposa",
-            finalTime: "1:01.80",
-            rank: 1,
-            splits: [
-              { distance_m: 50, split_time: "28.90", split_ms: 28900 },
-              { distance_m: 100, split_time: "1:01.80", split_ms: 61800 },
-            ],
-          },
-          {
-            athleteName: "Hernández, Camila",
-            gender: "F",
-            birthYear: 2010,
-            clubCodeOrAlias: "ITALVEN",
-            eventCode: "100m Libre",
-            finalTime: "1:04.25",
-            rank: 1,
-            splits: [
-              { distance_m: 50, split_time: "30.80", split_ms: 30800 },
-              { distance_m: 100, split_time: "1:04.25", split_ms: 64250 },
-            ],
-          }
-        );
-      }
-
-      const res = await ingestOfficialAdaelBatch({
-        meetName: importMeetName,
-        meetDate: importMeetDate,
-        poolCourse: importCourse,
-        records: parsedRecords,
-      });
-
-      toast.success(
-        `Importación completada: ${res.athletesProcessed} atletas en padrón y ${res.resultsProcessed} marcas registradas.`
-      );
-      setImportRawText("");
-      setImportUrl("");
-      await loadAllData();
-      setActiveTab("resultados");
-    } catch (e: any) {
-      toast.error("Error en la importación: " + (e?.message || ""));
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   return (
     <div className="space-y-6 pb-12">
       {/* Encabezado Principal */}
-      <div className="rounded-xl border bg-gradient-to-r from-blue-900/20 via-sky-900/10 to-transparent p-6 shadow-sm">
+      <div className="rounded-xl border bg-gradient-to-r from-blue-950/40 via-sky-950/20 to-card p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow">
-                <ShieldCheck className="h-5 w-5" />
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow">
+                <ShieldCheck className="h-6 w-6" />
               </span>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Módulo ADAEL 2026 (Clubes, Fichaje y Resultados)
-              </h1>
-              <Badge variant="outline" className="border-primary/40 text-primary font-bold">
-                Temporada 2026
-              </Badge>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  Módulo ADAEL 2026 (Clubes, Fichaje y Resultados)
+                </h1>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                  <Badge variant="outline" className="border-primary/40 text-primary font-bold py-0">
+                    Temporada Oficial 2026
+                  </Badge>
+                  <span>•</span>
+                  <span>Complejo de Piscinas Bolivarianas & Copa Hocalar</span>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Central de Clubes Afiliados, Padrón Oficial de Atletas Fichados (Categorías al 31/12/2026),
-              Marcas Estadales en Complejo Piscinas Bolivarianas y Copa Hocalar.
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
+            {auditReport && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAuditModalOpen(true)}
+                className="gap-2 text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+              >
+                <AlertCircle className="h-3.5 w-3.5" />
+                Auditoría ({auditReport.warnings.length})
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -542,90 +557,179 @@ export function AdaelModule2026View() {
           </div>
         </div>
 
-        {/* Tarjetas de Métricas Clave */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-          <Card className="bg-card/60 backdrop-blur-sm border shadow-sm">
-            <CardHeader className="p-3 pb-1">
-              <CardDescription className="text-xs flex items-center justify-between">
-                <span>Clubes Afiliados</span>
-                <Building2 className="h-3.5 w-3.5 text-primary" />
-              </CardDescription>
-              <CardTitle className="text-2xl font-bold">{stats.totalClubs}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-[11px] text-muted-foreground">
-              ADAEL Lara e Invitados
-            </CardContent>
-          </Card>
+        {/* Zona Drag & Drop Universal (Zero-Skip Parser) */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`mt-6 rounded-lg border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+            isDragging
+              ? "border-primary bg-primary/10 scale-[1.01]"
+              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".hy3,.sd3,.cl2,.mdb,.pdf,.zip,.txt,.csv"
+            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            className="hidden"
+          />
 
-          <Card className="bg-card/60 backdrop-blur-sm border shadow-sm">
-            <CardHeader className="p-3 pb-1">
-              <CardDescription className="text-xs flex items-center justify-between">
-                <span>Padrón de Fichados</span>
-                <Users className="h-3.5 w-3.5 text-blue-500" />
-              </CardDescription>
-              <CardTitle className="text-2xl font-bold">{stats.totalAthletes}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-[11px] text-muted-foreground flex gap-2">
-              <span className="text-blue-600 font-semibold">{stats.maleAthletes} M</span>
-              <span>•</span>
-              <span className="text-rose-600 font-semibold">{stats.femaleAthletes} F</span>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/60 backdrop-blur-sm border shadow-sm">
-            <CardHeader className="p-3 pb-1">
-              <CardDescription className="text-xs flex items-center justify-between">
-                <span>Marcas Oficiales</span>
-                <Timer className="h-3.5 w-3.5 text-emerald-500" />
-              </CardDescription>
-              <CardTitle className="text-2xl font-bold">{stats.totalResults}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-[11px] text-muted-foreground">
-              {stats.lcmResults} LCM (50m) • {stats.scmResults} SCM (25m)
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/60 backdrop-blur-sm border shadow-sm">
-            <CardHeader className="p-3 pb-1">
-              <CardDescription className="text-xs flex items-center justify-between">
-                <span>Sedes Principales</span>
-                <MapPin className="h-3.5 w-3.5 text-amber-500" />
-              </CardDescription>
-              <CardTitle className="text-sm font-semibold truncate">Piscinas Bolivarianas</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-[11px] text-muted-foreground">
-              Complejo Bolivariano & Hocalar
-            </CardContent>
-          </Card>
+          {isUploading ? (
+            <div className="space-y-2 py-2 max-w-md mx-auto">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span>{uploadStage}</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-1">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Upload className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-foreground">
+                  Arrastra aquí múltiples archivos (.hy3, .sd3, .cl2, .mdb, .pdf, .zip) o haz clic para seleccionar
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Motor Universal Zero-Skip con fallback de codificación para "Ñ" y tildes. Extrae todos los clubes, atletas y relevos.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Pestañas Principales */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-muted/60 p-1">
+        <TabsList className="grid grid-cols-3 w-full max-w-xl bg-muted/60 p-1">
+          <TabsTrigger value="equipos" className="text-xs flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5" />
+            Vista 1: Equipos ADAEL
+          </TabsTrigger>
           <TabsTrigger value="padron" className="text-xs flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Padrón de</span> Atletas 2026
-          </TabsTrigger>
-          <TabsTrigger value="clubes" className="text-xs flex items-center gap-1.5">
-            <Building2 className="h-3.5 w-3.5" />
-            Clubes ADAEL
+            Vista 2: Padrón de Atletas
           </TabsTrigger>
           <TabsTrigger value="resultados" className="text-xs flex items-center gap-1.5">
             <Timer className="h-3.5 w-3.5" />
-            Resultados 2026
-          </TabsTrigger>
-          <TabsTrigger value="ranking" className="text-xs flex items-center gap-1.5">
-            <Trophy className="h-3.5 w-3.5" />
-            Ranking Estadal
-          </TabsTrigger>
-          <TabsTrigger value="importar" className="text-xs flex items-center gap-1.5 col-span-4 sm:col-span-1 mt-1 sm:mt-0">
-            <Upload className="h-3.5 w-3.5" />
-            Importador
+            Vista 3: Buscador y Ranking
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: PADRÓN DE ATLETAS FICHADOS 2026 */}
+        {/* ================================================================= */}
+        {/* VISTA 1: DIRECTORIO DE EQUIPOS ADAEL CON MEDALLERO Y PUNTOS      */}
+        {/* ================================================================= */}
+        <TabsContent value="equipos" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Directorio de Equipos ADAEL (Temporada 2026)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Padrón de clubes afiliados del estado Lara, nadadores fichados, medallero y tabla acumulada de puntos FEVEDA.
+                  </CardDescription>
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar club o alias..."
+                    value={searchClub}
+                    onChange={(e) => setSearchClub(e.target.value)}
+                    className="h-8 pl-8 text-xs"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div className="rounded-md border overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/50 border-b font-medium text-muted-foreground uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3">#</th>
+                      <th className="py-2.5 px-3">Código</th>
+                      <th className="py-2.5 px-3">Nombre Oficial del Club</th>
+                      <th className="py-2.5 px-3">Aliases Reconocidos</th>
+                      <th className="py-2.5 px-3 text-center">Atletas (M/F)</th>
+                      <th className="py-2.5 px-3 text-center">🥇 Oro</th>
+                      <th className="py-2.5 px-3 text-center">🥈 Plata</th>
+                      <th className="py-2.5 px-3 text-center">🥉 Bronce</th>
+                      <th className="py-2.5 px-3 text-center font-bold">Total Medallas</th>
+                      <th className="py-2.5 px-3 text-right font-bold text-primary">Puntos FEVEDA</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filteredClubDirectory.map((item, idx) => (
+                      <tr key={item.club.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-muted-foreground">{idx + 1}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-primary">
+                          <Badge variant="secondary" className="font-mono text-[10px]">
+                            {item.club.club_code}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-foreground">{item.club.club_name}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {item.club.aliases?.slice(0, 3).map((a, i) => (
+                              <Badge key={i} variant="outline" className="text-[9px] py-0 px-1 font-mono">
+                                {a}
+                              </Badge>
+                            ))}
+                            {(item.club.aliases?.length || 0) > 3 && (
+                              <span className="text-[9px] text-muted-foreground">
+                                +{(item.club.aliases?.length || 0) - 3}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono">
+                          <span className="font-bold">{item.totalAthletes}</span>
+                          <span className="text-muted-foreground text-[10px] ml-1">
+                            ({item.maleCount}M/{item.femaleCount}F)
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-amber-500">
+                          {item.gold > 0 ? item.gold : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-slate-400">
+                          {item.silver > 0 ? item.silver : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-amber-700">
+                          {item.bronze > 0 ? item.bronze : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono font-bold">
+                          {item.totalMedals > 0 ? (
+                            <Badge variant="secondary" className="text-[10px] font-bold">
+                              {item.totalMedals}
+                            </Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-sm text-primary">
+                          {item.totalPoints > 0 ? `${item.totalPoints} pts` : "0 pts"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ================================================================= */}
+        {/* VISTA 2: PADRÓN DE ATLETAS FICHADOS 2026 CON EXPORTACIÓN         */}
+        {/* ================================================================= */}
         <TabsContent value="padron" className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
@@ -636,7 +740,7 @@ export function AdaelModule2026View() {
                     Padrón Oficial de Atletas Fichados ADAEL 2026
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Edades y categorías calculadas estrictamente al 31 de diciembre de 2026.
+                    Categorías calculadas estrictamente al 31 de diciembre de 2026 según normativas FEVEDA.
                   </CardDescription>
                 </div>
 
@@ -644,7 +748,16 @@ export function AdaelModule2026View() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleExportAthletesCSV}
+                    onClick={handleExportExcel}
+                    className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    Exportar Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCSV}
                     className="h-8 text-xs gap-1.5"
                   >
                     <Download className="h-3.5 w-3.5" />
@@ -653,7 +766,7 @@ export function AdaelModule2026View() {
                 </div>
               </div>
 
-              {/* Filtros de Búsqueda */}
+              {/* Filtros */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pt-3">
                 <div className="relative sm:col-span-2 md:col-span-1">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -667,7 +780,7 @@ export function AdaelModule2026View() {
 
                 <Select value={filterClub} onValueChange={setFilterClub}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Todos los Clubes" />
+                    <SelectValue placeholder="Club" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los Clubes</SelectItem>
@@ -724,20 +837,6 @@ export function AdaelModule2026View() {
                 <div className="py-12 text-center text-muted-foreground space-y-3">
                   <Users className="mx-auto h-10 w-10 stroke-1 opacity-40" />
                   <p className="text-sm font-medium">No se encontraron atletas en el padrón con los filtros activos.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchAthlete("");
-                      setFilterClub("all");
-                      setFilterAgeGroup("all");
-                      setFilterGender("all");
-                      setFilterFederated("all");
-                    }}
-                    className="text-xs"
-                  >
-                    Restablecer filtros
-                  </Button>
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
@@ -746,7 +845,7 @@ export function AdaelModule2026View() {
                       <tr>
                         <th className="py-2.5 px-3">#</th>
                         <th className="py-2.5 px-3">ID FEVEDA</th>
-                        <th className="py-2.5 px-3">Atleta (Oficial)</th>
+                        <th className="py-2.5 px-3">Atleta Oficial</th>
                         <th className="py-2.5 px-3 text-center">Sexo</th>
                         <th className="py-2.5 px-3 text-center">Año Nac.</th>
                         <th className="py-2.5 px-3">Categoría 2026 (31/12)</th>
@@ -824,67 +923,9 @@ export function AdaelModule2026View() {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: DIRECTORIO DE CLUBES Y ALIASES */}
-        <TabsContent value="clubes" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-primary" />
-                Clubes Oficiales Afiliados e Invitados (Temporada 2026)
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Mapeo inteligente de variaciones de nombres y alias para importación automática de reportes Hy-Tek.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {clubs.map((c) => {
-                  const swimmersCount = athletes.filter((a) => a.club_id === c.id).length;
-                  const resultsCount = results.filter((r) => r.club_id === c.id).length;
-
-                  return (
-                    <Card key={c.id} className="border shadow-none bg-card/60 hover:border-primary/40 transition-colors">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <Badge className="font-mono font-bold tracking-wider mb-1 bg-primary/10 text-primary border-primary/20">
-                              {c.club_code}
-                            </Badge>
-                            <CardTitle className="text-sm font-bold leading-tight">{c.club_name}</CardTitle>
-                          </div>
-                          <Badge variant="outline" className="text-[10px]">
-                            2026
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-2 space-y-2 text-xs">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                            Aliases Reconocidos:
-                          </span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {c.aliases?.map((a, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-[9px] font-mono px-1 py-0">
-                                {a}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{swimmersCount} Atletas en Padrón</span>
-                          <span>{resultsCount} Marcas Oficiales</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 3: RESULTADOS DE COMPETENCIAS 2026 */}
+        {/* ================================================================= */}
+        {/* VISTA 3: BUSCADOR Y RANKING DE RESULTADOS CON PB Y SPLITS         */}
+        {/* ================================================================= */}
         <TabsContent value="resultados" className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
@@ -892,22 +933,34 @@ export function AdaelModule2026View() {
                 <div>
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <Timer className="h-4 w-4 text-emerald-500" />
-                    Marcas Oficiales de Competencias ADAEL 2026
+                    Buscador y Ranking de Resultados Oficiales ADAEL 2026
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Estadales en Complejo de Piscinas Bolivarianas, Copa Hogar Canario Larense (Hocalar) y eventos autorizados.
+                    Marcas oficiales de Estadales en Complejo Piscinas Bolivarianas y Copa Hocalar con parciales cada 50m.
                   </CardDescription>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={filterOnlyPB ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterOnlyPB(!filterOnlyPB)}
+                    className="h-8 text-xs gap-1.5 font-semibold"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {filterOnlyPB ? "Solo Mejores Marcas (PB)" : "Todas las Marcas"}
+                  </Button>
                 </div>
               </div>
 
               {/* Filtros de Resultados */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-3">
                 <Select value={filterMeet} onValueChange={setFilterMeet}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Torneo Oficial" />
+                    <SelectValue placeholder="Torneo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los Torneos 2026</SelectItem>
+                    <SelectItem value="all">Todos los Torneos</SelectItem>
                     {availableMeets.map((m) => (
                       <SelectItem key={m} value={m}>
                         {m}
@@ -918,7 +971,7 @@ export function AdaelModule2026View() {
 
                 <Select value={filterCourse} onValueChange={setFilterCourse}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Curso de Piscina" />
+                    <SelectValue placeholder="Curso" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los Cursos</SelectItem>
@@ -927,17 +980,48 @@ export function AdaelModule2026View() {
                   </SelectContent>
                 </Select>
 
-                <Select value={filterEvent} onValueChange={setFilterEvent}>
+                <Select value={filterStroke} onValueChange={setFilterStroke}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Prueba" />
+                    <SelectValue placeholder="Estilo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las Pruebas</SelectItem>
-                    {availableEvents.map((e) => (
-                      <SelectItem key={e} value={e}>
-                        {e}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">Todos los Estilos</SelectItem>
+                    <SelectItem value="Libre">Libre</SelectItem>
+                    <SelectItem value="Espalda">Espalda</SelectItem>
+                    <SelectItem value="Pecho">Pecho</SelectItem>
+                    <SelectItem value="Mariposa">Mariposa</SelectItem>
+                    <SelectItem value="C.I.">Combinado (C.I.)</SelectItem>
+                    <SelectItem value="Relevo">Relevos</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterDistance} onValueChange={setFilterDistance}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Distancia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="50">50m</SelectItem>
+                    <SelectItem value="100">100m</SelectItem>
+                    <SelectItem value="200">200m</SelectItem>
+                    <SelectItem value="400">400m</SelectItem>
+                    <SelectItem value="800">800m</SelectItem>
+                    <SelectItem value="1500">1500m</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterResultAgeGroup} onValueChange={setFilterResultAgeGroup}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las Categorías</SelectItem>
+                    <SelectItem value="Infantil A">Infantil A (10-11)</SelectItem>
+                    <SelectItem value="Infantil B">Infantil B (12-13)</SelectItem>
+                    <SelectItem value="Juvenil A">Juvenil A (14-15)</SelectItem>
+                    <SelectItem value="Juvenil B">Juvenil B (16-18)</SelectItem>
+                    <SelectItem value="Máxima">Máxima (19-24)</SelectItem>
+                    <SelectItem value="Máster">Máster (≥25)</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -961,16 +1045,7 @@ export function AdaelModule2026View() {
               {filteredResults.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground space-y-3">
                   <Timer className="mx-auto h-10 w-10 stroke-1 opacity-40" />
-                  <p className="text-sm font-medium">No hay resultados oficiales registrados con los filtros seleccionados.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab("importar")}
-                    className="text-xs gap-1.5"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    Importar resultados ahora
-                  </Button>
+                  <p className="text-sm font-medium">No hay marcas registradas con los filtros seleccionados.</p>
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
@@ -978,21 +1053,22 @@ export function AdaelModule2026View() {
                     <thead className="bg-muted/50 border-b font-medium text-muted-foreground uppercase text-[10px] tracking-wider">
                       <tr>
                         <th className="py-2.5 px-3">#</th>
-                        <th className="py-2.5 px-3">Atleta</th>
+                        <th className="py-2.5 px-3">Atleta Oficial</th>
                         <th className="py-2.5 px-3">Club</th>
-                        <th className="py-2.5 px-3">Torneo Oficial</th>
+                        <th className="py-2.5 px-3">Categoría</th>
                         <th className="py-2.5 px-3">Prueba</th>
                         <th className="py-2.5 px-3 text-center">Curso</th>
                         <th className="py-2.5 px-3 text-right">Siembra</th>
                         <th className="py-2.5 px-3 text-right font-bold">Tiempo Oficial</th>
-                        <th className="py-2.5 px-3 text-center">Parciales 50m</th>
+                        <th className="py-2.5 px-3 text-center">Parciales 50m (Splits)</th>
                         <th className="py-2.5 px-3 text-center">Ptos FINA</th>
+                        <th className="py-2.5 px-3">Torneo</th>
                         <th className="py-2.5 px-3 text-center">Estatus</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {filteredResults.map((r, idx) => {
-                        const ath = athletes.find((a) => a.id === r.athlete_id);
+                        const ath = athleteMap.get(r.athlete_id);
                         const club = clubMap.get(r.club_id);
 
                         return (
@@ -1007,10 +1083,9 @@ export function AdaelModule2026View() {
                               </Badge>
                             </td>
                             <td className="py-2.5 px-3">
-                              <div className="font-medium text-foreground truncate max-w-[180px]">
-                                {r.meet_name}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground font-mono">{r.meet_date}</div>
+                              <Badge variant="outline" className="text-[10px]">
+                                {ath?.age_group_2026 || "—"}
+                              </Badge>
                             </td>
                             <td className="py-2.5 px-3 font-medium">{r.event_code}</td>
                             <td className="py-2.5 px-3 text-center font-mono">
@@ -1026,7 +1101,7 @@ export function AdaelModule2026View() {
                             </td>
                             <td className="py-2.5 px-3 text-center">
                               {r.splits && r.splits.length > 0 ? (
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex flex-wrap items-center justify-center gap-1 max-w-xs mx-auto">
                                   {r.splits.map((s, sIdx) => (
                                     <Badge
                                       key={sIdx}
@@ -1044,6 +1119,10 @@ export function AdaelModule2026View() {
                             </td>
                             <td className="py-2.5 px-3 text-center font-mono font-semibold text-primary">
                               {r.fina_points || "—"}
+                            </td>
+                            <td className="py-2.5 px-3 text-muted-foreground text-[11px]">
+                              <div className="truncate max-w-[140px]">{r.meet_name}</div>
+                              <div className="text-[10px] font-mono">{r.meet_date}</div>
                             </td>
                             <td className="py-2.5 px-3 text-center">
                               <Badge
@@ -1063,284 +1142,14 @@ export function AdaelModule2026View() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* TAB 4: RANKING ESTADAL ADAEL 2026 */}
-        <TabsContent value="ranking" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-amber-500" />
-                    Ranking Oficial Estadal ADAEL 2026
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Mejor marca personal del año por atleta. Categoría federada calculada al 31/12/2026.
-                  </CardDescription>
-                </div>
-              </div>
-
-              {/* Controles de prueba y categoría para el ranking */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-3">
-                <Select value={rankingCourse} onValueChange={(v) => setRankingCourse(v as CourseType)}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Curso" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LCM">LCM (Piscina 50m)</SelectItem>
-                    <SelectItem value="SCM">SCM (Piscina 25m)</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={rankingGender} onValueChange={(v) => setRankingGender(v as GenderType)}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Género" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculino (M)</SelectItem>
-                    <SelectItem value="F">Femenino (F)</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={rankingEvent} onValueChange={setRankingEvent}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Prueba" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableEvents.map((e) => (
-                      <SelectItem key={e} value={e}>
-                        {e}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={rankingAgeGroup} onValueChange={setRankingAgeGroup}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Categoría 2026" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las Categorías (Absoluto)</SelectItem>
-                    <SelectItem value="Infantil A">Infantil A (10-11 años)</SelectItem>
-                    <SelectItem value="Infantil B">Infantil B (12-13 años)</SelectItem>
-                    <SelectItem value="Juvenil A">Juvenil A (14-15 años)</SelectItem>
-                    <SelectItem value="Juvenil B">Juvenil B (16-18 años)</SelectItem>
-                    <SelectItem value="Máxima">Máxima (19-24 años)</SelectItem>
-                    <SelectItem value="Máster">Máster (≥25 años)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              {computedRanking.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground space-y-3">
-                  <Trophy className="mx-auto h-10 w-10 stroke-1 opacity-40 text-amber-500" />
-                  <p className="text-sm font-medium">
-                    No se registran marcas para la prueba {rankingEvent} ({rankingCourse}) en esta categoría.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-muted/50 border-b font-medium text-muted-foreground uppercase text-[10px] tracking-wider">
-                      <tr>
-                        <th className="py-2.5 px-3 text-center">Puesto</th>
-                        <th className="py-2.5 px-3">Atleta</th>
-                        <th className="py-2.5 px-3">Categoría (31/12)</th>
-                        <th className="py-2.5 px-3">Club</th>
-                        <th className="py-2.5 px-3 text-right font-bold">Mejor Marca</th>
-                        <th className="py-2.5 px-3 text-right">Dif. #1</th>
-                        <th className="py-2.5 px-3 text-center">Ptos FINA</th>
-                        <th className="py-2.5 px-3">Torneo y Fecha</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {computedRanking.map((item) => {
-                        const isTop1 = item.rank === 1;
-                        const isTop2 = item.rank === 2;
-                        const isTop3 = item.rank === 3;
-
-                        return (
-                          <tr
-                            key={item.result.id}
-                            className={`hover:bg-muted/30 transition-colors ${
-                              isTop1 ? "bg-amber-500/5 font-medium" : ""
-                            }`}
-                          >
-                            <td className="py-2.5 px-3 text-center">
-                              {isTop1 ? (
-                                <Badge className="bg-amber-500 text-white font-bold text-xs gap-1">
-                                  <Medal className="h-3 w-3" /> 1°
-                                </Badge>
-                              ) : isTop2 ? (
-                                <Badge className="bg-slate-400 text-white font-bold text-xs gap-1">
-                                  <Medal className="h-3 w-3" /> 2°
-                                </Badge>
-                              ) : isTop3 ? (
-                                <Badge className="bg-amber-700 text-white font-bold text-xs gap-1">
-                                  <Medal className="h-3 w-3" /> 3°
-                                </Badge>
-                              ) : (
-                                <span className="font-mono text-muted-foreground">{item.rank}°</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 font-semibold text-foreground">
-                              {item.athlete?.full_name || "Atleta ADAEL"}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <Badge variant="outline" className="text-[10px]">
-                                {item.athlete?.age_group_2026}
-                              </Badge>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="inline-flex items-center gap-1.5 font-medium">
-                                <Badge variant="secondary" className="font-mono text-[10px]">
-                                  {item.club?.club_code || "CLUB"}
-                                </Badge>
-                                <span className="truncate max-w-[130px]">{item.club?.club_name}</span>
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-sm text-foreground">
-                              {item.result.final_time_formatted}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono text-muted-foreground text-xs">
-                              {item.diffFormatted}
-                            </td>
-                            <td className="py-2.5 px-3 text-center font-mono font-bold text-primary">
-                              {item.result.fina_points || "—"}
-                            </td>
-                            <td className="py-2.5 px-3 text-muted-foreground">
-                              <div className="truncate max-w-[170px]">{item.result.meet_name}</div>
-                              <div className="text-[10px] font-mono">{item.result.meet_date}</div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 5: IMPORTADOR CENTRALIZADO ADAEL 2026 */}
-        <TabsContent value="importar" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Upload className="h-4 w-4 text-primary" />
-                Importador Oficial ADAEL 2026
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Importa resultados oficiales desde enlaces web (adael.com.ve, natacionvenezuela.com), reportes Hy-Tek Meet Manager o entry lists de clubes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold">Nombre del Torneo / Evento</label>
-                  <Input
-                    value={importMeetName}
-                    onChange={(e) => setImportMeetName(e.target.value)}
-                    placeholder="Ej. III Estadal ADAEL 2026 (Piscinas Bolivarianas)"
-                    className="h-9 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold">Fecha de Competencia</label>
-                  <Input
-                    type="date"
-                    value={importMeetDate}
-                    onChange={(e) => setImportMeetDate(e.target.value)}
-                    className="h-9 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold">Curso de Piscina</label>
-                  <Select value={importCourse} onValueChange={(v) => setImportCourse(v as CourseType)}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LCM">LCM (Piscina 50m — Piscinas Bolivarianas)</SelectItem>
-                      <SelectItem value="SCM">SCM (Piscina 25m — Hocalar)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Enlace Oficial */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-primary" />
-                  Enlace Oficial de Resultados (adael.com.ve o natacionvenezuela.com)
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    placeholder="https://www.adael.com.ve/3erEstadalADAEL2026/index.htm o natacionvenezuela.com/2026/lara/"
-                    className="h-9 text-xs font-mono"
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Acepta enlaces web de resultados oficiales generados por Hy-Tek Meet Manager.
-                </p>
-              </div>
-
-              {/* O Pegar Texto / Tablas */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold">
-                  O Pegar Texto de Resultados / Entry List Tabulado:
-                </label>
-                <Textarea
-                  value={importRawText}
-                  onChange={(e) => setImportRawText(e.target.value)}
-                  placeholder="Formato: Nombre Atleta, Sexo, Año Nacimiento, Club (JSWIM, HOCALAR, POLI, ITALO), Prueba, Tiempo"
-                  rows={6}
-                  className="text-xs font-mono"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <Button
-                  onClick={handleProcessImport}
-                  disabled={isImporting}
-                  className="gap-2 text-xs shadow"
-                >
-                  {isImporting ? (
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  )}
-                  Procesar y Centralizar en ADAEL 2026
-                </Button>
-              </div>
-
-              {/* Centro Unificado embebido */}
-              <div className="pt-6 border-t space-y-2">
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-primary" />
-                  O utiliza el Centro Unificado de Archivos (HY3, CL2, ZIP, PDF, SDIF)
-                </h3>
-                <UnifiedResultsImportHub
-                  embedded={true}
-                  defaultDestinations={{
-                    stateRanking: true,
-                    officialCircuit: true,
-                    teamDatabases: true,
-                  }}
-                  onImportComplete={() => loadAllData()}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+
+      {/* MODAL: CONSOLA DE AUDITORÍA POST-IMPORTACIÓN */}
+      <AuditConsoleModal
+        open={auditModalOpen}
+        onOpenChange={setAuditModalOpen}
+        report={auditReport}
+      />
 
       {/* MODAL: REGISTRAR NUEVO FICHAJE 2026 */}
       <Dialog open={newAthleteOpen} onOpenChange={setNewAthleteOpen}>
