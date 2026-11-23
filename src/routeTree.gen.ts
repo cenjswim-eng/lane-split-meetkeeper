@@ -27,8 +27,8 @@ import { Route as RequestAccessRouteImport } from './routes/request-access'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
-import { Route as AuthenticatedAdael2026RouteImport } from './routes/_authenticated/adael-2026'
 import { Route as AuthenticatedAchievementsRouteImport } from './routes/_authenticated/achievements'
+import { Route as AuthenticatedAdael2026RouteImport } from './routes/_authenticated/adael-2026'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedBrandRouteImport } from './routes/_authenticated/brand'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
@@ -142,17 +142,17 @@ const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdael2026Route = AuthenticatedAdael2026RouteImport.update({
-  id: '/adael-2026',
-  path: '/adael-2026',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAchievementsRoute =
   AuthenticatedAchievementsRouteImport.update({
     id: '/achievements',
     path: '/achievements',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdael2026Route = AuthenticatedAdael2026RouteImport.update({
+  id: '/adael-2026',
+  path: '/adael-2026',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -289,8 +289,8 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
-  '/adael-2026': typeof AuthenticatedAdael2026Route
   '/achievements': typeof AuthenticatedAchievementsRoute
+  '/adael-2026': typeof AuthenticatedAdael2026Route
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/brand': typeof AuthenticatedBrandRoute
   '/categories': typeof AuthenticatedCategoriesRoute
@@ -332,8 +332,8 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/access': typeof AuthenticatedAccessRoute
-  '/adael-2026': typeof AuthenticatedAdael2026Route
   '/achievements': typeof AuthenticatedAchievementsRoute
+  '/adael-2026': typeof AuthenticatedAdael2026Route
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/brand': typeof AuthenticatedBrandRoute
   '/categories': typeof AuthenticatedCategoriesRoute
@@ -378,8 +378,8 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
-  '/_authenticated/adael-2026': typeof AuthenticatedAdael2026Route
   '/_authenticated/achievements': typeof AuthenticatedAchievementsRoute
+  '/_authenticated/adael-2026': typeof AuthenticatedAdael2026Route
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/brand': typeof AuthenticatedBrandRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
@@ -424,8 +424,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terminos'
     | '/access'
-    | '/adael-2026'
     | '/achievements'
+    | '/adael-2026'
     | '/attendance'
     | '/brand'
     | '/categories'
@@ -467,8 +467,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terminos'
     | '/access'
-    | '/adael-2026'
     | '/achievements'
+    | '/adael-2026'
     | '/attendance'
     | '/brand'
     | '/categories'
@@ -512,8 +512,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terminos'
     | '/_authenticated/access'
-    | '/_authenticated/adael-2026'
     | '/_authenticated/achievements'
+    | '/_authenticated/adael-2026'
     | '/_authenticated/attendance'
     | '/_authenticated/brand'
     | '/_authenticated/categories'
@@ -690,18 +690,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/adael-2026': {
-      id: '/_authenticated/adael-2026'
-      path: '/adael-2026'
-      fullPath: '/adael-2026'
-      preLoaderRoute: typeof AuthenticatedAdael2026RouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/achievements': {
       id: '/_authenticated/achievements'
       path: '/achievements'
       fullPath: '/achievements'
       preLoaderRoute: typeof AuthenticatedAchievementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/adael-2026': {
+      id: '/_authenticated/adael-2026'
+      path: '/adael-2026'
+      fullPath: '/adael-2026'
+      preLoaderRoute: typeof AuthenticatedAdael2026RouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/attendance': {
@@ -870,8 +870,8 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
-  AuthenticatedAdael2026Route: typeof AuthenticatedAdael2026Route
   AuthenticatedAchievementsRoute: typeof AuthenticatedAchievementsRoute
+  AuthenticatedAdael2026Route: typeof AuthenticatedAdael2026Route
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedBrandRoute: typeof AuthenticatedBrandRoute
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
@@ -894,8 +894,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
-  AuthenticatedAdael2026Route: AuthenticatedAdael2026Route,
   AuthenticatedAchievementsRoute: AuthenticatedAchievementsRoute,
+  AuthenticatedAdael2026Route: AuthenticatedAdael2026Route,
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedBrandRoute: AuthenticatedBrandRoute,
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
