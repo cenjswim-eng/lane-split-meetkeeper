@@ -631,7 +631,7 @@ export function UnifiedResultsImportHub({
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {subtitle ||
-              "Sube archivos Hy-Tek, enlaces oficiales ADAEL/FEVEDA o tablas de texto en un solo apartado y canalízalos a tu club, al ranking estadal o al circuito oficial."}
+              "Sube archivos Hy-Tek, enlaces oficiales ADAEL/FEVEDA o tablas de texto en un solo apartado y canalízalos a tu club, a sus rankings o al circuito oficial."}
           </p>
         </div>
 
@@ -689,7 +689,7 @@ export function UnifiedResultsImportHub({
               <div className="flex flex-wrap gap-2 pt-1">
                 {importSuccessResult.stateRankingSaved && (
                   <Badge className="bg-primary/10 text-primary border-primary/20">
-                    🏆 Ranking Estadal y Rivales Activo
+                    🏆 Rankings y Marcas del Club Actualizados
                   </Badge>
                 )}
                 {importSuccessResult.myClubSaved && (
@@ -713,9 +713,9 @@ export function UnifiedResultsImportHub({
             {/* BOTONES DE NAVEGACIÓN INMEDIATA A DESTINOS */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button asChild size="default" className="gap-2 bg-primary font-semibold shadow-sm">
-                <Link to="/rankings" search={{ tab: "estadal" }}>
+                <Link to="/rankings">
                   <Trophy className="h-4 w-4" />
-                  Ir al Ranking Estadal
+                  Ver Rankings del Club
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -1282,7 +1282,7 @@ export function UnifiedResultsImportHub({
             <CardContent className="space-y-4">
               {/* TARJETAS DE DESTINO CON CHECKBOX (4 DESTINOS) */}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {/* DESTINO 1: RANKING ESTADAL Y ANÁLISIS DE RIVALES */}
+                {/* DESTINO 1: RANKING Y MARCAS DEL CLUB */}
                 <div
                   onClick={() => handleToggleDestination("stateRanking")}
                   className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
@@ -1295,10 +1295,10 @@ export function UnifiedResultsImportHub({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Trophy className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm text-foreground">Ranking Estadal</span>
+                        <span className="font-bold text-sm text-foreground">Rankings del Club</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] py-0 border-primary/30 text-primary">
-                        Top 8 y Comparativas
+                        Marcas y Mejores Tiempos
                       </Badge>
                     </div>
                     <Checkbox
@@ -1307,7 +1307,7 @@ export function UnifiedResultsImportHub({
                     />
                   </div>
                   <p className="mt-2.5 text-xs text-muted-foreground">
-                    Guarda las marcas de todos los clubes rivales para el ranking por edades, cálculo de podios y brecha contra el líder.
+                    Actualiza las marcas oficiales, mejores tiempos personales (PB) y clasificación de los nadadores del club.
                   </p>
                 </div>
 

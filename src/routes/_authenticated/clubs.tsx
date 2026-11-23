@@ -60,7 +60,7 @@ function Clubs() {
   const qc = useQueryClient();
   const search = Route.useSearch();
 
-  const [mainViewTab, setMainViewTab] = useState<string>(search.tab || "directory");
+  const [mainViewTab, setMainViewTab] = useState<string>(search.tab || "management");
   const [clubId, setClubId] = useState(search.club || "");
   const [clubSearch, setClubSearch] = useState("");
   const [athleteId, setAthleteId] = useState("");
@@ -93,17 +93,17 @@ function Clubs() {
 
   return (
     <div className="min-w-0 space-y-6">
-      {/* Selector de Vista Principal: Directorio de Equipos vs Gestión de Mi Club */}
+      {/* Selector de Vista Principal: Gestión de Mi Club (Predeterminado) vs Directorio General */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
         <Tabs value={mainViewTab} onValueChange={setMainViewTab} className="w-full sm:w-auto">
-          <TabsList className="grid w-full grid-cols-2 sm:w-[460px]">
-            <TabsTrigger value="directory" className="gap-2 font-bold text-xs">
-              <Users className="h-4 w-4 text-primary" />
-              Directorio de Equipos y Atletas
+          <TabsList className="grid w-full grid-cols-2 sm:w-[480px]">
+            <TabsTrigger value="management" className="gap-2 font-bold text-xs">
+              <Building2 className="h-4 w-4 text-primary" />
+              Gestión y Seguimiento del Club ({club?.team_code || "Activo"})
             </TabsTrigger>
-            <TabsTrigger value="management" className="gap-2 text-xs">
-              <Building2 className="h-4 w-4" />
-              Gestión de Mis Clubes ({management.clubs.length})
+            <TabsTrigger value="directory" className="gap-2 text-xs">
+              <Users className="h-4 w-4" />
+              Directorio de Equipos y Atletas
             </TabsTrigger>
           </TabsList>
         </Tabs>

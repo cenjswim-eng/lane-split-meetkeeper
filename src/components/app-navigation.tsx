@@ -45,7 +45,7 @@ const items = [
   { to: "/seeding", label: "Organizar Torneo", icon: Layers },
   { to: "/run", label: "Torneo en Vivo", icon: Timer },
   // 3. Rendimiento y Reportes
-  { to: "/rankings", label: "Rankings (Local y Estadal)", icon: Medal },
+  { to: "/rankings", label: "Rankings del Club", icon: Medal },
   { to: "/adael-2026", label: "Módulo ADAEL 2026", icon: ShieldCheck },
   { to: "/standards", label: "Marcas Mínimas", icon: Target },
   { to: "/achievements", label: "Logros y Récords", icon: Medal },
