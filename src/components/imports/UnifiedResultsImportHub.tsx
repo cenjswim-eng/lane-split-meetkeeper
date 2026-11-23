@@ -167,6 +167,7 @@ export function UnifiedResultsImportHub({
     stateRanking: defaultDestinations?.stateRanking ?? true,
     myClub: defaultDestinations?.myClub ?? true,
     officialCircuit: defaultDestinations?.officialCircuit ?? true,
+    teamDatabases: defaultDestinations?.teamDatabases ?? true,
   });
 
   // Filtro de Clubes (Opcional)
@@ -641,6 +642,11 @@ export function UnifiedResultsImportHub({
                     📋 Circuito Oficial ADAEL 2026 ({importSuccessResult.officialCircuitCount} marcas)
                   </Badge>
                 )}
+                {importSuccessResult.teamDatabasesSynced && (
+                  <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20">
+                    🏛️ Base de Datos de Equipos ({importSuccessResult.clubsCount} clubes) Sincronizada
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -655,9 +661,16 @@ export function UnifiedResultsImportHub({
               </Button>
 
               <Button asChild variant="outline" size="default" className="gap-2">
+                <Link to="/clubs" search={{ tab: "directory" }}>
+                  <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  Ver Atletas por Club
+                </Link>
+              </Button>
+
+              <Button asChild variant="outline" size="default" className="gap-2">
                 <Link to="/athletes">
                   <Users className="h-4 w-4 text-primary" />
-                  Ver Mis Atletas
+                  Mis Atletas
                 </Link>
               </Button>
 
@@ -1053,6 +1066,14 @@ export function UnifiedResultsImportHub({
                   </Button>
                   <Button
                     size="sm"
+                    variant={selectedPreset === "entry_lists" ? "default" : "outline"}
+                    onClick={() => handleApplyPreset("entry_lists")}
+                    className="h-7 text-xs font-semibold gap-1"
+                  >
+                    📋 Entry Lists / Equipos
+                  </Button>
+                  <Button
+                    size="sm"
                     variant={selectedPreset === "rivals_only" ? "default" : "outline"}
                     onClick={() => handleApplyPreset("rivals_only")}
                     className="h-7 text-xs font-semibold gap-1"
@@ -1071,8 +1092,8 @@ export function UnifiedResultsImportHub({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* TARJETAS DE DESTINO CON CHECKBOX */}
-              <div className="grid gap-3 sm:grid-cols-3">
+              {/* TARJETAS DE DESTINO CON CHECKBOX (4 DESTINOS) */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {/* DESTINO 1: RANKING ESTADAL Y ANÁLISIS DE RIVALES */}
                 <div
                   onClick={() => handleToggleDestination("stateRanking")}
@@ -1086,7 +1107,7 @@ export function UnifiedResultsImportHub({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Trophy className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm text-foreground">Ranking Estadal y Rivales</span>
+                        <span className="font-bold text-sm text-foreground">Ranking Estadal</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] py-0 border-primary/30 text-primary">
                         Top 8 y Comparativas
@@ -1098,8 +1119,7 @@ export function UnifiedResultsImportHub({
                     />
                   </div>
                   <p className="mt-2.5 text-xs text-muted-foreground">
-                    Guarda las marcas de todos los clubes rivales de Lara/Venezuela para el ranking por edades, cálculo de
-                    puestos, podios y brecha en segundos contra el líder.
+                    Guarda las marcas de todos los clubes rivales para el ranking por edades, cálculo de podios y brecha contra el líder.
                   </p>
                 </div>
 
@@ -1119,7 +1139,7 @@ export function UnifiedResultsImportHub({
                         <span className="font-bold text-sm text-foreground">Mis Atletas / Mi Club</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] py-0 border-emerald-500/30 text-emerald-600">
-                        Marcas Personales y Logros
+                        Marcas Personales (PB)
                       </Badge>
                     </div>
                     <Checkbox
@@ -1128,8 +1148,7 @@ export function UnifiedResultsImportHub({
                     />
                   </div>
                   <p className="mt-2.5 text-xs text-muted-foreground">
-                    Vincula los tiempos a tus atletas registrados ({myClubCode}) para actualizar sus marcas personales
-                    (PB), historial de progresión y trofeos/logros.
+                    Vincula los tiempos a tus atletas registrados ({myClubCode}) para actualizar sus mejores marcas personales e historial.
                   </p>
                 </div>
 
@@ -1146,10 +1165,10 @@ export function UnifiedResultsImportHub({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="h-4 w-4 text-amber-500" />
-                        <span className="font-bold text-sm text-foreground">Circuito Oficial ADAEL 2026</span>
+                        <span className="font-bold text-sm text-foreground">Circuito ADAEL 2026</span>
                       </div>
                       <Badge variant="outline" className="text-[10px] py-0 border-amber-500/30 text-amber-600">
-                        Marcas Mínimas Nacionales
+                        Marcas Mínimas
                       </Badge>
                     </div>
                     <Checkbox
@@ -1159,7 +1178,36 @@ export function UnifiedResultsImportHub({
                   </div>
                   <p className="mt-2.5 text-xs text-muted-foreground">
                     Registra en el calendario oficial 2026 (<code className="text-[10px]">meets_2026</code>,{" "}
-                    <code className="text-[10px]">official_results_2026</code>) para ranking federado y marcas mínimas.
+                    <code className="text-[10px]">official_results_2026</code>) para marcas mínimas.
+                  </p>
+                </div>
+
+                {/* DESTINO 4: BASE DE DATOS DE EQUIPOS Y ATLETAS POR CLUB */}
+                <div
+                  onClick={() => handleToggleDestination("teamDatabases")}
+                  className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                    destinations.teamDatabases
+                      ? "border-indigo-500 bg-indigo-500/5 shadow-sm"
+                      : "border-muted hover:border-muted-foreground/30 opacity-70"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        <span className="font-bold text-sm text-foreground">Equipos y Rosters</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] py-0 border-indigo-500/30 text-indigo-600">
+                        Atletas por Club
+                      </Badge>
+                    </div>
+                    <Checkbox
+                      checked={destinations.teamDatabases}
+                      onCheckedChange={() => handleToggleDestination("teamDatabases")}
+                    />
+                  </div>
+                  <p className="mt-2.5 text-xs text-muted-foreground">
+                    Crea y sincroniza la base de datos de cada club con todos los atletas que lo representan y sus pruebas inscritas.
                   </p>
                 </div>
               </div>
