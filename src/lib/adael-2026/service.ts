@@ -4,6 +4,10 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+
+// The ADAEL 2026 tables are not part of the generated schema; queries fail softly and fall back to local storage.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const adaelDb = supabase as unknown as { from: (table: string) => any };
 import type { ParsedFile } from '@/lib/hytek/types';
 import {
   type AdaelClub2026,
@@ -67,7 +71,7 @@ export function calculateAgeGroup2026(birthYearOrDate: number | string | null | 
       year = dateParsed.getFullYear();
     } else {
       const match = cleanStr.match(/\b(19\d\d|20\d\d)\b/);
-      year = match ? parseInt(match[1], 10) : 2006;
+      year = match ? parseInt(match[1] ?? '', 10) : 2006;
     }
   }
 
@@ -107,12 +111,12 @@ export function parseTimeToMilliseconds(timeStr: string | null | undefined): num
 
   const parts = cleaned.split(':');
   if (parts.length === 2) {
-    const mins = parseFloat(parts[0]);
-    const secs = parseFloat(parts[1]);
+    const mins = parseFloat(parts[0] ?? '');
+    const secs = parseFloat(parts[1] ?? '');
     if (isNaN(mins) || isNaN(secs)) return 0;
     return Math.round((mins * 60 + secs) * 1000);
   } else if (parts.length === 1) {
-    const secs = parseFloat(parts[0]);
+    const secs = parseFloat(parts[0] ?? '');
     if (isNaN(secs)) return 0;
     return Math.round(secs * 1000);
   }
@@ -204,7 +208,7 @@ export function resolveAdaelClub(
 export async function getAdaelClubs2026(): Promise<AdaelClub2026[]> {
   try {
     if (supabase) {
-      const { data, error } = await supabase
+      const { data, error } = await adaelDb
         .from('adael_clubs_2026')
         .select('*')
         .eq('season', 2026)
@@ -257,7 +261,7 @@ export async function upsertAdaelClubs2026(clubs: AdaelClub2026[]): Promise<Adae
         aliases: c.aliases,
         season: 2026,
       }));
-      await supabase.from('adael_clubs_2026').upsert(inserts, { onConflict: 'club_code' });
+      await adaelDb.from('adael_clubs_2026').upsert(inserts, { onConflict: 'club_code' });
     }
   } catch (err) {
     console.warn('[ADAEL 2026] Supabase upsertAdaelClubs2026 error:', err);
@@ -282,7 +286,7 @@ export async function getAdaelAthletes2026(filters?: {
 
   try {
     if (supabase) {
-      let query = supabase.from('adael_athletes_2026').select('*, club:adael_clubs_2026(*)');
+      let query = adaelDb.from('adael_athletes_2026').select('*, club:adael_clubs_2026(*)');
 
       if (filters?.clubId && filters.clubId !== 'all') {
         query = query.eq('club_id', filters.clubId);
@@ -391,7 +395,7 @@ export async function upsertAdaelAthletes2026(
         is_federated: a.is_federated,
         status: a.status,
       }));
-      await supabase.from('adael_athletes_2026').upsert(dbInserts, {
+      await adaelDb.from('adael_athletes_2026').upsert(dbInserts, {
         onConflict: 'normalized_name,birth_year,gender,club_id',
       });
     }
@@ -421,7 +425,7 @@ export async function getAdaelResults2026(filters?: {
 
   try {
     if (supabase) {
-      let query = supabase.from('adael_results_2026').select('*, athlete:adael_athletes_2026(*), club:adael_clubs_2026(*)');
+      let query = adaelDb.from('adael_results_2026').select('*, athlete:adael_athletes_2026(*), club:adael_clubs_2026(*)');
 
       if (filters?.meetName && filters.meetName !== 'all') {
         query = query.eq('meet_name', filters.meetName);
@@ -535,7 +539,7 @@ export async function upsertAdaelResults2026(
         rank: r.rank,
         status: r.status,
       }));
-      await supabase.from('adael_results_2026').upsert(dbInserts, {
+      await adaelDb.from('adael_results_2026').upsert(dbInserts, {
         onConflict: 'meet_name,meet_date,pool_course,athlete_id,event_code,round',
       });
     }
@@ -560,21 +564,21 @@ export async function ingestOfficialAdaelBatch(params: {
   meetDate: string;
   poolCourse: CourseType;
   records: Array<{
-    favedaId?: string;
+    favedaId?: string | undefined;
     athleteName: string;
     gender: GenderType;
-    birthYear?: number;
-    birthDate?: string;
+    birthYear?: number | undefined;
+    birthDate?: string | undefined;
     clubCodeOrAlias: string;
-    clubName?: string;
-    isFederated?: boolean;
+    clubName?: string | undefined;
+    isFederated?: boolean | undefined;
     eventCode: string;
-    round?: RoundType;
-    seedTime?: string;
+    round?: RoundType | undefined;
+    seedTime?: string | undefined;
     finalTime: string;
-    splits?: SplitItem[];
-    rank?: number;
-    status?: ResultStatus;
+    splits?: SplitItem[] | undefined;
+    rank?: number | undefined;
+    status?: ResultStatus | undefined;
   }>;
 }): Promise<{
   clubsProcessed: number;
@@ -724,7 +728,8 @@ export async function syncFromParsedFileToAdael2026(
     const ath = athMap.get(r.athleteKey);
     if (!ath) continue;
 
-    const teamInfo = teamLookup.get(ath.teamCode) || { code: ath.teamCode, name: ath.teamCode };
+    const teamCode = ath.teamCode ?? '';
+    const teamInfo = teamLookup.get(teamCode) || { code: teamCode, name: teamCode };
     const strokeName = STROKE_NAMES[r.stroke] || 'Libre';
     const eventCode = `${r.distance}m ${strokeName}`;
     const round: RoundType = r.round === 'P' ? 'Prelims' : r.round === 'S' ? 'Timed Finals' : 'Finals';
@@ -744,13 +749,13 @@ export async function syncFromParsedFileToAdael2026(
     const birthYear = ath.birthDate ? new Date(ath.birthDate).getFullYear() : 2006;
 
     const splits: SplitItem[] = (r.splits || []).map((s, idx) => ({
-      distance_m: (idx + 1) * 50,
-      split_time: formatMillisecondsToTime(s),
-      split_ms: s,
+      distance_m: s.distance || (idx + 1) * 50,
+      split_time: formatMillisecondsToTime(s.cumulative_ms),
+      split_ms: s.cumulative_ms,
     }));
 
     records.push({
-      favedaId: ath.usmsId || undefined,
+      favedaId: ath.federationId || undefined,
       athleteName: athleteFullName,
       gender,
       birthYear,
@@ -774,13 +779,14 @@ export async function syncFromParsedFileToAdael2026(
       rec.athleteName.toUpperCase().includes(ath.lastName?.toUpperCase() || '')
     );
     if (!hasResult) {
-      const teamInfo = teamLookup.get(ath.teamCode) || { code: ath.teamCode, name: ath.teamCode };
+      const teamCode = ath.teamCode ?? '';
+    const teamInfo = teamLookup.get(teamCode) || { code: teamCode, name: teamCode };
       const athleteFullName =
         ath.lastName && ath.firstName
           ? `${ath.lastName}, ${ath.firstName}`
           : ath.firstName || ath.lastName || 'Atleta ADAEL';
       records.push({
-        favedaId: ath.usmsId || undefined,
+        favedaId: ath.federationId || undefined,
         athleteName: athleteFullName,
         gender: ath.gender === 'F' ? 'F' : 'M',
         birthDate: ath.birthDate || undefined,

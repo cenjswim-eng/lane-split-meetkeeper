@@ -102,7 +102,7 @@ export interface BatchUploadFileSummary {
   meetName: string;
   startDate: string;
   course: CourseType2026;
-  location?: string | null;
+  location?: string | null | undefined;
   clubsDetected: number;
   athletesDetected: number;
   individualResults: number;

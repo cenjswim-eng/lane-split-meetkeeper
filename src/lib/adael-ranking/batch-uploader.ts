@@ -63,6 +63,7 @@ export async function uploadAdaelFilesBatch(
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    if (!file) continue;
     onProgress?.({
       current: i + 1,
       total: files.length,
@@ -81,6 +82,7 @@ export async function uploadAdaelFilesBatch(
   // 3. Ingest each payload into the database
   for (let j = 0; j < payloads.length; j++) {
     const payload = payloads[j];
+    if (!payload) continue;
     const fileName = payload.meet.fileName || `archivo_${j + 1}.hy3`;
 
     onProgress?.({

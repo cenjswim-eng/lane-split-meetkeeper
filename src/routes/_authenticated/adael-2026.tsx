@@ -3,7 +3,7 @@ import { AdaelModule2026View } from "@/components/adael-2026/AdaelModule2026View
 
 export const Route = createFileRoute("/_authenticated/adael-2026")({
   staticData: { sitemap: false },
-  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: string | undefined } => ({
     tab: typeof s["tab"] === "string" ? s["tab"] : undefined,
   }),
   head: () => ({

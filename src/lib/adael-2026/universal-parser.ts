@@ -112,7 +112,7 @@ export async function extractFilesRecursively(files: File[]): Promise<Array<{ na
           const entryBytes = await zipEntry.async('uint8array');
           if (relativePath.toLowerCase().endsWith('.zip')) {
             // Nested zip
-            const nestedBlob = new File([entryBytes], relativePath);
+            const nestedBlob = new File([entryBytes as BlobPart], relativePath);
             const nestedRes = await extractFilesRecursively([nestedBlob]);
             extracted.push(...nestedRes);
           } else {
@@ -296,7 +296,7 @@ interface ParseContext {
     defaultMeetName?: string;
     defaultMeetDate?: string;
     defaultCourse?: CourseType;
-  };
+  } | undefined;
   report: UniversalParseReport;
   detectedClubs: Map<string, { code: string; name: string; athleteKeys: Set<string> }>;
   collectedAthletes: Array<Omit<AdaelAthlete2026, 'id' | 'created_at' | 'updated_at'>>;
@@ -322,7 +322,7 @@ function parseHy3File(bytes: Uint8Array, fileName: string, ctx: ParseContext) {
   let currentResult: (Omit<AdaelResult2026, 'id' | 'created_at' | 'updated_at'> & { distance?: number }) | null = null;
 
   for (let idx = 0; idx < lines.length; idx++) {
-    const rawLine = lines[idx];
+    const rawLine = lines[idx] ?? '';
     if (!rawLine.trim()) continue;
     const line = rawLine.padEnd(132, ' ');
     const lineNum = idx + 1;
@@ -581,7 +581,7 @@ function parseSdifFile(bytes: Uint8Array, fileName: string, ctx: ParseContext) {
   let currentClub: AdaelClub2026 | null = null;
 
   for (let idx = 0; idx < lines.length; idx++) {
-    const rawLine = lines[idx];
+    const rawLine = lines[idx] ?? '';
     if (!rawLine.trim()) continue;
     const line = rawLine.padEnd(160, ' ');
     const lineNum = idx + 1;
@@ -689,7 +689,7 @@ function parseSdifFile(bytes: Uint8Array, fileName: string, ctx: ParseContext) {
  */
 async function parseMdbFile(bytes: Uint8Array, fileName: string, ctx: ParseContext) {
   try {
-    const dummyFile = new File([bytes], fileName);
+    const dummyFile = new File([bytes as BlobPart], fileName);
     const mdb = await readAccessFile(dummyFile);
 
     const teamTable = mdb.tables.find((t) => t.name.toLowerCase() === 'team');
@@ -697,8 +697,8 @@ async function parseMdbFile(bytes: Uint8Array, fileName: string, ctx: ParseConte
 
     if (teamTable) {
       for (const row of teamTable.rows) {
-        const code = String(row.TCode || row.Team || '').trim();
-        const name = String(row.TName || row.Team_Name || code).trim();
+        const code = String(row['TCode'] || row['Team'] || '').trim();
+        const name = String(row['TName'] || row['Team_Name'] || code).trim();
         if (code) {
           const club = resolveAdaelClub(code, name, Array.from(ctx.clubsMap.values()));
           if (!ctx.clubsMap.has(club.club_code)) {
@@ -715,12 +715,12 @@ async function parseMdbFile(bytes: Uint8Array, fileName: string, ctx: ParseConte
 
     if (athleteTable) {
       for (const row of athleteTable.rows) {
-        const first = String(row.First || '').trim();
-        const last = String(row.Last || '').trim();
-        const gender: GenderType = String(row.Sex || 'M').toUpperCase() === 'F' ? 'F' : 'M';
-        const birthDate = row.Birth ? new Date(String(row.Birth)).toISOString().slice(0, 10) : null;
+        const first = String(row['First'] || '').trim();
+        const last = String(row['Last'] || '').trim();
+        const gender: GenderType = String(row['Sex'] || 'M').toUpperCase() === 'F' ? 'F' : 'M';
+        const birthDate = row['Birth'] ? new Date(String(row['Birth'])).toISOString().slice(0, 10) : null;
         const birthYear = birthDate ? new Date(birthDate).getFullYear() : 2006;
-        const teamCode = String(row.Team1 || row.TCode || 'CLUB').trim();
+        const teamCode = String(row['Team1'] || row['TCode'] || 'CLUB').trim();
         const club = resolveAdaelClub(teamCode, undefined, Array.from(ctx.clubsMap.values()));
 
         const fullName = `${last}, ${first}`.trim();
@@ -731,7 +731,7 @@ async function parseMdbFile(bytes: Uint8Array, fileName: string, ctx: ParseConte
         if (!athlete) {
           athlete = {
             id: `ath_${ctx.athletesMap.size + 1}`,
-            faveda_adael_id: String(row.ID_NO || '').trim() || null,
+            faveda_adael_id: String(row['ID_NO'] || '').trim() || null,
             full_name: fullName,
             normalized_name: normName,
             gender,
@@ -766,7 +766,7 @@ async function parseMdbFile(bytes: Uint8Array, fileName: string, ctx: ParseConte
  */
 async function parsePdfResultsFile(bytes: Uint8Array, fileName: string, ctx: ParseContext) {
   try {
-    const dummyFile = new File([bytes], fileName);
+    const dummyFile = new File([bytes as BlobPart], fileName);
     const lines = await readPdfLines(dummyFile);
 
     let meetName = ctx.options?.defaultMeetName || 'Estadal ADAEL 2026 (Piscinas Bolivarianas)';
@@ -779,7 +779,7 @@ async function parsePdfResultsFile(bytes: Uint8Array, fileName: string, ctx: Par
       /^\s*(\d+|[A-Z]+|\*)\s+([A-Za-zÁÉÍÓÚáéíóúÑñÜü\s,\.\'-]+?)\s+(\d{1,2}|--)\s+([A-Z0-9\-_]{2,8}|[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{3,22})\s+([0-9:.]+)\s+([0-9:.]+|DQ|NS|DNF|EXH|SCR|DES|NP)/i;
 
     for (let idx = 0; idx < lines.length; idx++) {
-      const line = lines[idx].trim();
+      const line = (lines[idx] ?? '').trim();
       if (!line) continue;
 
       const eventMatch = line.match(EVENT_HEADER_REGEX);
@@ -793,11 +793,11 @@ async function parsePdfResultsFile(bytes: Uint8Array, fileName: string, ctx: Par
       const resMatch = line.match(RESULT_ROW_REGEX);
       if (resMatch) {
         const rankStr = resMatch[1];
-        const athName = resMatch[2].trim();
-        const age = parseInt(resMatch[3], 10) || 14;
-        const clubCode = resMatch[4].trim();
+        const athName = (resMatch[2] ?? '').trim();
+        const age = parseInt(resMatch[3] ?? '', 10) || 14;
+        const clubCode = (resMatch[4] ?? '').trim();
         const seedStr = resMatch[5];
-        const finalStr = resMatch[6];
+        const finalStr = resMatch[6] ?? '';
 
         const club = resolveAdaelClub(clubCode, undefined, Array.from(ctx.clubsMap.values()));
         if (!ctx.clubsMap.has(club.club_code)) {
@@ -867,7 +867,7 @@ async function parsePdfResultsFile(bytes: Uint8Array, fileName: string, ctx: Par
           final_time_formatted: formatMillisecondsToTime(finalMs),
           splits: null,
           fina_points: calculateFinaPoints(currentEvent, finalMs, gender),
-          rank: parseInt(rankStr, 10) || null,
+          rank: parseInt(rankStr ?? '', 10) || null,
           status,
         });
       }
@@ -891,17 +891,18 @@ function parseTextResultsFile(bytes: Uint8Array, fileName: string, ctx: ParseCon
   const lines = text.split(/\r\n|\n|\r/);
 
   for (let idx = 0; idx < lines.length; idx++) {
-    const line = lines[idx].trim();
+    const line = (lines[idx] ?? '').trim();
     if (!line) continue;
     const parts = line.split(/[,;\t]/).map((s) => s.trim());
 
     if (parts.length >= 5) {
-      const athName = parts[0];
-      const gender: GenderType = parts[1].toUpperCase() === 'F' ? 'F' : 'M';
-      const year = parseInt(parts[2], 10) || 2010;
-      const clubCode = parts[3];
-      const event = parts[4].includes('m') ? parts[4] : `${parts[4]} Libre`;
-      const time = parts[5] || parts[4];
+      const athName = parts[0] ?? '';
+      const gender: GenderType = (parts[1] ?? '').toUpperCase() === 'F' ? 'F' : 'M';
+      const year = parseInt(parts[2] ?? '', 10) || 2010;
+      const clubCode = parts[3] ?? '';
+      const eventRaw = parts[4] ?? '';
+      const event = eventRaw.includes('m') ? eventRaw : `${eventRaw} Libre`;
+      const time = parts[5] || eventRaw;
 
       const club = resolveAdaelClub(clubCode, undefined, Array.from(ctx.clubsMap.values()));
       const normName = normalizeAthleteName(athName);

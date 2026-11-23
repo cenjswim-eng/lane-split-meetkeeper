@@ -18,7 +18,7 @@ export type CourseType = 'LCM' | 'SCM';
 
 export type RoundType = 'Prelims' | 'Finals' | 'Timed Finals';
 
-export type ResultStatus = 'OK' | 'DQ' | 'NS' | 'DNF' | 'EXH';
+export type ResultStatus = 'OK' | 'DQ' | 'NS' | 'DNF' | 'EXH' | 'NT';
 
 export interface AdaelClub2026 {
   id: string;
