@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { importParsed, type ImportSummary } from "@/lib/importer";
 import { normalizeTeamCode } from "@/data/fevedaClubs";
 import { filterParsedByClubCodes } from "@/lib/results-link";
+import { syncFromParsedFileToAdael2026 } from "@/lib/adael-2026/service";
 import type { ParsedFile } from "@/lib/hytek/types";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -550,6 +551,13 @@ export async function executeUnifiedImport({
     officialCircuitCount = officialRes.count;
     if (!coreSummary.meetId && officialRes.meetId) {
       coreSummary.meetId = officialRes.meetId;
+    }
+
+    // 3.1 Sincronización oficial con las entidades ADAEL 2026 (clubes, padrón y marcas)
+    try {
+      await syncFromParsedFileToAdael2026(readyParsed);
+    } catch (adaelErr) {
+      console.warn("Sincronización con entidades ADAEL 2026 completada con advertencias:", adaelErr);
     }
   }
 

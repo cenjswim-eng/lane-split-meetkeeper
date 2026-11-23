@@ -316,6 +316,20 @@
       "when": 1794975032338,
       "tag": "0044_training_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795382725000,
+      "tag": "0045_adael_ranking_2026",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795469000000,
+      "tag": "0046_adael_module_2026",
+      "breakpoints": true
     }
   ]
 }
