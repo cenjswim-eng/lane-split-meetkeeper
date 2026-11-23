@@ -134,3 +134,8 @@ export function ageGroup(age: number | null): string {
 export function eventLabel(distance: number, stroke: number) {
   return `${distance} ${STROKES[stroke] ?? stroke}`;
 }
+
+/** Spanish stroke name for a Hy-Tek stroke code (1-7); unknown codes fall back to "Libre". */
+export function strokeNameFromCode(code: number): string {
+  return STROKES[code] ?? "Libre";
+}

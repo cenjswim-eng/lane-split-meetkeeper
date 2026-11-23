@@ -91,7 +91,7 @@ export function AuditConsoleModal({ open, onOpenChange, report }: AuditConsoleMo
       ),
     ];
 
-    downloadFile(lines.join('\n'), 'Auditoria_Importacion_ADAEL_2026.txt', 'text/plain;charset=utf-8;');
+    downloadFile(new File([lines.join('\n')], 'Auditoria_Importacion_ADAEL_2026.txt', { type: 'text/plain;charset=utf-8;' }));
   };
 
   return (

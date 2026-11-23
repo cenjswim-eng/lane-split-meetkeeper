@@ -260,7 +260,7 @@ export function LocalTeamRankingView({
  </Worksheet>
 </Workbook>`;
 
-    downloadFile(xml, `Ranking_Equipo_Local_${clubCode}.xls`, 'application/vnd.ms-excel;charset=utf-8;');
+    downloadFile(new File([xml], `Ranking_Equipo_Local_${clubCode}.xls`, { type: 'application/vnd.ms-excel;charset=utf-8;' }));
     toast.success('Ranking del equipo local exportado a Excel.');
   };
 
@@ -287,7 +287,7 @@ export function LocalTeamRankingView({
     ]);
 
     const csv = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
-    downloadFile(csv, `Ranking_Equipo_Local_${clubCode}.csv`, 'text/csv;charset=utf-8;');
+    downloadFile(new File([csv], `Ranking_Equipo_Local_${clubCode}.csv`, { type: 'text/csv;charset=utf-8;' }));
     toast.success('Ranking del equipo local exportado a CSV.');
   };
 

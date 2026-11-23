@@ -405,7 +405,7 @@ export function AdaelModule2026View() {
     });
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
-    downloadFile(csvContent, "Padron_Oficial_ADAEL_2026.csv", "text/csv;charset=utf-8;");
+    downloadFile(new File([csvContent], "Padron_Oficial_ADAEL_2026.csv", { type: "text/csv;charset=utf-8;" }));
     toast.success("Padrón exportado en formato CSV exitosamente.");
   };
 
@@ -455,7 +455,7 @@ export function AdaelModule2026View() {
  </Worksheet>
 </Workbook>`;
 
-    downloadFile(xml, "Padron_Oficial_ADAEL_2026.xls", "application/vnd.ms-excel;charset=utf-8;");
+    downloadFile(new File([xml], "Padron_Oficial_ADAEL_2026.xls", { type: "application/vnd.ms-excel;charset=utf-8;" }));
     toast.success("Padrón exportado en formato Excel exitosamente.");
   };
 
