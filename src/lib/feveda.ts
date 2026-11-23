@@ -24,10 +24,18 @@ export function normalizeResultsUrl(raw: string): string {
   clean = clean.replace(/^(https?:\/\/)?(?:www\.)?atacionvenezuela\.com/i, "$1natacionvenezuela.com");
   // Corregir tipeo común cuando se pierde la 'f' inicial al seleccionar "feveda.org"
   clean = clean.replace(/^(https?:\/\/)?(?:www\.)?eveda\.org/i, "$1feveda.org");
-  // Si no tiene protocolo, agregar https://
-  if (!/^https?:\/\//i.test(clean)) {
+
+  // IMPORTANTE: adael.com.ve no tiene activo puerto 443 (HTTPS), solo puerto 80 (HTTP).
+  // Forzar http:// para adael.com.ve para evitar fallos de conexión SSL / ECONNREFUSED.
+  if (/^(?:https?:\/\/)?(?:www\.)?adael\.com\.ve/i.test(clean)) {
+    clean = clean.replace(/^https?:\/\//i, "http://");
+    if (!clean.startsWith("http://")) {
+      clean = `http://${clean}`;
+    }
+  } else if (!/^https?:\/\//i.test(clean)) {
     clean = `https://${clean}`;
   }
+
   // Convertir enlaces compartidos de Google Drive en descarga directa
   const gdriveMatch = clean.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
   if (gdriveMatch?.[1]) {
@@ -41,6 +49,24 @@ export function normalizeResultsUrl(raw: string): string {
     }
   }
   return clean;
+}
+
+/** Extrae múltiples URLs de un texto pegado (separadas por espacios, saltos de línea, etc.) */
+export function extractUrlsFromText(text: string): string[] {
+  if (!text) return [];
+  const tokens = text.split(/[\s,;\r\n]+/).filter(Boolean);
+  const urls: string[] = [];
+  for (const t of tokens) {
+    if (t.includes(".") && (t.includes("http") || t.includes("feveda") || t.includes("adael") || t.includes("natacionvenezuela") || t.includes(".htm"))) {
+      try {
+        const norm = normalizeResultsUrl(t);
+        if (norm && /^https?:\/\//i.test(norm)) {
+          urls.push(norm);
+        }
+      } catch {}
+    }
+  }
+  return [...new Set(urls)];
 }
 
 /** Detects if a URL belongs to the Venezuelan Swimming Federation or State Associations (ADAEL, ADAEM, ADADC, ADAC) */
@@ -90,6 +116,70 @@ export function parseMeetUrlInfo(rawUrl: string): ParsedMeetUrlInfo {
     const yearMatch = candidate.match(/\b(202\d)\b/) || u.pathname.match(/\b(202\d)\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
 
+    const pathLower = u.pathname.toLowerCase();
+    const candidateLower = candidate.toLowerCase();
+
+    // Mapeos específicos de alta precisión para los torneos venezolanos oficiales 2026
+    if (candidateLower.includes("jdnj") || pathLower.includes("/jdnj")) {
+      return {
+        meetName: `Juegos Deportivos Nacionales Juveniles (JDNJ) ${year}`,
+        state: "Nacional",
+        association: "FEVEDA",
+        year,
+        course: "LCM",
+      };
+    }
+
+    if (candidateLower.includes("nacionalcategoria") || pathLower.includes("/nacionalcategoria")) {
+      return {
+        meetName: `Campeonato Nacional por Categorías FEVEDA ${year}`,
+        state: "Nacional",
+        association: "FEVEDA",
+        year,
+        course: "LCM",
+      };
+    }
+
+    if (candidateLower === "infantil" || pathLower.includes("/infantil")) {
+      return {
+        meetName: `Campeonato Nacional Infantil FEVEDA ${year}`,
+        state: "Nacional",
+        association: "FEVEDA",
+        year,
+        course: "LCM",
+      };
+    }
+
+    if (candidateLower === "juvenil" || pathLower.includes("/juvenil")) {
+      return {
+        meetName: `Campeonato Nacional Juvenil FEVEDA ${year}`,
+        state: "Nacional",
+        association: "FEVEDA",
+        year,
+        course: "LCM",
+      };
+    }
+
+    if (candidateLower.includes("occidente") || pathLower.includes("/occidente")) {
+      return {
+        meetName: `Campeonato Regional de Natación Occidente ${year}`,
+        state: "Occidente",
+        association: "FEVEDA / ADAEF",
+        year,
+        course: "LCM",
+      };
+    }
+
+    if (candidateLower === "lara" || pathLower.includes("/2026/lara")) {
+      return {
+        meetName: `I Campeonato Estadal ADAEL ${year}`,
+        state: "Lara",
+        association: "ADAEL",
+        year,
+        course: "LCM",
+      };
+    }
+
     let state = "Lara";
     let association = "ADAEL";
 
@@ -105,6 +195,12 @@ export function parseMeetUrlInfo(rawUrl: string): ParsedMeetUrlInfo {
     } else if (/adac/i.test(u.hostname) || /carabobo/i.test(u.pathname)) {
       state = "Carabobo";
       association = "ADAC";
+    } else if (/adaef/i.test(u.hostname) || /falcon/i.test(u.pathname)) {
+      state = "Falcón";
+      association = "ADAEF";
+    } else if (/asodan/i.test(u.hostname) || /yaracuy/i.test(u.pathname)) {
+      state = "Yaracuy";
+      association = "ASODAN";
     }
 
     let formattedName = candidate;

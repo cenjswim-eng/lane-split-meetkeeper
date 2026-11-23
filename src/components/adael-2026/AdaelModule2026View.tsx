@@ -14,6 +14,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ShieldCheck,
   Building2,
@@ -553,6 +554,17 @@ export function AdaelModule2026View() {
             >
               <Plus className="h-3.5 w-3.5" />
               Nuevo Fichaje 2026
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              asChild
+              className="gap-2 text-xs border-primary/40 text-primary hover:bg-primary/10 shadow"
+            >
+              <Link to="/import">
+                <Globe className="h-3.5 w-3.5" />
+                Importar Enlace Web
+              </Link>
             </Button>
           </div>
         </div>

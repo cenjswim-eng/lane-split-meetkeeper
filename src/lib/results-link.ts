@@ -118,8 +118,14 @@ export function indexFrameUrl(html: string, base: string): string | null {
     } catch {}
   }
 
-  // 4. Anchor href matching evtindex, pruebas, events, menu
-  const anchorHref = html.match(/href=["']([^"']*(?:evtindex|pruebas|events|menu)\.html?(?:\?[^"']*)?)["']/i)?.[1];
+  // 4. Anchor href matching evtindex, pruebas, events, menu o enlaces con etiqueta "Pruebas" / "Resultados"
+  const anchorHref =
+    html.match(/<a\b[^>]*href=["']([^"']*(?:evtindex|pruebas|events|menu)\.html?(?:\?[^"']*)?)["']/i)?.[1] ??
+    html.match(/<a\b[^>]*href=["']([^"']+\.html?(?:\?[^"']*)?)["'][^>]*>[\s\S]*?(?:pruebas|eventos|resultados|events|results)[\s\S]*?<\/a>/i)?.[1] ??
+    (!/(?:index|evtindex)\.html?$/i.test(new URL(base).pathname)
+      ? html.match(/<a\b[^>]*href=["']([^"']*index\.html?(?:\?[^"']*)?)["']/i)?.[1]
+      : null);
+
   if (anchorHref) {
     try {
       const u = new URL(anchorHref.replace(/&amp;/g, "&"), base).toString();
@@ -139,10 +145,10 @@ export function indexFrameUrl(html: string, base: string): string | null {
 }
 
 export function meetEventPages(indexHtml: string, base: string): string[] {
-  // 1. Enlaces estándar Meet Manager ([FPS]\d{1,4})
-  const mmLinks = [...indexHtml.matchAll(/href=["']?([^"' >#]*?[FPS]\d{1,4}\.html?(?:\?[^"' >#]*)?)/gi)].map(
-    (m) => m[1]
-  );
+  // 1. Enlaces estándar Meet Manager ([FPS]\d{1,4}) y con prefijo de fecha (ej. 260227F001.htm, 261105F001.htm)
+  const mmLinks = [
+    ...indexHtml.matchAll(/href=["']?([^"' >#]*?(?:\b\d{4,8})?[FPS]\d{1,4}\.html?(?:\?[^"' >#]*)?)/gi),
+  ].map((m) => m[1]);
   // 2. Enlaces nombrados como event1.htm, prueba1.htm, etc.
   const namedLinks = [
     ...indexHtml.matchAll(
@@ -155,7 +161,7 @@ export function meetEventPages(indexHtml: string, base: string): string[] {
   );
 
   const nonEventPattern =
-    /(?:evtindex|index|menu|header|navbar|top|bottom|team|teams|athlete|athletes|banner|footer)\.html?$/i;
+    /(?:evtindex|index|menu|header|navbar|top|bottom|team|teams|club|clubes|athlete|athletes|banner|footer|main)\.html?$/i;
 
   const validUrls = [...mmLinks, ...namedLinks, ...numLinks]
     .filter((href): href is string => Boolean(href && href.trim()))

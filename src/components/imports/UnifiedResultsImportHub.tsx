@@ -87,6 +87,7 @@ import {
   parseFevedaDirectory,
   normalizeResultsUrl,
   parseMeetUrlInfo,
+  extractUrlsFromText,
   type FevedaMeet,
 } from "@/lib/feveda";
 import { normalizeTeamCode } from "@/data/fevedaClubs";
@@ -290,29 +291,94 @@ export function UnifiedResultsImportHub({
         const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
         lines = await readPdfLines(new File([bytes], `${name}.pdf`, { type: "application/pdf" }));
       } else {
-        const frame = indexFrameUrl(res.html, res.url);
-        if (frame && !meetEventPages(res.html, res.url).length) {
+        // Meet Manager web results: seguir recursivamente hasta encontrar el marco con las pruebas
+        let indexHtml = res.html;
+        let indexUrl = res.url;
+        let protectedSite = res.via === "browser";
+        const visited = new Set([indexUrl]);
+
+        for (let depth = 0; depth < 5 && !meetEventPages(indexHtml, indexUrl).length; depth++) {
+          const frame =
+            indexFrameUrl(indexHtml, indexUrl) ??
+            (/<frameset/i.test(indexHtml) ? new URL("evtindex.htm", indexUrl).toString() : null);
+          if (!frame || visited.has(frame)) break;
+          visited.add(frame);
           setLinkProgressText("Siguiendo estructura de pruebas del torneo...");
-          const fRes = await fetchLink({ data: { url: frame, allowBrowser } });
-          if (fRes.kind === "html") {
-            lines = htmlToLines(fRes.html);
-            info = meetIndexInfo(fRes.html, res.html);
-          }
+          const idx = await fetchLink({ data: { url: frame, allowBrowser } });
+          if (idx.kind !== "html") break;
+          indexHtml = idx.html;
+          indexUrl = idx.url;
+          protectedSite ||= idx.via === "browser";
         }
 
-        const events = meetEventPages(res.html, res.url);
-        if (events.length) {
-          setLinkProgressText(`Extrayendo ${events.length} pruebas del campeonato...`);
-          const batch = await startBatch({ data: { urls: events.map((e) => e.url) } });
-          let poll = await batchStatus({ data: { jobId: batch.jobId } });
-          while (!poll.done) {
-            await new Promise((r) => setTimeout(r, 600));
-            poll = await batchStatus({ data: { jobId: batch.jobId } });
-            setLinkProgressText(`Descargando pruebas: ${poll.completed}/${poll.total}...`);
+        const pages = meetEventPages(indexHtml, indexUrl);
+        if (pages.length) {
+          info = meetIndexInfo(res.html, indexHtml);
+          const htmls: string[] = new Array(pages.length).fill("");
+          let done = 0;
+          let next = 0;
+          setLinkProgressText(`Extrayendo ${pages.length} pruebas del campeonato (0/${pages.length})...`);
+
+          if (protectedSite) {
+            try {
+              const { id } = await startBatch({ data: { urls: pages } });
+              for (let tries = 0; tries < 120; tries++) {
+                await new Promise((r) => setTimeout(r, 2000));
+                const st = await batchStatus({ data: { id } });
+                setLinkProgressText(`Descargando pruebas protegidas: ${st.completed}/${st.total || pages.length}...`);
+                if (st.status === "failed") break;
+                if (st.status !== "completed") continue;
+                let page = st,
+                  nextCursor = st.next;
+                for (const p of page.pages) {
+                  const idx = pages.indexOf(p.url);
+                  if (idx >= 0 && p.html) htmls[idx] = p.html;
+                }
+                while (nextCursor) {
+                  page = await batchStatus({ data: { id, next: nextCursor } });
+                  for (const p of page.pages) {
+                    const idx = pages.indexOf(p.url);
+                    if (idx >= 0 && p.html) htmls[idx] = p.html;
+                  }
+                  nextCursor = page.next;
+                }
+                break;
+              }
+            } catch {
+              // fallback a descarga concurrente
+            }
           }
-          eventParsed = poll.results
-            .filter((r) => r.ok && r.html)
-            .map((r, i) => parseMeetManagerResults(htmlToLines(r.html!).map(commaTimes), events[i]?.title || name));
+
+          // Descarga directa mediante pool de workers concurrentes (para ADAEL, Natación Venezuela, etc.)
+          if (htmls.some((h) => !h)) {
+            const worker = async () => {
+              while (next < pages.length) {
+                const i = next++;
+                if (htmls[i]) continue;
+                for (let attempt = 0; attempt < 3 && !htmls[i]; attempt++) {
+                  const pageUrl = pages[i];
+                  if (!pageUrl) break;
+                  try {
+                    const r = await fetchLink({ data: { url: pageUrl, allowBrowser } });
+                    if (r.kind === "html" && r.html) {
+                      htmls[i] = r.html;
+                    }
+                  } catch {
+                    // reintentar
+                  }
+                }
+                setLinkProgressText(`Descargando pruebas: ${++done}/${pages.length}...`);
+              }
+            };
+            await Promise.all(Array.from({ length: 6 }, worker));
+          }
+
+          const validHtmls = htmls.filter(Boolean);
+          if (validHtmls.length === 0) {
+            throw new Error("No se pudo descargar ninguna prueba del campeonato.");
+          }
+
+          lines = validHtmls.flatMap((h) => htmlToLines(h));
         } else if (!lines.length) {
           lines = htmlToLines(res.html);
           info = meetIndexInfo(res.html, res.html);
@@ -322,12 +388,6 @@ export function UnifiedResultsImportHub({
       setLinkProgressText("Normalizando tiempos y categorías...");
       lines = lines.map(commaTimes);
       const parsed = parseMeetManagerResults(lines, name);
-
-      if (eventParsed?.length) {
-        parsed.athletes = [...new Map(eventParsed.flatMap((p) => p.athletes).map((a) => [a.key, a])).values()];
-        parsed.teams = [...new Map(eventParsed.flatMap((p) => p.teams).map((t) => [t.code, t])).values()];
-        parsed.results = eventParsed.flatMap((p) => p.results);
-      }
 
       if (!parsed.results.length) {
         throw new Error("No se reconocieron tiempos de natación en la dirección web indicada.");
@@ -801,32 +861,160 @@ export function UnifiedResultsImportHub({
                     </Button>
                   </div>
 
-                  {/* Atajos Rápidos de 1 Clic */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                    <span className="text-muted-foreground font-medium">Atajos rápidos:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const adaelUrl = "https://www.adael.com.ve/3erEstadalADAEL2026/index.htm";
-                        setLinkUrl(adaelUrl);
-                        handleFetchLink(adaelUrl);
-                      }}
-                      className="rounded border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors flex items-center gap-1.5"
-                    >
-                      ⚡ 3er Estadal ADAEL 2026 (adael.com.ve)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fevedaUrl = "https://natacionvenezuela.com/2026/lara/";
-                        setLinkUrl(fevedaUrl);
-                        handleFetchLink(fevedaUrl);
-                      }}
-                      className="rounded border border-muted bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
-                    >
-                      ⚡ FEVEDA Lara 2026
-                    </button>
+                  {/* Atajos Rápidos de 1 Clic con los 7 Torneos Oficiales 2026 */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                        Torneos Oficiales 2026 (Haz clic para extraer al instante):
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">7 competencias oficiales venezolanas</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://natacionvenezuela.com/2026/lara/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-primary group-hover:underline">🏊 I Estadal Lara 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-primary/40 text-primary">Lara</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">Piscinas Bolivarianas (ADAEL)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "http://www.adael.com.ve/3erEstadalADAEL2026/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-emerald-700 dark:text-emerald-300 group-hover:underline">🛡️ 3er Estadal ADAEL 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-emerald-500/40 text-emerald-600">ADAEL</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">Portal Oficial adael.com.ve</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://natacionvenezuela.com/2026/occidente/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-sky-700 dark:text-sky-300 group-hover:underline">🌊 Regional Occidente 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-sky-500/40 text-sky-600">Occidente</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">FEVEDA / ADAEF (172 pruebas)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://feveda.org/2026/jdnj/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-amber-700 dark:text-amber-300 group-hover:underline">🏅 JDNJ FEVEDA 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-amber-500/40 text-amber-600">Nacional</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">Juegos Deportivos Nacionales</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://feveda.org/2026/nacionalcategorias/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-purple-700 dark:text-purple-300 group-hover:underline">🏆 Nac. Categorías 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-purple-500/40 text-purple-600">Nacional</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">FEVEDA Categorías</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://feveda.org/2026/infantil/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-indigo-700 dark:text-indigo-300 group-hover:underline">🧒 Nacional Infantil 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-indigo-500/40 text-indigo-600">Nacional</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">FEVEDA Infantil A y B</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = "https://feveda.org/2026/juvenil/";
+                          setLinkUrl(u);
+                          handleFetchLink(u);
+                        }}
+                        className="flex flex-col text-left p-2.5 rounded-lg border border-pink-500/20 bg-pink-500/5 hover:bg-pink-500/10 transition-all group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-pink-700 dark:text-pink-300 group-hover:underline">🌟 Nacional Juvenil 2026</span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1 border-pink-500/40 text-pink-600">Nacional</Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground mt-0.5 truncate">FEVEDA Juvenil A y B</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Detección de múltiples enlaces en el texto pegado */}
+                  {extractUrlsFromText(linkUrl).length > 1 && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-primary">
+                          📋 Se detectaron {extractUrlsFromText(linkUrl).length} enlaces en tu texto (haz clic en cualquiera para importar):
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {extractUrlsFromText(linkUrl).map((u, idx) => {
+                          const meta = parseMeetUrlInfo(u);
+                          return (
+                            <Button
+                              key={idx}
+                              size="sm"
+                              variant="secondary"
+                              className="h-7 text-xs gap-1.5 border"
+                              onClick={() => {
+                                setLinkUrl(u);
+                                handleFetchLink(u);
+                              }}
+                            >
+                              <span>{meta.meetName || u}</span>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Toggle para sitios con JS redirect */}
                   <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">

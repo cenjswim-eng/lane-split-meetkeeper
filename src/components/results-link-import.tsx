@@ -323,63 +323,92 @@ export function ResultsLinkImport({ disabled, onParsed }: { disabled?: boolean; 
             </Button>
           </form>
 
-          {/* Quick shortcuts for Venezuelan FEVEDA circuits */}
+          {/* Quick shortcuts for Venezuelan FEVEDA and ADAEL 2026 circuits */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">Accesos directos:</span>
+            <span className="font-medium">Accesos directos 2026:</span>
             <button
               type="button"
               disabled={busy}
               className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
               onClick={() => {
-                setUrl("https://www.adael.com.ve/3erEstadalADAEL2026/index.htm");
-                read("https://www.adael.com.ve/3erEstadalADAEL2026/index.htm", "3er Estadal ADAEL 2026");
+                const u = "https://natacionvenezuela.com/2026/lara/";
+                setUrl(u);
+                read(u, "I Campeonato Estadal ADAEL 2026");
               }}
             >
-              🏊 3er Estadal ADAEL 2026
+              🏊 I Estadal Lara 2026
             </button>
             <button
               type="button"
               disabled={busy}
-              className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 transition-colors hover:bg-emerald-500/20"
               onClick={() => {
-                setUrl("https://feveda.org/resultados/");
-                read("https://feveda.org/resultados/");
+                const u = "http://www.adael.com.ve/3erEstadalADAEL2026/";
+                setUrl(u);
+                read(u, "3er Estadal ADAEL 2026");
               }}
             >
-              🇻🇪 Directorio FEVEDA
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
-              onClick={() => {
-                setUrl("https://natacionvenezuela.com/2026/lara/");
-                read("https://natacionvenezuela.com/2026/lara/", "Campeonato Estadal Lara 2026");
-              }}
-            >
-              Estadal Lara 2026
+              🛡️ 3er Estadal ADAEL 2026
             </button>
             <button
               type="button"
               disabled={busy}
               className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
               onClick={() => {
-                setUrl("https://natacionvenezuela.com/2026/occidente/");
-                read("https://natacionvenezuela.com/2026/occidente/", "Campeonato Regional Occidente 2026");
+                const u = "https://natacionvenezuela.com/2026/occidente/";
+                setUrl(u);
+                read(u, "Campeonato Regional de Natación Occidente 2026");
               }}
             >
-              Regional Occidente 2026
+              🌊 Regional Occidente 2026
             </button>
             <button
               type="button"
               disabled={busy}
               className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
               onClick={() => {
-                setUrl("https://feveda.org/2026/regionalcentro/");
-                read("https://feveda.org/2026/regionalcentro/", "Campeonato Regional Central 2026");
+                const u = "https://feveda.org/2026/jdnj/";
+                setUrl(u);
+                read(u, "Juegos Deportivos Nacionales Juveniles (JDNJ) 2026");
               }}
             >
-              Regional Central 2026
+              🏅 JDNJ 2026
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
+                const u = "https://feveda.org/2026/nacionalcategorias/";
+                setUrl(u);
+                read(u, "Campeonato Nacional por Categorías FEVEDA 2026");
+              }}
+            >
+              🏆 Nac. Categorías
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
+                const u = "https://feveda.org/2026/infantil/";
+                setUrl(u);
+                read(u, "Campeonato Nacional Infantil FEVEDA 2026");
+              }}
+            >
+              🧒 Nac. Infantil
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-full border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+              onClick={() => {
+                const u = "https://feveda.org/2026/juvenil/";
+                setUrl(u);
+                read(u, "Campeonato Nacional Juvenil FEVEDA 2026");
+              }}
+            >
+              🌟 Nac. Juvenil
             </button>
           </div>
 
