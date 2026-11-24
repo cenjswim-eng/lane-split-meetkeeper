@@ -70,10 +70,10 @@ export const DESTINATION_PRESETS: Record<
     },
   },
   rivals_only: {
-    name: "Solo Ranking Estadal y Rivales",
-    badge: "Rivales",
+    name: "Solo Marcas de Competencias",
+    badge: "Torneo",
     description:
-      "Ideal para torneos externos o invitacionales de otros estados para comparar rivales sin alterar las fichas internas de tu club.",
+      "Ideal para torneos externos o invitacionales para registrar marcas generales de competencias sin alterar las fichas internas de tu club.",
     destinations: {
       stateRanking: true,
       myClub: false,

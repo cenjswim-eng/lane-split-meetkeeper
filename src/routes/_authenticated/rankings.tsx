@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { coachQuery } from '@/lib/coach-data';
@@ -8,7 +8,7 @@ import { AquaRanking } from '@/components/aqua-ranking';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceFilters, matchesResult } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
-import { Trophy, Users, Medal, Building2, ShieldCheck } from 'lucide-react';
+import { Trophy, Users, Medal, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const Route = createFileRoute('/_authenticated/rankings')({
@@ -18,12 +18,12 @@ export const Route = createFileRoute('/_authenticated/rankings')({
   }),
   head: () => ({
     meta: [
-      { title: 'Rankings del Club — Swim Lane Coach' },
+      { title: 'Ranking Interno del Club — Swim Lane Coach' },
       {
         name: 'description',
-        content: 'Seguimiento de marcas personales, mejores tiempos y clasificación de los atletas del club.',
+        content: 'Ranking interno de marcas personales, mejores tiempos (PB) y clasificación de los atletas del club.',
       },
-      { property: 'og:title', content: 'Rankings del Club — Swim Lane Coach' },
+      { property: 'og:title', content: 'Ranking Interno del Club — Swim Lane Coach' },
       {
         property: 'og:description',
         content: 'Ranking interno de marcas, clasificación AQUA y progresión de los nadadores del club.',
@@ -60,7 +60,7 @@ function Rankings() {
       {/* Encabezado Principal */}
       <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rankings del Club</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Ranking Interno del Club</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Seguimiento de marcas individuales, mejores tiempos personales (PB) y clasificación de los nadadores de nuestro club.
           </p>
@@ -70,13 +70,6 @@ function Rankings() {
             <Building2 className="h-3.5 w-3.5" />
             Club Activo: {myClubCode} ({myClubName})
           </Badge>
-          <Link
-            to="/adael-2026"
-            className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Módulo ADAEL 2026
-          </Link>
         </div>
       </div>
 

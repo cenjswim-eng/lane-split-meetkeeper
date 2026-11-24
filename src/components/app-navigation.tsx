@@ -46,7 +46,6 @@ const items = [
   { to: "/run", label: "Torneo en Vivo", icon: Timer },
   // 3. Rendimiento y Reportes
   { to: "/rankings", label: "Rankings del Club", icon: Medal },
-  { to: "/adael-2026", label: "Módulo ADAEL 2026", icon: ShieldCheck },
   { to: "/standards", label: "Marcas Mínimas", icon: Target },
   { to: "/achievements", label: "Logros y Récords", icon: Medal },
   { to: "/reports", label: "Centro de Reportes", icon: BarChart3 },
@@ -61,7 +60,7 @@ const groups = [
   { label: "General", paths: ["/dashboard"] },
   { label: "Mi Club y Atletas", paths: ["/clubs", "/athletes", "/attendance", "/club"] },
   { label: "Torneos y Competencias", paths: ["/meets", "/import", "/entries", "/relays", "/seeding", "/run"] },
-  { label: "Rendimiento y Reportes", paths: ["/rankings", "/adael-2026", "/standards", "/achievements", "/reports"] },
+  { label: "Rendimiento y Reportes", paths: ["/rankings", "/standards", "/achievements", "/reports"] },
   { label: "Configuración", paths: ["/brand", "/categories", "/profile", "/access"] },
 ];
 
