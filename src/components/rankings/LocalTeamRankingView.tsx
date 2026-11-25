@@ -37,6 +37,7 @@ import {
 import { formatTime, strokeNameFromCode } from '@/lib/swim';
 import { calculateAgeGroup2026 } from '@/lib/adael-2026/service';
 import { downloadFile } from '@/lib/file-delivery';
+import { normalizeTeamCode } from '@/data/fevedaClubs';
 import { toast } from 'sonner';
 
 interface LocalTeamRankingViewProps {
@@ -63,15 +64,18 @@ export function LocalTeamRankingView({
   const clubName = activeClub?.full_name || activeClub?.name || 'Club Escuela JSwim Lara';
   const clubCode = (activeClub?.team_code || activeClub?.short_name || 'JSWIM').toUpperCase().trim();
 
-  // Filtrar atletas pertenecientes a nuestro club
+  // Filtrar atletas pertenecientes exclusivamente a nuestro club
   const localAthletes = useMemo(() => {
+    const targetNorm = clubCode ? normalizeTeamCode(clubCode).code : 'JSWIM';
     return athletes.filter((a) => {
-      if (!activeClub?.id) return true; // Si no hay clubId, mostrar los atletas de la cuenta
       const aClubId = a.club_id || a.clubs?.id;
-      const aTeamCode = a.teams?.code || a.team_code;
-      if (aClubId && activeClub.id && aClubId === activeClub.id) return true;
-      if (aTeamCode && clubCode && aTeamCode.toUpperCase() === clubCode) return true;
-      return true; // Fallback para cuentas de entrenador
+      if (activeClub?.id && aClubId && aClubId === activeClub.id) return true;
+      const aTeamCode = a.teams?.code || a.team_code || a.origin_team || '';
+      if (aTeamCode) {
+        return normalizeTeamCode(aTeamCode).code === targetNorm;
+      }
+      // Atleta registrado manualmente sin club explícito pero perteneciente a la cuenta
+      return !a.teams?.code;
     });
   }, [athletes, activeClub, clubCode]);
 
@@ -81,7 +85,7 @@ export function LocalTeamRankingView({
     return map;
   }, [localAthletes]);
 
-  // Normalizar y enriquecer resultados de los atletas de nuestro club
+  // Normalizar y enriquecer resultados EXCLUSIVAMENTE de los atletas de nuestro club
   const enrichedResults = useMemo(() => {
     const list: Array<{
       id: string;
@@ -109,7 +113,8 @@ export function LocalTeamRankingView({
       const finalMs = r.final_time_ms;
       if (!finalMs || finalMs <= 0) continue;
 
-      const ath = athleteMap.get(r.athlete_id) || r.athletes;
+      // Restricción estricta: Solo nadadores de nuestro club
+      const ath = athleteMap.get(r.athlete_id);
       if (!ath) continue;
 
       const athFirst = ath.first_name || '';

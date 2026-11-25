@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { coachQuery } from '@/lib/coach-data';
 import { profileQuery } from '@/lib/profile';
 import { LocalTeamRankingView } from '@/components/rankings/LocalTeamRankingView';
@@ -8,6 +8,7 @@ import { AquaRanking } from '@/components/aqua-ranking';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceFilters, matchesResult } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
+import { normalizeTeamCode } from '@/data/fevedaClubs';
 import { Trophy, Users, Medal, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -50,10 +51,36 @@ function Rankings() {
 
   const { filters } = useWorkspaceFilters();
   const categories = useSwimCategories();
-  const results = data.results.filter((r) => matchesResult(r, filters, categories));
 
   const myClubName = profileData?.club?.name || 'Mi Club';
-  const myClubCode = profileData?.club?.code || 'JSWIM';
+  const myClubCode = (profileData?.club?.code || profileData?.club?.team_code || profileData?.club?.short_name || 'JSWIM').toUpperCase().trim();
+
+  // Filtrar atletas pertenecientes exclusivamente a nuestro club
+  const clubAthletesSet = useMemo(() => {
+    const targetNorm = myClubCode ? normalizeTeamCode(myClubCode).code : 'JSWIM';
+    const s = new Set<string>();
+    data.athletes.forEach((a) => {
+      const aClubId = a.club_id || a.clubs?.id;
+      if (profileData?.club?.id && aClubId && aClubId === profileData.club.id) {
+        s.add(a.id);
+        return;
+      }
+      const aTeamCode = a.teams?.code || a.team_code || a.origin_team;
+      if (aTeamCode && normalizeTeamCode(aTeamCode).code === targetNorm) {
+        s.add(a.id);
+        return;
+      }
+      // Atletas creados manualmente sin equipo externo asignado
+      if (!aClubId && !aTeamCode) {
+        s.add(a.id);
+      }
+    });
+    return s;
+  }, [data.athletes, profileData?.club, myClubCode]);
+
+  const results = data.results
+    .filter((r) => clubAthletesSet.has(r.athlete_id))
+    .filter((r) => matchesResult(r, filters, categories));
 
   return (
     <div className="space-y-6">

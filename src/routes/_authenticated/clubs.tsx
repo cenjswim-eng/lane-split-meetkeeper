@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Building2, Plus, ArrowRight, Layers, Users } from "lucide-react";
+import { Building2, Plus, ArrowRight, Layers, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { clubManagementQuery } from "@/lib/club-management-data";
@@ -192,9 +192,30 @@ function Clubs() {
                     }`}
                   >
                     <div className="w-full min-w-0 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded border px-2 py-1 font-mono text-primary font-bold">{c.team_code ?? "—"}</span>
-                        <span className="min-w-0 break-words font-semibold">{c.full_name ?? c.name}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded border px-2 py-1 font-mono text-primary font-bold">{c.team_code ?? "—"}</span>
+                          <span className="min-w-0 break-words font-semibold">{c.full_name ?? c.name}</span>
+                        </div>
+                        {management.clubs.length > 1 && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                            title="Eliminar club"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`¿Deseas eliminar el registro del club "${c.name}"?`)) {
+                                await supabase.from("clubs").delete().eq("id", c.id);
+                                await qc.invalidateQueries({ queryKey: ["club-management"] });
+                                await qc.invalidateQueries({ queryKey: ["club-register"] });
+                                toast.success("Club eliminado.");
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {c.region_lsc || "Región sin registrar"} · {c.head_coach || "Entrenador sin registrar"}

@@ -24,20 +24,39 @@ import { EcosystemGuide } from '@/components/ecosystem-guide';
 const dashQuery = queryOptions({
   queryKey: ["dashboard"],
   queryFn: async () => {
-    const [athletes, meets, standards] = await Promise.all([
-      supabase.from("athletes").select("id", { count: "exact", head: true }),
+    const [athletes, meets, standards, clubs] = await Promise.all([
+      supabase.from("athletes").select("id, club_id, teams(code)"),
       supabase.from("meets").select("id, name, start_date, end_date, location, course").order("start_date", { ascending: false }),
       loadStandardVersions(),
+      supabase.from("clubs").select("id, team_code, short_name").order("created_at"),
     ]);
-    for (const r of [athletes, meets, standards]) if (r.error) throw r.error;
+    for (const r of [athletes, meets, standards, clubs]) if (r.error) throw r.error;
+
+    const activeClub = clubs.data?.[0];
+    const activeCode = (activeClub?.team_code || activeClub?.short_name || "JSWIM").toUpperCase().trim();
+    const activeClubId = activeClub?.id;
+
+    const clubAthletes = (athletes.data ?? []).filter((a) => {
+      if (activeClubId && a.club_id === activeClubId) return true;
+      if (a.teams?.code && a.teams.code.toUpperCase().trim() === activeCode) return true;
+      return !a.club_id && !a.teams?.code;
+    });
+    const clubAthIds = new Set(clubAthletes.map((a) => a.id));
+
     const results = [];
     for (let offset = 0; ; offset += 1000) {
-      const page = await supabase.from("results").select("id, athlete_id, final_time_ms, is_dq, course, meets(id, start_date, name), events(distance, stroke, is_relay), athletes(first_name, last_name, gender, birth_date)").not("final_time_ms", "is", null).order("id").range(offset, offset + 999);
+      const page = await supabase
+        .from("results")
+        .select("id, athlete_id, final_time_ms, is_dq, course, meets(id, start_date, name), events(distance, stroke, is_relay), athletes(first_name, last_name, gender, birth_date)")
+        .not("final_time_ms", "is", null)
+        .order("id")
+        .range(offset, offset + 999);
       if (page.error) throw page.error;
-      results.push(...page.data);
+      const filtered = page.data.filter((r) => clubAthIds.has(r.athlete_id));
+      results.push(...filtered);
       if (page.data.length < 1000) break;
     }
-    return { athletes: athletes.count ?? 0, meets: meets.data ?? [], standards: standards.data ?? [], results };
+    return { athletes: clubAthletes.length, meets: meets.data ?? [], standards: standards.data ?? [], results };
   },
 });
 

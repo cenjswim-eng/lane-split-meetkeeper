@@ -45,51 +45,51 @@ export const DESTINATION_PRESETS: Record<
     destinations: ImportDestinations;
   }
 > = {
-  all_in_one: {
-    name: "Todo en Uno (Recomendado)",
-    badge: "Completo",
+  my_club_only: {
+    name: "Solo Mi Equipo (Recomendado)",
+    badge: "Equipo Exclusivo",
     description:
-      "Carga el torneo completo: crea la base de datos de cada equipo, actualiza el ranking estadal con todos los rivales, vincula marcas a tus atletas y registra en el circuito 2026.",
+      "Modo equipo único: procesa y guarda exclusivamente los resultados y nadadores de tu club. Los datos de otros equipos se ignoran por completo.",
+    destinations: {
+      stateRanking: false,
+      myClub: true,
+      officialCircuit: true,
+      teamDatabases: false,
+    },
+  },
+  all_in_one: {
+    name: "Torneo Completo (Todos los Equipos)",
+    badge: "Todos los Clubes",
+    description:
+      "Carga todas las marcas de todos los clubes del torneo para el ranking estadal general.",
     destinations: {
       stateRanking: true,
       myClub: true,
       officialCircuit: true,
-      teamDatabases: true,
+      teamDatabases: false,
     },
   },
   entry_lists: {
-    name: "Entry Lists y Base de Datos de Equipos",
+    name: "Entry Lists de Mi Equipo",
     badge: "Inscripciones",
     description:
-      "Especial para listas de inscripciones previas: crea la base de datos de cada club con los atletas que lo representan, sus categorías y pruebas sembradas.",
+      "Carga las pruebas sembradas e inscripciones de los atletas de tu club para el torneo.",
     destinations: {
-      stateRanking: true,
+      stateRanking: false,
       myClub: true,
       officialCircuit: true,
-      teamDatabases: true,
+      teamDatabases: false,
     },
   },
   rivals_only: {
     name: "Solo Marcas de Competencias",
     badge: "Torneo",
     description:
-      "Ideal para torneos externos o invitacionales para registrar marcas generales de competencias sin alterar las fichas internas de tu club.",
-    destinations: {
-      stateRanking: true,
-      myClub: false,
-      officialCircuit: true,
-      teamDatabases: false,
-    },
-  },
-  my_club_only: {
-    name: "Solo Mis Atletas / Mi Club",
-    badge: "Club Interno",
-    description:
-      "Ideal para chequeos internos, tomas de tiempo o invitacionales cerrados donde solo deseas actualizar las marcas de tu propio equipo.",
+      "Registra marcas generales de competencias sin alterar las fichas internas de tu club.",
     destinations: {
       stateRanking: false,
       myClub: true,
-      officialCircuit: false,
+      officialCircuit: true,
       teamDatabases: false,
     },
   },
@@ -496,10 +496,16 @@ export async function executeUnifiedImport({
     },
   };
 
-  // Si se seleccionaron clubes específicos y no son todos, aplicar filtro
+  // Determinar los clubes a procesar
+  const targetClubCodes = (selectedClubs && selectedClubs.size > 0)
+    ? Array.from(selectedClubs)
+    : [myClubCode || "JSWIM"];
+
+  // Si estamos en modo de equipo único (o no es ranking estadal global),
+  // filtramos el archivo parseado para que SOLO contenga los nadadores y marcas de dicho equipo.
   let readyParsed = targetParsed;
-  if (selectedClubs && selectedClubs.size > 0 && selectedClubs.size < targetParsed.teams.length) {
-    readyParsed = filterParsedByClubCodes(targetParsed, Array.from(selectedClubs));
+  if (!destinations.stateRanking || (selectedClubs && selectedClubs.size < targetParsed.teams.length)) {
+    readyParsed = filterParsedByClubCodes(targetParsed, targetClubCodes);
   }
 
   onProgress?.(10, "Iniciando procesamiento de resultados e inscripciones...");
@@ -514,11 +520,11 @@ export async function executeUnifiedImport({
     splits: 0,
   };
 
-  // 1. Guardado en la base de datos central (si se seleccionó Ranking Estadal o Mi Club)
+  // 1. Guardado en la base de datos central (si se seleccionó Ranking o Mi Club)
   if (destinations.stateRanking || destinations.myClub) {
     onProgress?.(25, "Guardando atletas y marcas en base de datos central...");
 
-    const teamCodeOption = destinations.stateRanking ? "all" : myClubCode || "all";
+    const teamCodeOption = destinations.stateRanking ? "all" : (targetClubCodes[0] || myClubCode || "all");
 
     coreSummary = await importParsed(
       readyParsed.meet.name,

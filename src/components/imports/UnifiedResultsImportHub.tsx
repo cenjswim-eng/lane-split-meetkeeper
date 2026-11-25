@@ -162,13 +162,13 @@ export function UnifiedResultsImportHub({
   const [meetEndDate, setMeetEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [meetCourse, setMeetCourse] = useState<"LCM" | "SCM" | "SCY">("LCM");
 
-  // Destinos de los Resultados
-  const [selectedPreset, setSelectedPreset] = useState<DestinationPreset>("all_in_one");
+  // Destinos de los Resultados: Por defecto EXCLUSIVO para el equipo configurado
+  const [selectedPreset, setSelectedPreset] = useState<DestinationPreset>("my_club_only");
   const [destinations, setDestinations] = useState<ImportDestinations>({
-    stateRanking: defaultDestinations?.stateRanking ?? true,
+    stateRanking: defaultDestinations?.stateRanking ?? false,
     myClub: defaultDestinations?.myClub ?? true,
     officialCircuit: defaultDestinations?.officialCircuit ?? true,
-    teamDatabases: defaultDestinations?.teamDatabases ?? true,
+    teamDatabases: defaultDestinations?.teamDatabases ?? false,
   });
 
   // Filtro de Clubes (Opcional)
@@ -480,9 +480,26 @@ export function UnifiedResultsImportHub({
         : "LCM"
     );
 
-    // Preseleccionar todos los clubes
-    const allCodes = new Set(parsed.teams.map((t) => normalizeTeamCode(t.code).code));
-    setSelectedClubCodes(allCodes);
+    // Auto-detección y preselección EXCLUSIVA de nuestro equipo
+    const normMyClub = normalizeTeamCode(myClubCode).code;
+    const detected = extractAllClubsFromParsed(parsed, myClubCode);
+    const foundMyClub = detected.find((c) => c.code === normMyClub);
+
+    if (foundMyClub) {
+      setSelectedClubCodes(new Set([normMyClub]));
+      toast.success(
+        `Detectado tu equipo ${normMyClub} (${foundMyClub.resultCount} marcas, ${foundMyClub.athleteCount} nadadores). Se importará de forma exclusiva.`
+      );
+    } else if (detected.length === 1) {
+      setSelectedClubCodes(new Set([detected[0].code]));
+    } else if (detected.length > 0) {
+      setSelectedClubCodes(new Set([detected[0].code]));
+      toast.info(
+        `Se detectaron ${detected.length} equipos. Confirma cuál es tu club para importar únicamente sus resultados.`
+      );
+    } else {
+      setSelectedClubCodes(new Set([normMyClub]));
+    }
   };
 
   // Clubes agrupados y clasificados
@@ -1246,11 +1263,11 @@ export function UnifiedResultsImportHub({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Button
                     size="sm"
-                    variant={selectedPreset === "all_in_one" ? "default" : "outline"}
-                    onClick={() => handleApplyPreset("all_in_one")}
+                    variant={selectedPreset === "my_club_only" ? "default" : "outline"}
+                    onClick={() => handleApplyPreset("my_club_only")}
                     className="h-7 text-xs font-semibold gap-1"
                   >
-                    ⚡ Todo en Uno (Recomendado)
+                    🏊 Solo Mi Equipo (Recomendado)
                   </Button>
                   <Button
                     size="sm"
@@ -1258,28 +1275,60 @@ export function UnifiedResultsImportHub({
                     onClick={() => handleApplyPreset("entry_lists")}
                     className="h-7 text-xs font-semibold gap-1"
                   >
-                    📋 Entry Lists / Equipos
+                    📋 Entry Lists
                   </Button>
                   <Button
                     size="sm"
-                    variant={selectedPreset === "rivals_only" ? "default" : "outline"}
-                    onClick={() => handleApplyPreset("rivals_only")}
+                    variant={selectedPreset === "all_in_one" ? "default" : "outline"}
+                    onClick={() => handleApplyPreset("all_in_one")}
                     className="h-7 text-xs font-semibold gap-1"
                   >
-                    ⚔️ Solo Rivales
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedPreset === "my_club_only" ? "default" : "outline"}
-                    onClick={() => handleApplyPreset("my_club_only")}
-                    className="h-7 text-xs font-semibold gap-1"
-                  >
-                    🏊 Solo Mi Club
+                    ⚡ Torneo Completo
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* SELECTOR Y AUDITORÍA DE CLUB A IMPORTAR */}
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Equipo a Importar:
+                  </span>
+                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 text-xs font-semibold">
+                    🛡️ Modo Equipo Exclusivo Activado
+                  </Badge>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <Select
+                    value={Array.from(selectedClubCodes)[0] || detectedClubs[0]?.code || "JSWIM"}
+                    onValueChange={(val) => {
+                      setSelectedClubCodes(new Set([val]));
+                      const found = detectedClubs.find((c) => c.code === val);
+                      if (found) {
+                        toast.info(`Seleccionado ${found.name} (${found.resultCount} marcas, ${found.athleteCount} nadadores).`);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-96 h-9 text-xs font-semibold bg-background">
+                      <SelectValue placeholder="Selecciona tu equipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {detectedClubs.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {c.code} — {c.name} ({c.athleteCount} nadadores · {c.resultCount} marcas)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <p className="text-xs text-muted-foreground">
+                    Solo se guardarán los nadadores y marcas de este equipo. Los datos de los demás clubes se descartan automáticamente para no alterar tu base de datos.
+                  </p>
+                </div>
+              </div>
               {/* TARJETAS DE DESTINO CON CHECKBOX (4 DESTINOS) */}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {/* DESTINO 1: RANKING Y MARCAS DEL CLUB */}
