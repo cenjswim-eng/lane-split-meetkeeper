@@ -1,22 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { UnifiedResultsImportHub } from "@/components/imports/UnifiedResultsImportHub";
+import { AthleteDocumentImporter } from "@/components/imports/AthleteDocumentImporter";
 import { ResetData } from "@/components/reset-data";
 
 export const Route = createFileRoute("/_authenticated/import")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Centro de Importación de Resultados — Swim Lane Coach" },
+      { title: "Centro de Importación — Swim Lane Coach" },
       {
         name: "description",
         content:
-          "Sube archivos Hy-Tek (.hy3, .cl2, .sd3, .zip), reportes PDF de Meet Manager, Access (.mdb) o enlaces web ADAEL/FEVEDA y destínalos a tu club, a sus rankings o al circuito oficial.",
+          "Sube archivos Hy-Tek (.hy3, .cl2, .sd3, .zip), reportes PDF de Meet Manager, nóminas de atletas o enlaces web ADAEL/FEVEDA y destínalos a tu club.",
       },
-      { property: "og:title", content: "Centro de Importación de Resultados — Swim Lane Coach" },
+      { property: "og:title", content: "Centro de Importación — Swim Lane Coach" },
       {
         property: "og:description",
         content:
-          "Importación unificada de resultados y eventos con asignación a los rankings del club, fichas y circuito oficial.",
+          "Importación unificada de resultados, eventos y atletas mediante documentos ZIP o PDF para tu club.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,6 +29,11 @@ export const Route = createFileRoute("/_authenticated/import")({
 function ImportPage() {
   return (
     <div className="space-y-8">
+      {/* Importador de Atletas desde Documentos (ZIP o PDF) */}
+      <section>
+        <AthleteDocumentImporter mode="inline" />
+      </section>
+
       {/* Centro Unificado de Importación de Resultados */}
       <UnifiedResultsImportHub />
 

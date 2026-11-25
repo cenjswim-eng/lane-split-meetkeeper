@@ -10,6 +10,7 @@ import { NewAthlete } from "@/components/new-athlete";
 import { DeleteAthlete } from "@/components/delete-athlete";
 import { HistoryTransfer } from "@/components/history-transfer";
 import { ClubMembersExtractor } from "@/components/exports/ClubMembersExtractor";
+import { AthleteDocumentImporter } from "@/components/imports/AthleteDocumentImporter";
 import { useWorkspaceFilters, matchesAthlete } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
 import { profileQuery } from "@/lib/profile";
@@ -151,6 +152,11 @@ function AthletesPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NewAthlete />
+          <AthleteDocumentImporter
+            mode="dialog"
+            buttonVariant="outline"
+            buttonLabel="Importar Atletas (ZIP / PDF)"
+          />
           <ClubMembersExtractor
             club={profileData?.club}
             athletes={clubAthletes}
@@ -197,11 +203,20 @@ function AthletesPage() {
 
       {/* Lista de Atletas del Club */}
       {clubAthletes.length === 0 ? (
-        <div className="mt-8 rounded-lg border border-dashed p-10 text-center text-muted-foreground space-y-2">
-          <p className="font-semibold text-foreground">Aún no hay nadadores registrados para tu equipo ({myClubCode}).</p>
-          <p className="text-sm">
-            Puedes agregar nadadores manualmente o <Link to="/import" className="text-primary underline font-medium">importar los resultados o entry list de tu club</Link>.
-          </p>
+        <div className="mt-8 rounded-lg border border-dashed p-10 text-center text-muted-foreground space-y-4 max-w-xl mx-auto">
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground text-lg">Aún no hay nadadores registrados para tu equipo ({myClubCode}).</p>
+            <p className="text-sm">
+              Puedes agregar nadadores manualmente, <Link to="/import" className="text-primary underline font-medium">importar resultados/entry lists</Link> o cargar tu nómina oficial en PDF o ZIP.
+            </p>
+          </div>
+          <div className="flex justify-center gap-3 pt-2">
+            <AthleteDocumentImporter
+              mode="dialog"
+              buttonVariant="default"
+              buttonLabel="Importar Atletas (ZIP / PDF)"
+            />
+          </div>
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
