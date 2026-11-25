@@ -9,6 +9,7 @@ import { ageAt, ageAtDec31, ageGroup } from "@/lib/swim";
 import { NewAthlete } from "@/components/new-athlete";
 import { DeleteAthlete } from "@/components/delete-athlete";
 import { HistoryTransfer } from "@/components/history-transfer";
+import { ClubMembersExtractor } from "@/components/exports/ClubMembersExtractor";
 import { useWorkspaceFilters, matchesAthlete } from '@/lib/workspace-filters';
 import { useSwimCategories } from '@/lib/categories';
 import { profileQuery } from "@/lib/profile";
@@ -150,6 +151,13 @@ function AthletesPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NewAthlete />
+          <ClubMembersExtractor
+            club={profileData?.club}
+            athletes={clubAthletes}
+            mode="dialog"
+            buttonVariant="outline"
+            buttonLabel="Extraer Integrantes (PDF / ZIP)"
+          />
           <HistoryTransfer label="Buscar historial de atletas" />
           <Input
             placeholder="Buscar por nombre o ID"
