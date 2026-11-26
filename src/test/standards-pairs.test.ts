@@ -15,3 +15,10 @@ describe("mínimas venezolanas en pares F/M", () => {
     expect(rows[5]!.category).toMatch(/M[aá]xima/i);
   });
 });
+
+describe("encabezado con una sola categoría reconocida", () => {
+  it("igual asigna los pares F/M", () => {
+    const { rows } = parseStandardsDocument(["INFANTIL JUVENIL MAXIMA", "50 LIBRE 35.79 34.68 32.03 30.33 32.01 28.76 31.45 27.15 31.45 27.15"], "LCM");
+    expect(rows).toHaveLength(10);
+  });
+});

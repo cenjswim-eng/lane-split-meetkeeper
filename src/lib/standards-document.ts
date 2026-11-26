@@ -22,7 +22,7 @@ export function parseStandardsDocument(lines: string[], course: string, categori
     const times = [...line.matchAll(timePattern)].map(m => normalizeTime(m[0]));
     if (!times.length) { warnings.push(`Fila sin tiempo legible: ${line.trim()}`); continue; }
     const labels = columns.length ? columns : category ? [category] : [];
-    if (labels.length === times.length / 2 || (!labels.length && times.length % 2 === 0)) {
+    if (times.length >= 4 && times.length % 2 === 0 && labels.length !== times.length) {
       // Tabla venezolana: pares Femenino/Masculino por categoría; filas cortas omiten las categorías menores.
       const pairs = times.length / 2;
       const cols = labels.length === pairs ? labels : [...categories].sort((a, b) => (a.age_min ?? 0) - (b.age_min ?? 0)).map(c => c.label).slice(-pairs);
