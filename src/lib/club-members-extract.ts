@@ -440,5 +440,5 @@ export async function generateClubMembersZip(
 
   const bytes = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
   const zipName = exportFilename(club.name, "_integrantes_completo.zip");
-  return new File([bytes], zipName, { type: "application/zip" });
+  return new File([bytes as BlobPart], zipName, { type: "application/zip" });
 }

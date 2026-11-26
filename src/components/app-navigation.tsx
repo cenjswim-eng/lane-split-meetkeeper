@@ -216,7 +216,7 @@ export function AppNavigation({ name, logoUrl, onSignOut }: { name: string; logo
               <Link to={to} activeProps={{ className: "bg-secondary text-primary" }}>
                 <Icon className="size-5 shrink-0" />
                 <span className="max-w-full truncate">
-                  {label === "Club y Plantilla" ? "Club" : label === "Calendario de Torneos" ? "Torneos" : label === "Rankings AQUA" ? "Rankings" : label}
+                  {label === "Club y Plantilla" ? "Club" : label === "Calendario de Torneos" ? "Torneos" : (label as string) === "Rankings AQUA" ? "Rankings" : label}
                 </span>
               </Link>
             </Button>

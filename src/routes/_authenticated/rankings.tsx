@@ -65,7 +65,7 @@ function Rankings() {
         s.add(a.id);
         return;
       }
-      const aTeamCode = a.teams?.code || a.team_code || a.origin_team;
+      const aTeamCode = a.teams?.code || (a as any).team_code || (a as any).origin_team;
       if (aTeamCode && normalizeTeamCode(aTeamCode).code === targetNorm) {
         s.add(a.id);
         return;

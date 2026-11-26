@@ -390,7 +390,7 @@ export function parseMeetManagerResults(lines: string[], fallbackName: string, d
 
     // Cálculo de fecha de nacimiento estimada a partir de la edad y año del torneo
     const meetYear = startDate ? Number(startDate.slice(0, 4)) : new Date().getFullYear();
-    let numAge = /^\d{1,2}$/.test(age?.trim() || "") ? Number(age.trim()) : null;
+    let numAge = /^\d{1,2}$/.test(age?.trim() || "") ? Number(age!.trim()) : null;
     if (!numAge) {
       if (event.minAge && event.maxAge) {
         // En categorías por rango (ej. 10-11, 12-13, 14-15), tomar la edad de la prueba para que coincida en el ranking

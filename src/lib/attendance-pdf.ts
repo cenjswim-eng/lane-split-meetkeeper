@@ -193,7 +193,7 @@ export function attendancePdf(
           { content: 'Evaluación Técnica', styles: { halign: 'center', cellWidth: 'auto', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
         ],
       ],
-      body: tableBody,
+      body: tableBody as any,
       foot: [
         [
           { content: 'TOTALES', colSpan: 2, styles: { fontStyle: 'bold', halign: 'center', fillColor: reportPrint.surface, fontSize: 8 } },
@@ -288,7 +288,7 @@ export function attendancePdf(
           { content: 'Detalle de la Incidencia / Observación', styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
         ],
       ],
-      body: incidentTableBody,
+      body: incidentTableBody as any,
       theme: 'grid',
       styles: {
         fontSize: 7.5,
@@ -374,7 +374,7 @@ export function attendancePdf(
           { content: 'Estado de Asistencia', styles: { halign: 'center', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 } },
         ],
       ],
-      body: bodyRows,
+      body: bodyRows as any,
       foot: [
         [
           { content: 'Evaluación:', styles: { fontStyle: 'bold', fillColor: reportPrint.surface, fontSize: 8, cellPadding: 2.5 } },
@@ -448,7 +448,7 @@ export function attendancePdf(
           { content: 'Detalle de la Incidencia / Observación', styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } },
         ],
       ],
-      body: singleIncidentsBody,
+      body: singleIncidentsBody as any,
       theme: 'grid',
       styles: {
         fontSize: 7.5,

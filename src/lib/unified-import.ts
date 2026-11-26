@@ -154,7 +154,7 @@ export async function saveToOfficialCircuit2026(
       .select("id")
       .single();
 
-    if (meetError || !meetRow?.id) {
+    if (meetError || !(meetRow as any)?.id) {
       return {
         success: false,
         count: 0,
@@ -162,7 +162,7 @@ export async function saveToOfficialCircuit2026(
       };
     }
 
-    const meetId = meetRow.id as string;
+    const meetId = (meetRow as any).id as string;
 
     // 2. Upsert clubes en adael_clubs
     const clubsPayload = parsed.teams.map((t) => {

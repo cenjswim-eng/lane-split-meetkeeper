@@ -172,7 +172,7 @@ export function meetEventPages(indexHtml: string, base: string): string[] {
         return null;
       }
     })
-    .filter((u): u is string => Boolean(u) && !nonEventPattern.test(new URL(u).pathname));
+    .filter((u): u is string => Boolean(u) && !nonEventPattern.test(new URL(u as string).pathname));
 
   return [...new Set(validUrls)];
 }

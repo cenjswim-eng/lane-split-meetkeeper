@@ -293,7 +293,7 @@ export function renderAttendanceSummaryBox(doc: jsPDF, athleteName: string, atte
         { content: "Detalle de la Incidencia / Observación", styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } }
       ]
     ],
-    body: incidentsBody,
+    body: incidentsBody as any,
     theme: "grid",
     styles: {
       fontSize: 7.5,
@@ -489,7 +489,7 @@ export function dailyAttendancePdf(options: {
         { content: "Detalle de la Incidencia / Observación", styles: { halign: 'left', fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 7.5 } }
       ]
     ],
-    body: sessionIncidentsBody,
+    body: sessionIncidentsBody as any,
     theme: "grid",
     styles: {
       fontSize: 7.5,

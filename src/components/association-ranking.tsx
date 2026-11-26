@@ -912,7 +912,7 @@ export function AssociationRanking({
                           {item.association}
                         </td>
                         <td className="p-2.5 text-center font-mono">
-                          {item.ageAtDec31 > 0 ? item.ageAtDec31 : "—"}
+                          {(item.ageAtDec31 ?? 0) > 0 ? item.ageAtDec31 : "—"}
                         </td>
                         <td className="p-2.5 text-right font-mono font-bold text-sm text-primary">
                           {item.formattedTime}

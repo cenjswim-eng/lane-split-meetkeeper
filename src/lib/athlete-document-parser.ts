@@ -374,7 +374,7 @@ export async function parseAthletesFromDocument(
                   id: `hytek_${athletesMap.size + 1}`,
                   firstName: a.firstName,
                   lastName: a.lastName,
-                  middleInitial: a.middleInitial || null,
+                  middleInitial: (a as any).middleInitial || null,
                   gender: a.gender === "F" ? "F" : "M",
                   birthDate: a.birthDate,
                   age,
@@ -391,7 +391,7 @@ export async function parseAthletesFromDocument(
         // B. Archivo PDF dentro del ZIP (.pdf)
         else if (lower.endsWith(".pdf")) {
           const bytes = await zipEntry.async("uint8array");
-          const pdfBlob = new File([bytes], entryName, { type: "application/pdf" });
+          const pdfBlob = new File([bytes as BlobPart], entryName, { type: "application/pdf" });
           const lines = await readPdfLines(pdfBlob);
 
           // Probar con parseMeetManagerResults

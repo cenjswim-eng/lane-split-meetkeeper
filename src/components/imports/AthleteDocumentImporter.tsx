@@ -236,7 +236,7 @@ export function AthleteDocumentImporter({
 
           const { error: updErr } = await supabase
             .from("athletes")
-            .update(updatePayload)
+            .update(updatePayload as any)
             .eq("id", a.existingAthleteId);
 
           if (!updErr) updated++;

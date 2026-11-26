@@ -1084,7 +1084,7 @@ export function UnifiedResultsImportHub({
                       <div className="divide-y max-h-48 overflow-y-auto">
                         {fevedaMeets.map((m, idx) => (
                           <div key={idx} className="flex items-center justify-between py-2 text-xs">
-                            <span className="font-medium text-foreground">{m.title}</span>
+                            <span className="font-medium text-foreground">{(m as any).title ?? (m as any).name}</span>
                             <Button
                               size="sm"
                               variant="outline"

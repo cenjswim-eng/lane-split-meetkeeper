@@ -158,8 +158,8 @@ function AthletesPage() {
             buttonLabel="Importar Atletas (ZIP / PDF)"
           />
           <ClubMembersExtractor
-            club={profileData?.club}
-            athletes={clubAthletes}
+            club={profileData?.club as any}
+            athletes={clubAthletes as any}
             mode="dialog"
             buttonVariant="outline"
             buttonLabel="Extraer Integrantes (PDF / ZIP)"

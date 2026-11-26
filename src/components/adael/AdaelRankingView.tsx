@@ -432,7 +432,7 @@ export function AdaelRankingView() {
         if (count && count > 0) {
           setMeetsCount(count);
           if (data && data.length > 0) {
-            const latest = data.sort((a: any, b: any) =>
+            const latest = (data as any[]).sort((a: any, b: any) =>
               (b.start_date || '').localeCompare(a.start_date || '')
             )[0];
             if (latest?.start_date) {
@@ -1092,7 +1092,7 @@ export function AdaelRankingView() {
 
                     return (
                       <tr
-                        key={`${item.swimmerId}_${item.resultId || index}`}
+                        key={`${item.swimmerId}_${(item as any).resultId || index}`}
                         className={`hover:bg-muted/40 transition-colors ${
                           isFirst
                             ? 'bg-amber-500/5'
