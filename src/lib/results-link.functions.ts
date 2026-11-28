@@ -40,12 +40,27 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
       throw new Error("Debes iniciar sesión para importar resultados.");
     }
 
-    const doFetch = async (targetUrl: string) => {
-      return await fetch(targetUrl, {
-        redirect: "follow",
-        signal: AbortSignal.timeout(20_000),
-        headers: BROWSER_HEADERS,
-      });
+    const doFetch = async (targetUrl: string): Promise<Response> => {
+      let last: unknown;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const r = await fetch(targetUrl, {
+            redirect: "follow",
+            signal: AbortSignal.timeout(20_000),
+            headers: BROWSER_HEADERS,
+          });
+          // Reintentar una vez errores temporales del servidor
+          if (attempt === 0 && [500, 502, 503, 504, 429].includes(r.status)) {
+            await new Promise((ok) => setTimeout(ok, 1200));
+            continue;
+          }
+          return r;
+        } catch (e) {
+          last = e;
+          if (attempt === 0) await new Promise((ok) => setTimeout(ok, 800));
+        }
+      }
+      throw last ?? new Error("fetch failed");
     };
 
     let res: Response | null = null;
@@ -75,7 +90,7 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
       }
 
       // Si dio 404, 403 o 530, probar alternativas de Meet Manager (index.htm, evtindex.htm, con/sin slash)
-      if (!res.ok && [404, 403, 530].includes(res.status)) {
+      if (!res.ok) {
         const u = new URL(finalRequestUrl);
         const candidates: string[] = [];
 
@@ -92,9 +107,17 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
           );
         }
 
-        // Si la URL es https://adael.com.ve o https://www.adael.com.ve, probar http:// y viceversa
-        if (finalRequestUrl.startsWith("https://")) {
-          candidates.push(finalRequestUrl.replace(/^https:/i, "http:"));
+        // Probar http/https y con/sin www
+        const swapProto = finalRequestUrl.startsWith("https://")
+          ? finalRequestUrl.replace(/^https:/i, "http:")
+          : finalRequestUrl.replace(/^http:/i, "https:");
+        candidates.push(swapProto);
+        const host = u.hostname;
+        const altHost = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+        for (const base of [finalRequestUrl, swapProto]) {
+          const v = new URL(base);
+          v.hostname = altHost;
+          candidates.push(v.toString());
         }
 
         for (const cand of candidates) {
@@ -121,6 +144,11 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
       const status = res ? res.status : 0;
       // Cloudflare y protecciones antibot / WAF (401, 403, 406, 429, 503, 520..530)
       const isCloudflareOrWaf = [401, 403, 406, 429, 503, 520, 521, 522, 523, 524, 525, 526, 530].includes(status);
+      if (!isCloudflareOrWaf && data.allowBrowser && !/\.pdf(?:\?|$)/i.test(data.url)) {
+        try {
+          return { kind: "html" as const, html: await browserFetch(data.url), url: data.url, via: "browser" as const };
+        } catch {}
+      }
       if (isCloudflareOrWaf) {
         if (data.allowBrowser && !/\.pdf(?:\?|$)/i.test(data.url)) {
           try {
@@ -139,7 +167,11 @@ export const fetchResultsLink = createServerFn({ method: "POST" })
           `El sitio ${hostname} tiene activado un escudo Cloudflare / antibot (error ${status}). Puedes abrir el enlace directamente en tu navegador personal, copiar los resultados y pegarlos en la pestaña 'Pegar Texto Directo' (no requiere servidor).`
         );
       }
-      throw new Error(`La página respondió con error ${status}.`);
+      throw new Error(
+        status === 404
+          ? "No se encontró esa página (error 404). Revisa el enlace o abre la portada de resultados del evento y copia ese enlace."
+          : `La página respondió con error ${status}. Intenta de nuevo en unos minutos o copia la tabla y usa 'Pegar Texto Directo'.`
+      );
     }
 
     const buf = new Uint8Array(await res.arrayBuffer());
